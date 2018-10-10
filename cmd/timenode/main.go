@@ -22,11 +22,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
+
+	"github.com/TATAUFO/PDU/mydb"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"strconv"
 )
 
 type NatureTime struct {
@@ -34,14 +36,29 @@ type NatureTime struct {
 	Proof     string `json:"proof"`     // The Proof of Not Before Timestamp
 }
 
+var (
+	err    error
+	memory *mydb.MyDB
+)
+
+func initDB() error {
+	memory, err = mydb.Open()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func timeResponse(c echo.Context) error {
 
 	t := time.Now().UnixNano()
-	natureTime := NatureTime{t, MD5(strconv.Itoa(int(t)))}
+	p := MD5(strconv.Itoa(int(t)))
+	natureTime := NatureTime{t, p}
 	res, err := json.Marshal(natureTime)
 	if err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
+	memory.SaveTime(t, p)
 	return c.String(http.StatusOK, string(res))
 }
 
@@ -54,6 +71,12 @@ func MD5(text string) string {
 func main() {
 	// Echo instance
 	e := echo.New()
+
+	// init DB
+	err = initDB()
+	if err != nil {
+		e.Logger.Fatal(err)
+	}
 
 	// Middleware
 	e.Use(middleware.Logger())
