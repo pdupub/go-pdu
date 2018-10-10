@@ -17,9 +17,56 @@
 package main
 
 import (
-	"log"
+	"crypto/md5"
+	"encoding/hex"
+	"encoding/json"
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
+	"strconv"
 )
 
+type NatureTime struct {
+	Timestamp int64  `json:"timestamp"` // Timestamp
+	Proof     string `json:"proof"`     // The Proof of Not Before Timestamp
+}
+
+func timeResponse(c echo.Context) error {
+
+	t := time.Now().UnixNano()
+	natureTime := NatureTime{t, MD5(strconv.Itoa(int(t)))}
+	res, err := json.Marshal(natureTime)
+	if err != nil {
+		return c.String(http.StatusBadRequest, err.Error())
+	}
+	return c.String(http.StatusOK, string(res))
+}
+
+func MD5(text string) string {
+	ctx := md5.New()
+	ctx.Write([]byte(text))
+	return hex.EncodeToString(ctx.Sum(nil))
+}
+
 func main() {
-	log.Fatal("time node stopped.")
+	// Echo instance
+	e := echo.New()
+
+	// Middleware
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+
+	// Routes
+	e.GET("/", timeResponse)
+
+	// Port
+	port := "1323"
+	if len(os.Args) > 1 {
+		port = os.Args[1]
+	}
+	// Start server
+	e.Logger.Fatal(e.Start(":" + port))
 }
