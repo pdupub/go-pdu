@@ -41,7 +41,7 @@ func FromHex(s string) []byte {
 	return Hex2Bytes(s)
 }
 
-// CopyBytes
+// CopyBytes is just copy
 func CopyBytes(b []byte) (copiedBytes []byte) {
 	if b == nil {
 		return nil
@@ -84,7 +84,7 @@ func Hex2Bytes(str string) []byte {
 	return h
 }
 
-// RightPadBytes
+// RightPadBytes is extend to len l, right pad
 func RightPadBytes(slice []byte, l int) []byte {
 	if l <= len(slice) {
 		return slice
@@ -96,7 +96,7 @@ func RightPadBytes(slice []byte, l int) []byte {
 	return padded
 }
 
-// LeftPadBytes
+// LeftPadBytes is extend to len l, left pad
 func LeftPadBytes(slice []byte, l int) []byte {
 	if l <= len(slice) {
 		return slice
