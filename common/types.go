@@ -23,6 +23,7 @@ import (
 	"github.com/TATAUFO/PDU/common/hexutil"
 )
 
+// Const
 const (
 	HashLength    = 32 // HashLength is ...
 	AddressLength = 20 // AddressLength is ...
@@ -56,7 +57,7 @@ func (h Hash) Big() *big.Int { return new(big.Int).SetBytes(h[:]) }
 // Hex get the Hex string representation of the underlying hash
 func (h Hash) Hex() string { return hexutil.Encode(h[:]) }
 
-// Sets the hash to the value of b. If b is larger than len(h), 'b' will be cropped (from the left).
+// SetBytes sets the hash to the value of b. If b is larger than len(h), 'b' will be cropped (from the left).
 func (h *Hash) SetBytes(b []byte) {
 	if len(b) > len(h) {
 		b = b[len(b)-HashLength:]
@@ -77,20 +78,20 @@ func (h *Hash) Set(other Hash) {
 // Address is fixed length []byte
 type Address [AddressLength]byte
 
-// BytesToAddress
+// BytesToAddress convert []byte to Address
 func BytesToAddress(b []byte) Address {
 	var a Address
 	a.SetBytes(b)
 	return a
 }
 
-// BigToAddress
+// BigToAddress convert big.Int to Address
 func BigToAddress(b *big.Int) Address { return BytesToAddress(b.Bytes()) }
 
-// HexToAddress
+// HexToAddress convert Hex string to Address
 func HexToAddress(s string) Address { return BytesToAddress(FromHex(s)) }
 
-// IsHexAddress
+// IsHexAddress return if string is Address
 func IsHexAddress(s string) bool {
 	if hasHexPrefix(s) {
 		s = s[2:]
