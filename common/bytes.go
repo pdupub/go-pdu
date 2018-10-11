@@ -18,6 +18,7 @@ package common
 
 import "encoding/hex"
 
+// Convert []byte to string, add 0x
 func ToHex(b []byte) string {
 	hex := Bytes2Hex(b)
 	// Prefer output of "0x0" instead of "0x"
@@ -27,6 +28,7 @@ func ToHex(b []byte) string {
 	return "0x" + hex
 }
 
+// Convert string to []byte
 func FromHex(s string) []byte {
 	if len(s) > 1 {
 		if s[0:2] == "0x" || s[0:2] == "0X" {
@@ -40,8 +42,6 @@ func FromHex(s string) []byte {
 }
 
 // Copy bytes
-//
-// Returns an exact copy of the provided bytes
 func CopyBytes(b []byte) (copiedBytes []byte) {
 	if b == nil {
 		return nil
@@ -52,14 +52,17 @@ func CopyBytes(b []byte) (copiedBytes []byte) {
 	return
 }
 
+// Return is has prefix or not
 func hasHexPrefix(str string) bool {
 	return len(str) >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')
 }
 
+// Return byte is hex character or not
 func isHexCharacter(c byte) bool {
 	return ('0' <= c && c <= '9') || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F')
 }
 
+// Return whole string is hex character or not
 func isHex(str string) bool {
 	if len(str)%2 != 0 {
 		return false
@@ -72,29 +75,19 @@ func isHex(str string) bool {
 	return true
 }
 
+// Convert []byte to string
 func Bytes2Hex(d []byte) string {
 	return hex.EncodeToString(d)
 }
 
+// Convert string to []byte
 func Hex2Bytes(str string) []byte {
 	h, _ := hex.DecodeString(str)
 
 	return h
 }
 
-func Hex2BytesFixed(str string, flen int) []byte {
-	h, _ := hex.DecodeString(str)
-	if len(h) == flen {
-		return h
-	}
-	if len(h) > flen {
-		return h[len(h)-flen:]
-	}
-	hh := make([]byte, flen)
-	copy(hh[flen-len(h):flen], h[:])
-	return hh
-}
-
+// Right pad bytes
 func RightPadBytes(slice []byte, l int) []byte {
 	if l <= len(slice) {
 		return slice
@@ -106,6 +99,7 @@ func RightPadBytes(slice []byte, l int) []byte {
 	return padded
 }
 
+// Left pad bytes
 func LeftPadBytes(slice []byte, l int) []byte {
 	if l <= len(slice) {
 		return slice

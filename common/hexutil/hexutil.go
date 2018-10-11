@@ -26,19 +26,20 @@ import (
 const uintBits = 32 << (uint64(^uint(0)) >> 63)
 
 var (
-	ErrEmptyString   = &decError{"empty hex string"}
-	ErrSyntax        = &decError{"invalid hex string"}
-	ErrMissingPrefix = &decError{"hex string without 0x prefix"}
-	ErrOddLength     = &decError{"hex string of odd length"}
-	ErrEmptyNumber   = &decError{"hex string \"0x\""}
-	ErrLeadingZero   = &decError{"hex number with leading zero digits"}
-	ErrUint64Range   = &decError{"hex number > 64 bits"}
-	ErrUintRange     = &decError{fmt.Sprintf("hex number > %d bits", uintBits)}
-	ErrBig256Range   = &decError{"hex number > 256 bits"}
+	ErrEmptyString   = &decError{"empty hex string"}                            // ErrEmptyString
+	ErrSyntax        = &decError{"invalid hex string"}                          // ErrSyntax
+	ErrMissingPrefix = &decError{"hex string without 0x prefix"}                // ErrMissingPrefix
+	ErrOddLength     = &decError{"hex string of odd length"}                    // ErrOddLength
+	ErrEmptyNumber   = &decError{"hex string \"0x\""}                           // ErrEmptyNumber
+	ErrLeadingZero   = &decError{"hex number with leading zero digits"}         // ErrLeadingZero
+	ErrUint64Range   = &decError{"hex number > 64 bits"}                        // ErrUint64Range
+	ErrUintRange     = &decError{fmt.Sprintf("hex number > %d bits", uintBits)} // ErrUintRange
+	ErrBig256Range   = &decError{"hex number > 256 bits"}                       // ErrBig256Range
 )
 
 type decError struct{ msg string }
 
+// Return Error
 func (err decError) Error() string { return err.msg }
 
 // Decode decodes a hex string with 0x prefix.
