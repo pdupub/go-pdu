@@ -27,11 +27,13 @@ const (
 	bucketGenealogy = "genealogy"
 )
 
+// MyDB is the key-value DB for store
 type MyDB struct {
 	db *bolt.DB
 	bs map[string]*bolt.Bucket
 }
 
+// Open is create connection to db, create tables if they not exist.
 func Open() (*MyDB, error) {
 	db, err := bolt.Open(defaultDBName, 0600, nil)
 	if err != nil {
@@ -51,10 +53,12 @@ func Open() (*MyDB, error) {
 	return &mydb, nil
 }
 
+// SaveTime is put the time proof into db
 func (m *MyDB) SaveTime(timestamp int64, proof string) error {
 	return m.Put(bucketTimeline, strconv.Itoa(int(timestamp)), []byte(proof))
 }
 
+// GetTime is get the time proof if exist.
 func (m *MyDB) GetTime(timestamp int64) (string, error) {
 	res, err := m.Get(bucketTimeline, strconv.Itoa(int(timestamp)))
 	if err != nil {
@@ -75,10 +79,12 @@ func (m *MyDB) createTable(tableName string) error {
 	})
 }
 
+// Close the connection to db
 func (m *MyDB) Close() error {
 	return m.db.Close()
 }
 
+// Put or Update key-value into db.bucket
 func (m *MyDB) Put(bucketName string, key string, value []byte) error {
 	return m.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketName))
@@ -88,6 +94,7 @@ func (m *MyDB) Put(bucketName string, key string, value []byte) error {
 
 }
 
+// Get value from db.bucket by key
 func (m *MyDB) Get(bucketName string, key string) (res []byte, err error) {
 	err = m.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketName))
