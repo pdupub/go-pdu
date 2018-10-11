@@ -27,7 +27,7 @@ type Individual struct {
 	Father     *Individual      `json:"father"`     // Father
 	Mother     *Individual      `json:"mother"`     // Mother
 	Generation uint64           `json:"generation"` // Generation
-	Gender     bool             `json:"gender""`    // Gender
+	Gender     bool             `json:"gender"`    // Gender
 	Credit     uint64           `json:"credit"`     // Credit
 
 }
