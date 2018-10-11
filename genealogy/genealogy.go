@@ -23,12 +23,12 @@ import (
 
 // Individual is account link to parents, except two in genesis config
 type Individual struct {
-	account    accounts.Account `json:"account"`    // Account
-	father     *Individual      `json:"father"`     // Father
-	mother     *Individual      `json:"mother"`     // Mother
-	generation uint64           `json:"generation"` // Generation
-	gender     bool             `json:"gender""`    // Gender
-	credit     uint64           `json:"credit"`     // Credit
+	Account    accounts.Account `json:"account"`    // Account
+	Father     *Individual      `json:"father"`     // Father
+	Mother     *Individual      `json:"mother"`     // Mother
+	Generation uint64           `json:"generation"` // Generation
+	Gender     bool             `json:"gender""`    // Gender
+	Credit     uint64           `json:"credit"`     // Credit
 
 }
 
