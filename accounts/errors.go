@@ -20,5 +20,8 @@ import (
 	"errors"
 )
 
-//Error Unknown Account
-var ErrUnknownAccount = errors.New("unknown account")
+// Various error messages to mark accounts invalid
+var (
+	//ErrUnknownAccount is returned when Account is unknown
+	ErrUnknownAccount = errors.New("unknown account")
+)
