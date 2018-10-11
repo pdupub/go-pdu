@@ -31,6 +31,7 @@ import (
 	"github.com/labstack/echo/middleware"
 )
 
+// NatureTime is struct for time proof
 type NatureTime struct {
 	Timestamp int64  `json:"timestamp"` // Timestamp
 	Proof     string `json:"proof"`     // The Proof of Not Before Timestamp
@@ -52,7 +53,7 @@ func initDB() error {
 func timeResponse(c echo.Context) error {
 
 	t := time.Now().UnixNano()
-	p := MD5(strconv.Itoa(int(t)))
+	p := toMD5(strconv.Itoa(int(t)))
 	natureTime := NatureTime{t, p}
 	res, err := json.Marshal(natureTime)
 	if err != nil {
@@ -62,7 +63,7 @@ func timeResponse(c echo.Context) error {
 	return c.String(http.StatusOK, string(res))
 }
 
-func MD5(text string) string {
+func toMD5(text string) string {
 	ctx := md5.New()
 	ctx.Write([]byte(text))
 	return hex.EncodeToString(ctx.Sum(nil))
