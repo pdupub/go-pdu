@@ -14,16 +14,14 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package accounts
+package genealogy
 
 import (
-	"github.com/TATAUFO/PDU/common"
+	"errors"
 )
 
-// Account represents an PDU account
-type Account struct {
-	Address    common.Address    `json:"address"`    // Account address derived from the key
-	FatherSign common.Signature  `json:"fatherSign"` // Father Signature for Account
-	MotherSign common.Signature  `json:"motherSign"` // Mother Signature for Account & Father Signature
-	NatureTime common.NatureTime `json:"natureTime"` //Nature Time
-}
+// Various error messages to mark accounts invalid
+var (
+	//ErrUnknownParent is returned when Account parent is unknown
+	ErrUnknownParent = errors.New("unknown parent")
+)

@@ -25,9 +25,19 @@ import (
 
 // Const
 const (
-	HashLength    = 32 // HashLength is ...
-	AddressLength = 20 // AddressLength is ...
+	HashLength    = 32 // HashLength
+	AddressLength = 20 // AddressLength
+	SignLength    = 65 // SignLength
 )
+
+// NatureTime is struct for time proof
+type NatureTime struct {
+	Timestamp int64  `json:"timestamp"` // Timestamp
+	Proof     string `json:"proof"`     // The Proof of Not Before Timestamp
+}
+
+// Signature is fixed length []byte
+type Signature [SignLength]byte
 
 // Hash is fixed length []byte
 type Hash [HashLength]byte

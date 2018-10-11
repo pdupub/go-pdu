@@ -15,3 +15,31 @@
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
 package genealogy
+
+import (
+	"github.com/TATAUFO/PDU/accounts"
+	"github.com/TATAUFO/PDU/common"
+)
+
+// Individual is account link to parents, except two in genesis config
+type Individual struct {
+	account    accounts.Account `json:"account"`    // Account
+	father     *Individual      `json:"father"`     // Father
+	mother     *Individual      `json:"mother"`     // Mother
+	generation uint64           `json:"generation"` // Generation
+	gender     bool             `json:"gender""`    // Gender
+	credit     uint64           `json:"credit"`     // Credit
+
+}
+
+// Genealogy represents topology of all known accounts
+type Genealogy interface {
+	// Add returns error if add account to genealogy fail
+	Add(account accounts.Account) error
+	// Get returns the Individual by address
+	Get(address common.Address) (Individual, error)
+	// Size returns the size of all account
+	Size() uint64
+	// Generation returns the max generation
+	Generation() uint64
+}

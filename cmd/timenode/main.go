@@ -25,17 +25,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/TATAUFO/PDU/common"
 	"github.com/TATAUFO/PDU/mydb"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 )
-
-// NatureTime is struct for time proof
-type NatureTime struct {
-	Timestamp int64  `json:"timestamp"` // Timestamp
-	Proof     string `json:"proof"`     // The Proof of Not Before Timestamp
-}
 
 var (
 	err    error
@@ -54,7 +49,7 @@ func timeResponse(c echo.Context) error {
 
 	t := time.Now().UnixNano()
 	p := toMD5(strconv.Itoa(int(t)))
-	natureTime := NatureTime{t, p}
+	natureTime := common.NatureTime{t, p}
 	res, err := json.Marshal(natureTime)
 	if err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
