@@ -72,9 +72,8 @@ func (m *MyDB) createTable(tableName string) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(tableName))
 		if err != nil {
 			return err
-		} else {
-			m.bs[tableName] = b
 		}
+		m.bs[tableName] = b
 		return nil
 	})
 }
