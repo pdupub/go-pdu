@@ -20,4 +20,5 @@ import (
 	"errors"
 )
 
-var ErrUnknownAccount = errors.New("unknown account") //Error Unknown Account
+//Error Unknown Account
+var ErrUnknownAccount = errors.New("unknown account")
