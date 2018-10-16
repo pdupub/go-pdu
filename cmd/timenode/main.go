@@ -17,8 +17,6 @@
 package main
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -48,7 +46,7 @@ func initDB() error {
 func timeResponse(c echo.Context) error {
 
 	t := time.Now().UnixNano()
-	p := toMD5(strconv.Itoa(int(t)))
+	p := string(common.ToMD5([]byte(strconv.Itoa(int(t)))))
 	natureTime := common.NatureTime{t, p}
 	res, err := json.Marshal(natureTime)
 	if err != nil {
@@ -56,12 +54,6 @@ func timeResponse(c echo.Context) error {
 	}
 	memory.SaveTime(t, p)
 	return c.String(http.StatusOK, string(res))
-}
-
-func toMD5(text string) string {
-	ctx := md5.New()
-	ctx.Write([]byte(text))
-	return hex.EncodeToString(ctx.Sum(nil))
 }
 
 func main() {

@@ -14,10 +14,9 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package clan
+package accounts
 
 import (
-	"github.com/TATAUFO/PDU/accounts"
 	"github.com/TATAUFO/PDU/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	mrand "math/rand"
@@ -29,19 +28,12 @@ func TestUtil(t *testing.T) {
 	seed := time.Now().UnixNano()
 	mrand.Seed(seed)
 
-	cpk, err := crypto.GenerateKey()
-	if err != nil {
-		t.Fatal(err)
-	}
-	var address, fad, mad common.Address
-	address.SetBytes(crypto.PubkeyToAddress(cpk.PublicKey).Bytes())
-
+	address := common.HexToAddress("0x1ac96e716a1b0636f93ec7b1eaa0becb3eeeaa60")
 	dob := common.NatureTime{123, "abc"}
-	account := accounts.Account{address, common.Signature{}, common.Signature{}, dob}
+	account := Account{address, common.Signature{}, common.Signature{}, dob}
 	accountHash := common.ToHash(account)
 
 	fpk, err := crypto.GenerateKey()
-	fad.SetBytes(crypto.PubkeyToAddress(fpk.PublicKey).Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +44,6 @@ func TestUtil(t *testing.T) {
 	account.FatherSign.SetBytes(fSign)
 
 	mpk, err := crypto.GenerateKey()
-	mad.SetBytes(crypto.PubkeyToAddress(mpk.PublicKey).Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,15 +51,4 @@ func TestUtil(t *testing.T) {
 	mSign, err := crypto.Sign(accountHash, mpk)
 	account.MotherSign.SetBytes(mSign)
 
-	fatherAccount := accounts.Account{fad, common.Signature{}, common.Signature{}, common.NatureTime{123, "a"}}
-	motherAccount := accounts.Account{mad, common.Signature{}, common.Signature{}, common.NatureTime{234, "b"}}
-	clan, err := New(fatherAccount, motherAccount)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = clan.Add(account)
-	if err != nil {
-		t.Fatal(err)
-	}
 }

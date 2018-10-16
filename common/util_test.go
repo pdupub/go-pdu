@@ -15,36 +15,3 @@
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
 package common
-
-import (
-	"bytes"
-	"crypto/md5"
-	"encoding/gob"
-	"encoding/hex"
-)
-
-func ToHash(data interface{}) []byte {
-	var dao bytes.Buffer
-	encoder := gob.NewEncoder(&dao)
-	encoder.Encode(&data)
-	return dao.Bytes()
-}
-
-func FromHash(hash []byte, data interface{}) error {
-	var dao bytes.Buffer
-	decoder := gob.NewDecoder(&dao)
-	dao.Write(hash)
-	err := decoder.Decode(&data)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func ToMD5(src []byte) []byte {
-	ctx := md5.New()
-	ctx.Write([]byte(src))
-	dst := make([]byte, HashLength)
-	hex.Encode(dst, src)
-	return dst
-}

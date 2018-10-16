@@ -146,3 +146,11 @@ func (a *Address) Set(other Address) {
 		a[i] = v
 	}
 }
+
+// SetBytes set []byte to Signature
+func (s *Signature) SetBytes(b []byte) {
+	if len(b) > len(s) {
+		b = b[len(b)-SignLength:]
+	}
+	copy(s[SignLength-len(b):], b)
+}
