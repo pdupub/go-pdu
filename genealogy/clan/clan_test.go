@@ -14,16 +14,4 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package accounts
-
-import (
-	"github.com/TATAUFO/PDU/common"
-)
-
-// Account represents an PDU account
-type Account struct {
-	Address    common.Address    `json:"address"`    // Account address derived from the key
-	FatherSign common.Signature  `json:"fatherSign"` // Father Signature for Account
-	MotherSign common.Signature  `json:"motherSign"` // Mother Signature for Account & Father Signature
-	DOB        common.NatureTime `json:"natureTime"` // Date of birth
-}
+package clan

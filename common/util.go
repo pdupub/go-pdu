@@ -14,16 +14,22 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package accounts
+package common
 
 import (
-	"github.com/TATAUFO/PDU/common"
+	"bytes"
+	"crypto/md5"
+	"encoding/gob"
+	"encoding/hex"
 )
 
-// Account represents an PDU account
-type Account struct {
-	Address    common.Address    `json:"address"`    // Account address derived from the key
-	FatherSign common.Signature  `json:"fatherSign"` // Father Signature for Account
-	MotherSign common.Signature  `json:"motherSign"` // Mother Signature for Account & Father Signature
-	DOB        common.NatureTime `json:"natureTime"` // Date of birth
+func ToHash(data interface{}) []byte {
+	var dao bytes.Buffer
+	var daoHash []byte
+	encoder := gob.NewEncoder(&dao)
+	encoder.Encode(data)
+	ctx := md5.New()
+	ctx.Write(dao.Bytes())
+	hex.Encode(daoHash, ctx.Sum(nil))
+	return daoHash
 }
