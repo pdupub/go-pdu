@@ -22,7 +22,6 @@ import (
 	"github.com/TATAUFO/PDU/common"
 	"github.com/TATAUFO/PDU/genealogy"
 
-	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"math/big"
 )
