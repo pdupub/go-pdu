@@ -57,7 +57,7 @@ func TestUtil(t *testing.T) {
 		t.Fatal(err)
 	}
 	accountHash = common.ToHash(account)
-	mSign, err := crypto.Sign(accountHash, mpk)
+	mSign, err := crypto.Sign(common.ToMD5(accountHash), mpk)
 	account.MotherSign.SetBytes(mSign)
 
 	fatherAccount := accounts.Account{fad, common.Signature{}, common.Signature{}, common.NatureTime{123, "a"}}

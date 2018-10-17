@@ -26,7 +26,7 @@ import (
 func ToHash(data interface{}) []byte {
 	var dao bytes.Buffer
 	encoder := gob.NewEncoder(&dao)
-	encoder.Encode(&data)
+	encoder.Encode(data)
 	return dao.Bytes()
 }
 
@@ -34,7 +34,7 @@ func FromHash(hash []byte, data interface{}) error {
 	var dao bytes.Buffer
 	decoder := gob.NewDecoder(&dao)
 	dao.Write(hash)
-	err := decoder.Decode(&data)
+	err := decoder.Decode(data)
 	if err != nil {
 		return err
 	}
@@ -43,8 +43,8 @@ func FromHash(hash []byte, data interface{}) error {
 
 func ToMD5(src []byte) []byte {
 	ctx := md5.New()
-	ctx.Write([]byte(src))
+	ctx.Write(src)
 	dst := make([]byte, HashLength)
-	hex.Encode(dst, src)
+	hex.Encode(dst, ctx.Sum(nil))
 	return dst
 }

@@ -77,23 +77,20 @@ func (c *Clan) Add(account accounts.Account) error {
 	if _, ok := c.dag[account.Address]; ok {
 		return nil
 	}
-
 	fatherAddress, err := ecrecover(accounts.Account{Address: account.Address, DOB: account.DOB}, account.FatherSign[:])
 	if err != nil {
-		return ErrInvalidOriginParent
+		return err
 	}
 	if _, ok := c.dag[fatherAddress]; !ok {
 		return ErrInvalidOriginParent
 	}
-
 	motherAddress, err := ecrecover(accounts.Account{Address: account.Address, DOB: account.DOB, FatherSign: account.FatherSign}, account.MotherSign[:])
 	if err != nil {
-		return ErrInvalidOriginParent
+		return err
 	}
 	if _, ok := c.dag[motherAddress]; !ok {
 		return ErrInvalidOriginParent
 	}
-
 	// The generation of account is larger generation of parents plus one
 	parentGeneration := c.dag[fatherAddress].Generation
 	if parentGeneration < c.dag[motherAddress].Generation {
@@ -118,14 +115,13 @@ func gender(account accounts.Account) bool {
 
 func ecrecover(account accounts.Account, sig []byte) (common.Address, error) {
 	accountHash := common.ToHash(account)
-	sigPUblicKey, err := crypto.Ecrecover(accountHash, sig)
+	sigPUblicKey, err := crypto.Ecrecover(common.ToMD5(accountHash), sig)
 	if err != nil {
-		return common.Address{}, ErrInvalidOriginParent
+		return common.Address{}, err
 	}
 	publicKey, err := crypto.UnmarshalPubkey(sigPUblicKey)
 	if err != nil {
-		return common.Address{}, ErrInvalidOriginParent
+		return common.Address{}, err
 	}
-
 	return common.BytesToAddress(crypto.PubkeyToAddress(*publicKey).Bytes()), nil
 }
