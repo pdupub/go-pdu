@@ -104,6 +104,10 @@ func (c *Clan) Add(account accounts.Account) error {
 		parentGeneration + 1,
 		gender(account),
 		defaultInitIndividualCredit}
+	c.size += 1
+	if parentGeneration+1 > c.generation {
+		c.generation = parentGeneration + 1
+	}
 	return nil
 }
 

@@ -29,46 +29,63 @@ func TestUtil(t *testing.T) {
 	seed := time.Now().UnixNano()
 	mrand.Seed(seed)
 
-	cpk, err := crypto.GenerateKey()
-	if err != nil {
-		t.Fatal(err)
-	}
-	var address, fad, mad common.Address
-	address.SetBytes(crypto.PubkeyToAddress(cpk.PublicKey).Bytes())
-
-	dob := common.NatureTime{123, "abc"}
-	account := accounts.Account{address, common.Signature{}, common.Signature{}, dob}
-	accountHash := common.ToHash(account)
-
+	// generate two private key as Adam and Eve, first parents.
+	var fad, mad common.Address
 	fpk, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
 	fad.SetBytes(crypto.PubkeyToAddress(fpk.PublicKey).Bytes())
-	if err != nil {
-		t.Fatal(err)
-	}
-	fSign, err := crypto.Sign(common.ToMD5(accountHash), fpk)
-	if err != nil {
-		t.Fatal(err)
-	}
-	account.FatherSign.SetBytes(fSign)
-
 	mpk, err := crypto.GenerateKey()
-	mad.SetBytes(crypto.PubkeyToAddress(mpk.PublicKey).Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}
-	accountHash = common.ToHash(account)
-	mSign, err := crypto.Sign(common.ToMD5(accountHash), mpk)
-	account.MotherSign.SetBytes(mSign)
+	mad.SetBytes(crypto.PubkeyToAddress(mpk.PublicKey).Bytes())
+	fatherAccount := accounts.Account{fad, common.Signature{}, common.Signature{}, common.NatureTime{time.Now().UnixNano(), "a"}}
+	motherAccount := accounts.Account{mad, common.Signature{}, common.Signature{}, common.NatureTime{time.Now().UnixNano(), "b"}}
 
-	fatherAccount := accounts.Account{fad, common.Signature{}, common.Signature{}, common.NatureTime{123, "a"}}
-	motherAccount := accounts.Account{mad, common.Signature{}, common.Signature{}, common.NatureTime{234, "b"}}
+	// create new genealogy
 	clan, err := New(fatherAccount, motherAccount)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// generate new private key
+	var address common.Address
+	cpk, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	address.SetBytes(crypto.PubkeyToAddress(cpk.PublicKey).Bytes())
+	dob := common.NatureTime{time.Now().UnixNano(), "abc"}
+
+	// build account
+	account := accounts.Account{address, common.Signature{}, common.Signature{}, dob}
+	accountHash := common.ToHash(account)
+	// sign by father
+	fSign, err := crypto.Sign(common.ToMD5(accountHash), fpk)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// update account info
+	account.FatherSign.SetBytes(fSign)
+	accountHash = common.ToHash(account)
+	// sign by mother
+	mSign, err := crypto.Sign(common.ToMD5(accountHash), mpk)
+	account.MotherSign.SetBytes(mSign)
+
+	// add new account into genealogy
 	err = clan.Add(account)
 	if err != nil {
 		t.Fatal(err)
+	}
+	// check the size of genealogy
+	if clan.size != 3 {
+		t.Fatal("clan size != 3")
+	}
+	// check the generation of genealogy
+	if clan.generation != 1 {
+		t.Fatal("clan generation != 1")
 	}
 }
