@@ -21,9 +21,9 @@ import (
 	"github.com/TATAUFO/PDU/accounts"
 	"github.com/TATAUFO/PDU/common"
 	"github.com/TATAUFO/PDU/genealogy"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	"math/big"
 )
 
 const (
@@ -43,7 +43,7 @@ type Clan struct {
 	generation uint64
 }
 
-// Create new clan
+// New create new clan
 func New(father, mother accounts.Account) (*Clan, error) {
 	if len(father.Address) != common.AddressLength || len(mother.Address) != common.AddressLength {
 		return nil, ErrInvalidOriginParent

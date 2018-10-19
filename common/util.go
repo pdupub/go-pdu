@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 )
 
+// ToHash convert data into []byte by gob
 func ToHash(data interface{}) []byte {
 	var dao bytes.Buffer
 	encoder := gob.NewEncoder(&dao)
@@ -30,6 +31,7 @@ func ToHash(data interface{}) []byte {
 	return dao.Bytes()
 }
 
+// FromHash convert []byte into struct data
 func FromHash(hash []byte, data interface{}) error {
 	var dao bytes.Buffer
 	decoder := gob.NewDecoder(&dao)
@@ -41,6 +43,7 @@ func FromHash(hash []byte, data interface{}) error {
 	return nil
 }
 
+// ToMD5 get hash
 func ToMD5(src []byte) []byte {
 	ctx := md5.New()
 	ctx.Write(src)
