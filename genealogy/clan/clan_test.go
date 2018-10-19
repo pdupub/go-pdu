@@ -73,6 +73,9 @@ func TestUtil(t *testing.T) {
 	accountHash = common.ToHash(account)
 	// sign by mother
 	mSign, err := crypto.Sign(common.ToMD5(accountHash), mpk)
+	if err != nil {
+		t.Fatal(err)
+	}
 	account.MotherSign.SetBytes(mSign)
 
 	// add new account into genealogy
