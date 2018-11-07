@@ -6,7 +6,6 @@ Parallel Digital Universe - A Peer-to-Peer Social Network
 [![Travis](https://travis-ci.org/TATAUFO/PDU.svg?branch=master)](https://travis-ci.org/TATAUFO/PDU)
 [![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](LICENSE)
 
-> 随着科技的发展，计算机程序所解能决的问题也逐渐从单纯的计算，向各个领域延伸，变得越来越复杂，往往不能够简单的依靠某种算法来的解决。为此，我们开始从现实中寻找答案，试图让经过了时间磨砺的智慧来指导我们的方向。比如，基于生物神经网络的研究而构建的数学模型，启发了现代的人工智能技术。而我们在这里将要讨论的社交网络形态，则是简化后的社会形态向网络功能的映射。
 
 ## 简介
 

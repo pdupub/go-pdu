@@ -32,8 +32,17 @@ const (
 
 // Various error messages to mark accounts invalid
 var (
-	//ErrInvalidOriginParent is returned when Origin Parent is invalid
-	ErrInvalidOriginParent = errors.New("invalid parent")
+	// ErrInvalidOriginParent is returned when parent is invalid
+	ErrInvalidOriginParent = errors.New("invalid origin parent")
+
+	// ErrInvalidNatureTime is returned when proof is not correct
+	ErrInvalidNatureTime = errors.New("invalid nature time")
+
+	// ErrTimeUnknown is returned when timestamp is not store
+	ErrTimeUnknown = errors.New("time unknown")
+
+	// ErrParentNotFound is returned when parent Address is not store in this clan
+	ErrParentNotFound = errors.New("parent not found")
 )
 
 // Clan is DAG topology of genealogy
@@ -43,7 +52,7 @@ type Clan struct {
 	generation uint64
 }
 
-// New create new clan
+// New create new clan,
 func New(father, mother accounts.Account) (*Clan, error) {
 	if len(father.Address) != common.AddressLength || len(mother.Address) != common.AddressLength {
 		return nil, ErrInvalidOriginParent
@@ -82,14 +91,14 @@ func (c *Clan) Add(account accounts.Account) error {
 		return err
 	}
 	if _, ok := c.dag[fatherAddress]; !ok {
-		return ErrInvalidOriginParent
+		return ErrParentNotFound
 	}
 	motherAddress, err := ecrecover(accounts.Account{Address: account.Address, DOB: account.DOB, FatherSign: account.FatherSign}, account.MotherSign[:])
 	if err != nil {
 		return err
 	}
 	if _, ok := c.dag[motherAddress]; !ok {
-		return ErrInvalidOriginParent
+		return ErrParentNotFound
 	}
 	// The generation of account is larger generation of parents plus one
 	parentGeneration := c.dag[fatherAddress].Generation
