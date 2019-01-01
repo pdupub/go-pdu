@@ -39,7 +39,7 @@ var (
 )
 
 func TestNewUniverse(t *testing.T) {
-	universeEngine, _ = SelectEngine(crypto.BTC)
+	universeEngine, _ = SelectEngine(crypto.ETH)
 
 	// Test 1: Create root users, Adam and Eve , create universe
 	// The gender of user relate to public key (random), so createRootUser
@@ -365,16 +365,9 @@ func createRootUser(male bool) (*crypto.PrivateKey, *User, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-
-	users, err := CreateRootUsers(*pubKey)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if male && users[1] != nil {
-		return privKey, users[1], nil
-	} else if !male && users[0] != nil {
-		return privKey, users[0], nil
+	user := CreateRootUser(*pubKey, "name", "extra")
+	if male == user.Gender() {
+		return privKey, user, nil
 	}
 	return nil, nil, errCreateRootUserFail
 }

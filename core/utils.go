@@ -42,15 +42,15 @@ func SelectEngine(source string) (crypto.Engine, error) {
 }
 
 // DecryptKey decrypt private key from keyJson file
-func DecryptKey(keyjson []byte, passwd, source string) (*crypto.PrivateKey, error) {
+func DecryptKey(keyjson []byte, passwd string) (*crypto.PrivateKey, error) {
 	var engine crypto.Engine
-	if source == "" {
-		keyJM := make(map[string]interface{})
-		if err := json.Unmarshal(keyjson, &keyJM); err != nil {
-			return nil, err
-		}
-		source = keyJM["source"].(string)
+
+	keyJM := make(map[string]interface{})
+	if err := json.Unmarshal(keyjson, &keyJM); err != nil {
+		return nil, err
 	}
+	source := keyJM["source"].(string)
+
 	engine, err := SelectEngine(source)
 	if err != nil {
 		return nil, err

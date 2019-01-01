@@ -77,8 +77,8 @@ func generate() error {
 	if string(passwd) != string(passwd2) {
 		return errPasswordNotMatch
 	}
-	if _, err := os.Stat(keyFile); err == nil {
-		return fmt.Errorf("keyfile already exists at %s", keyFile)
+	if _, err := os.Stat(output); err == nil {
+		return fmt.Errorf("keyfile already exists at %s", output)
 	} else if !os.IsNotExist(err) {
 		return err
 	}
@@ -87,10 +87,6 @@ func generate() error {
 		return crypto.ErrSigTypeNotSupport
 	}
 
-	// set pdu as default
-	if crypt == "" {
-		crypt = crypto.PDU
-	}
 	engine, err = core.SelectEngine(crypt)
 	if err != nil {
 		return err
@@ -105,10 +101,10 @@ func generate() error {
 		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(output), 0700); err != nil {
-		return fmt.Errorf("could not create directory %s", filepath.Dir(keyFile))
+		return fmt.Errorf("could not create directory %s", filepath.Dir(output))
 	}
 	if err := ioutil.WriteFile(output, keyJson, 0600); err != nil {
-		return fmt.Errorf("failed to write keyfile to %s: %v", keyFile, err)
+		return fmt.Errorf("failed to write keyfile to %s: %v", output, err)
 	}
 	fmt.Println(output, "is created success.")
 	return nil
@@ -128,7 +124,7 @@ func inspect() error {
 		return err
 	}
 
-	pk, err := core.DecryptKey(keyjson, string(passwd), crypt)
+	pk, err := core.DecryptKey(keyjson, string(passwd))
 	if err != nil {
 		return err
 	}
@@ -138,10 +134,10 @@ func inspect() error {
 
 func init() {
 
-	accountCmd.PersistentFlags().StringVar(&sigType, "sigType", crypto.Signature2PublicKey, "sig type (S2PK/MS)")
-	accountCmd.PersistentFlags().IntVar(&msCount, "msCount", 1, "count number of MS")
+	accountCmd.PersistentFlags().StringVar(&sigType, "sigType", crypto.Signature2PublicKey, "S2PK or MS")
+	accountCmd.PersistentFlags().IntVar(&msCount, "msCount", 3, "number of private key if sigType is MS")
 	accountCmd.PersistentFlags().StringVar(&keyFile, "key", "", "key file")
-	accountCmd.PersistentFlags().StringVar(&crypt, "crypt", "", "type of crypt (default is PDU)")
+	accountCmd.PersistentFlags().StringVar(&crypt, "crypt", crypto.PDU, "type of crypt")
 	accountCmd.PersistentFlags().StringVarP(&output, "output", "o", "key.json", "output file")
 	rootCmd.AddCommand(accountCmd)
 }

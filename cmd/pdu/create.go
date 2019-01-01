@@ -39,7 +39,9 @@ var createCmd = &cobra.Command{
 			return err
 		}
 		fmt.Println("Database initialized successfully", dataDir)
-		fmt.Println("Create root users")
+
+		fmt.Println("Unlock root users")
+
 		fmt.Println("Create universe and space-time")
 
 		if err := udb.Close(); err != nil {

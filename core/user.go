@@ -28,15 +28,6 @@ import (
 	"strconv"
 )
 
-const (
-	rootMName     = "Adam"
-	rootMDOBExtra = "Hello World!"
-	rootFName     = "Eve"
-	rootFDOBExtra = ";-)"
-	male          = true
-	female        = false
-)
-
 // User is the author of any msg in pdu
 type User struct {
 	Name     string   `json:"name"`
@@ -50,19 +41,10 @@ var (
 	errContentTypeNotDOB = errors.New("content type is not TypeDOB")
 )
 
-// CreateRootUsers try to create two root users by public key
-// One Male user and one female user,
-func CreateRootUsers(key crypto.PublicKey) ([2]*User, error) {
-	rootUsers := [2]*User{nil, nil}
-	rootFUser := User{Name: rootFName, DOBExtra: rootFDOBExtra, Auth: &Auth{PublicKey: key}, DOBMsg: nil, LifeTime: rule.MaxLifeTime}
-	if rootFUser.Gender() == female {
-		rootUsers[0] = &rootFUser
-	}
-	rootMUser := User{Name: rootMName, DOBExtra: rootMDOBExtra, Auth: &Auth{PublicKey: key}, DOBMsg: nil, LifeTime: rule.MaxLifeTime}
-	if rootMUser.Gender() == male {
-		rootUsers[1] = &rootMUser
-	}
-	return rootUsers, nil
+// CreateRootUser try to create root user by public key
+// Gender of the root user is depend on key,name and extra
+func CreateRootUser(key crypto.PublicKey, name, extra string) *User {
+	return &User{Name: name, DOBExtra: extra, Auth: &Auth{PublicKey: key}, DOBMsg: nil, LifeTime: rule.MaxLifeTime}
 }
 
 // CreateNewUser create new user by cosign message

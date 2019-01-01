@@ -72,7 +72,7 @@ func (mv *DOBMsgContent) SignByParent(user *User, privKey crypto.PrivateKey) err
 		return err
 	}
 
-	if user.Gender() == male {
+	if user.Gender() {
 		mv.Parents[1] = ParentSig{UserID: user.ID(), Signature: signature.Signature}
 	} else {
 		mv.Parents[0] = ParentSig{UserID: user.ID(), Signature: signature.Signature}

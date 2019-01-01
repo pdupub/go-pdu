@@ -33,43 +33,50 @@ var (
 
 func TestCreateRootUsersS2PK(t *testing.T) {
 	userEngine = ethereum.New()
+	var f, m bool
 	for i := 0; i < retryCnt; i++ {
 		if _, pubKey, err := userEngine.GenKey(crypto.Signature2PublicKey); err != nil {
 			t.Error("generate key fail", err)
 		} else {
-			if users, err := CreateRootUsers(*pubKey); err != nil {
-				t.Error("create root users fail", err)
-			} else {
-				for _, user := range users {
-					if user != nil && user.ID() != copy(user).ID() {
-						t.Errorf("%s : %s json Encode & Decode fail ", userEngine.Name(), crypto.Signature2PublicKey)
-					}
-				}
-				if users[0] != nil && users[1] != nil {
-					break
-				}
+			user := CreateRootUser(*pubKey, "name", "extra")
+
+			if user.ID() != copy(user).ID() {
+				t.Errorf("%s : %s json Encode & Decode fail ", userEngine.Name(), crypto.Signature2PublicKey)
 			}
+			if user.Gender() {
+				m = true
+			} else {
+				f = true
+			}
+			// both checked
+			if f && m {
+				break
+			}
+
 		}
 	}
 }
 func TestCreateRootUsersMS(t *testing.T) {
-
+	var f, m bool
 	for i := 0; i < retryCnt; i++ {
 		if _, pubKey, err := userEngine.GenKey(crypto.MultipleSignatures, 3); err != nil {
 
 		} else {
-			if users, err := CreateRootUsers(*pubKey); err != nil {
-				t.Error("create root users fail", err)
-			} else {
-				for _, user := range users {
-					if user != nil && user.ID() != copy(user).ID() {
-						t.Errorf("%s : %s json Encode & Decode fail ", userEngine.Name(), crypto.MultipleSignatures)
-					}
-				}
-				if users[0] != nil && users[1] != nil {
-					break
-				}
+			user := CreateRootUser(*pubKey, "name", "extra")
+
+			if user.ID() != copy(user).ID() {
+				t.Errorf("%s : %s json Encode & Decode fail ", userEngine.Name(), crypto.Signature2PublicKey)
 			}
+			if user.Gender() {
+				m = true
+			} else {
+				f = true
+			}
+			// both checked
+			if f && m {
+				break
+			}
+
 		}
 	}
 
@@ -134,25 +141,26 @@ func copy(u *User) *User {
 
 func createRootUsers() (*User, crypto.PrivateKey, *User, crypto.PrivateKey) {
 	var Adam, Eve *User
-	var privKeyRes crypto.PrivateKey
+	var APK, EPK crypto.PrivateKey
 	for i := 0; i < retryCnt; i++ {
 
 		privKey, pubKey, err := userEngine.GenKey(crypto.MultipleSignatures, 3)
 		if err != nil {
 			continue
 		}
-		if users, err := CreateRootUsers(*pubKey); err != nil {
-			if err != nil {
-				continue
-			}
+		user := CreateRootUser(*pubKey, "name", "extra")
+
+		if user.Gender() {
+			Adam = user
+			APK = *privKey
 		} else {
-			if users[0] != nil && users[1] != nil {
-				Adam = users[0]
-				Eve = users[1]
-				privKeyRes = *privKey
-				break
-			}
+			Eve = user
+			EPK = *privKey
 		}
+		if Adam != nil && Eve != nil {
+			break
+		}
+
 	}
-	return Adam, privKeyRes, Eve, privKeyRes
+	return Adam, APK, Eve, EPK
 }
