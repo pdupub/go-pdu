@@ -2,7 +2,7 @@
 Parallel Digital Universe - A Peer-to-Peer Social Network
 
 email: liupeng@tataufo.com
-微信: ![wechat](WechatIMG.jpeg)
+微信: ![wechat](Wechat.png)
 
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/TATAUFO/PDU)
 [![GoReport](https://goreportcard.com/badge/github.com/TATAUFO/PDU)](https://goreportcard.com/report/github.com/TATAUFO/PDU)
