@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/TATAUFO/PDU/common/hexutil"
+	"github.com/pdupub/PDU/common/hexutil"
 )
 
 // Const

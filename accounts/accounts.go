@@ -17,7 +17,7 @@
 package accounts
 
 import (
-	"github.com/TATAUFO/PDU/common"
+	"github.com/pdupub/PDU/common"
 )
 
 // Account represents an PDU account

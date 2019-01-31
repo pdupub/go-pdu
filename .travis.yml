@@ -1,5 +1,5 @@
 language: go
-go_import_path: github.com/TATAUFO/PDU
+go_import_path: github.com/pdupub/PDU
 sudo: false
 matrix:
   include:

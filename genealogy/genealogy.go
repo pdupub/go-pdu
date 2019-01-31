@@ -17,8 +17,8 @@
 package genealogy
 
 import (
-	"github.com/TATAUFO/PDU/accounts"
-	"github.com/TATAUFO/PDU/common"
+	"github.com/pdupub/PDU/accounts"
+	"github.com/pdupub/PDU/common"
 )
 
 // Individual is account link to parents, except two in genesis config

@@ -18,9 +18,9 @@ package clan
 
 import (
 	"errors"
-	"github.com/TATAUFO/PDU/accounts"
-	"github.com/TATAUFO/PDU/common"
-	"github.com/TATAUFO/PDU/genealogy"
+	"github.com/pdupub/PDU/accounts"
+	"github.com/pdupub/PDU/common"
+	"github.com/pdupub/PDU/genealogy"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/crypto"

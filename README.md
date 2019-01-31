@@ -4,9 +4,9 @@ Parallel Digital Universe - A Peer-to-Peer Social Network
 email: liupeng@tataufo.com
 微信: ![wechat](Wechat.png)
 
-[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/TATAUFO/PDU)
-[![GoReport](https://goreportcard.com/badge/github.com/TATAUFO/PDU)](https://goreportcard.com/report/github.com/TATAUFO/PDU)
-[![Travis](https://travis-ci.org/TATAUFO/PDU.svg?branch=master)](https://travis-ci.org/TATAUFO/PDU)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/pdupub/PDU)
+[![GoReport](https://goreportcard.com/badge/github.com/pdupub/PDU)](https://goreportcard.com/report/github.com/pdupub/PDU)
+[![Travis](https://travis-ci.org/pdupub/PDU.svg?branch=master)](https://travis-ci.org/pdupub/PDU)
 [![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](LICENSE)
 
 

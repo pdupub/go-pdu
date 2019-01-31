@@ -17,8 +17,8 @@
 package clan
 
 import (
-	"github.com/TATAUFO/PDU/accounts"
-	"github.com/TATAUFO/PDU/common"
+	"github.com/pdupub/PDU/accounts"
+	"github.com/pdupub/PDU/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	mrand "math/rand"
 	"testing"
