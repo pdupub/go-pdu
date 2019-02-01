@@ -21,7 +21,7 @@
 // # runtime/cgo
 // clang80: error: argument unused during compilation: '-stdlib=libc++' [-Werror,-Wunused-command-line-argument]
 
-// vim /Users/tataufo/Library/Android/sdk/ndk-bundle/build/tools/make_standalone_toolchain.py 
+// vim /Users/tataufo/Library/Android/sdk/ndk-bundle/build/tools/make_standalone_toolchain.py
 // :124
 // #flags = '-target {} -stdlib=libc++'.format(target)
 // flags = '-target {} '.format(target)
