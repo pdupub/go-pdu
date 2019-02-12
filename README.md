@@ -1,7 +1,7 @@
 # PDU:一种点对点的社交网络
 Parallel Digital Universe - A Peer-to-Peer Social Network
 
-email: liupeng@tataufo.com
+email: hello@pdu.pub
 微信: ![wechat](Wechat.png)
 
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/pdupub/PDU)
