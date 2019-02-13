@@ -4,9 +4,9 @@ Parallel Digital Universe - A Peer-to-Peer Social Network
 email: hello@pdu.pub
 微信: ![wechat](Wechat.png)
 
-[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/pdupub/PDU)
-[![GoReport](https://goreportcard.com/badge/github.com/pdupub/PDU)](https://goreportcard.com/report/github.com/pdupub/PDU)
-[![Travis](https://travis-ci.org/pdupub/PDU.svg?branch=master)](https://travis-ci.org/pdupub/PDU)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/pdupub/go-pdu)
+[![GoReport](https://goreportcard.com/badge/github.com/pdupub/go-pdu)](https://goreportcard.com/report/github.com/pdupub/go-pdu)
+[![Travis](https://travis-ci.org/pdupub/go-pdu.svg?branch=master)](https://travis-ci.org/pdupub/go-pdu)
 [![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](LICENSE)
 
 
