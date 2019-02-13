@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-// gomobile bind -target=ios github.com/pdupub/PDU/cmd/pdum
-// gomobile bind -target=android github.com/pdupub/PDU/cmd/pdum
+// gomobile bind -target=ios github.com/pdupub/go-pdu/cmd/pdum
+// gomobile bind -target=android github.com/pdupub/go-pdu/cmd/pdum
 
 // -target=adroid
 // # runtime/cgo

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/pdupub/PDU/common/hexutil"
+	"github.com/pdupub/go-pdu/common/hexutil"
 )
 
 // Const

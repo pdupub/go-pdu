@@ -17,7 +17,7 @@
 package accounts
 
 import (
-	"github.com/pdupub/PDU/common"
+	"github.com/pdupub/go-pdu/common"
 )
 
 // Account represents an PDU account

@@ -23,8 +23,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/pdupub/pdu/common"
-	"github.com/pdupub/pdu/mydb"
+	"github.com/pdupub/go-pdu/common"
+	"github.com/pdupub/go-pdu/mydb"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
