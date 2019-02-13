@@ -17,7 +17,7 @@
 // gomobile bind -target=ios github.com/pdupub/go-pdu/cmd/pdum
 // gomobile bind -target=android github.com/pdupub/go-pdu/cmd/pdum
 
-// -target=adroid
+// -target=android
 // # runtime/cgo
 // clang80: error: argument unused during compilation: '-stdlib=libc++' [-Werror,-Wunused-command-line-argument]
 
