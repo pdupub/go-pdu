@@ -28,6 +28,6 @@
 
 package pdumobile
 
-func PAdd(a, b int) int {
+func SampleAdd(a, b int) int {
 	return a + b
 }
