@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-// gomobile bind -target=ios github.com/pdupub/go-pdu/cmd/pdum
-// gomobile bind -target=android github.com/pdupub/go-pdu/cmd/pdum
+// gomobile bind -target=ios github.com/pdupub/go-pdu/cmd/pdumobile
+// gomobile bind -target=android github.com/pdupub/go-pdu/cmd/pdumobile
 
 // -target=android
 // # runtime/cgo
@@ -26,7 +26,7 @@
 // #flags = '-target {} -stdlib=libc++'.format(target)
 // flags = '-target {} '.format(target)
 
-package pdum
+package pdumobile
 
 func PAdd(a, b int) int {
 	return a + b
