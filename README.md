@@ -19,16 +19,16 @@ email: hello@pdu.pub
 - [Introduction](#introduction)
   * [Background](#background) 
   * [PDU](#pdu)
+- [Message](#message)
 - [Time Proof](#time-proof)
 - [Account Topology](#account-topology) 
   * [亲源关系](#亲源关系)
   * [生命周期](#生命周期)
   * [自然法则](#自然法则)
-- [Message](#message)
+- [Event](#event)
   * [Message Credit](#message-credit)
-  * [Time Proof Message](#time-proof-message)
-  * [Cosigned Birth Message](#cosigned-birth-message)
-  * [Evidence Message](#evidence-message)
+  * [Cosigned Birth](#cosigned-birth)
+  * [Evidence Broadcast](#evidence-broadcast)
 - [Network](#network)
   * [Message Spread](#message-spread)
   * [Account Create](#account-create)
@@ -66,6 +66,12 @@ email: hello@pdu.pub
 与传统中心化服务的账户系统不同，PDU的自然法则还基于时间证明定义了账户的生命周期，使得不被使用的账户可以被自然淘汰，账户的总数量呈线性增长（受时间流速的影响会），而当前生命周期内的用户数量会近似恒定。
 
 时间证明是PDU中用户一切行为成本控制的基础，但因为PDU中没有强制的共识，取而代之的是用户自身的选择，所以完全可能有多个不同的时间证明的存在。PDU接受这种情况的存在，就如同平时存在的多个时空，甚至每个时空可以设定不同的时间流速来影响本时空中的行为成本。同时，任何用户也可同时存在于自己选择的多个时空当中。	
+
+## Message
+
+消息（Message）在PDU中特指一个可包含信息的结构形式，一个消息可以包含一个或多个消息，而且嵌套的层级没有限制。整个分布式系统之中，账号之间的所有信息交互都是基于消息完成的。
+
+消息结构，图例待补充……
 
 ## Time Proof 
 
@@ -115,11 +121,7 @@ email: hello@pdu.pub
 
 图例待补充……
  
-## Message
-
-消息（Message）在PDU中特指一个可包含信息的结构形式，一个消息可以包含一个或多个消息，而且嵌套的层级没有限制。整个分布式系统之中，账号之间的所有信息交互都是基于消息完成的。
-
-消息结构，图例待补充……
+## Event
 
 #### Message Credit 
 
@@ -134,17 +136,13 @@ email: hello@pdu.pub
 
 在整个系统的消息传播过程中，我们推荐终端用户只接收可信度为上述4，5的两种情况(除创世区间内)。按照4的可信级别构造消息的场景更多的是用于信息的转发，而5.的可信级别则作为正常信息发布。而且，如果某个第三方服务以某个账户为身份提供服务，则推荐按照5的信用级别来构造所有消息。总而言之，一个消息越容易被证伪，则其在没有被证明做恶之前则越可信。
 
-#### Time Proof Message
-
-虽然我们推荐尽量选取以最高信用等级方式传播的消息为时间证明，但理论上任何一条消息都可以作为时间证明，包含在你的消息当中。通常，在创建消息时，消息将包含的消息列表中的第0个位置作为时间证明；如果不需要时间证明，则第0个位置为空；如果需要多个时间证明，则在位置0包含一个列表的结构，其中包含多条时间证明消息。
-
-#### Cosigned Birth Message
+#### Cosigned Birth
 
 创建账户的过程中，生成新账户基本信息的过程通常不会被构造成消息在PDU中传播，因为此时待建账户并不合法，其他的账户不会接受此类消息。cosign过程所需的两个账户，有先后顺序，系统只要求后签名的父级地址将待建账户信息和叠加了两次签名的内容构造成消息（Message），在网络进行广播，第一个签名的地址不必须广播签名消息。但因为两次签名都必须带有时间证明，所以即便某账户在创建账户的过程中为先签名的账户且并没有发出过消息，如果被发现其两次创建账户的签名时间，小于1/4个最低生命周期，依然会被作为证据消息（Evidence Message）进行广播并处罚。
 
 关于同一个公钥被多个私钥分别签名的情况，系统中也是允许的，相当于创建了多个同密码账户。
 
-#### Evidence Message
+#### Evidence Broadcast
 
 证据通常为两条或条以上的矛盾信息，账户可以将违反自然法则的矛盾信息，包含到一条消息中进行转发。任何接收消息的账户都可按照自己的标准对于发出违反自然法则的账户处以处罚（不是转发证据消息的账户）。
 
