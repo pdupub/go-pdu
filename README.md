@@ -34,7 +34,7 @@ email: hello@pdu.pub
     + [Account Location](#account-location)
     + [Message Distance](#message-distance)
   * [Message Spread](#message-spread)
-  * [PDU Evolve Step](#pdu-evolve-step)
+- [Timeline of PDU Evolution](#timeline-of-pdu-evolution)
 - [Function Node](#function-node)
   * [Time Proof Node](#time-proof-node)
   * [Account Node](#account-node)
@@ -187,7 +187,7 @@ email: hello@pdu.pub
 
 如果在第4步中，发现某条消息违反自然法则的证据，则对于相关作恶的账户进行惩罚，如拒绝接受这个账户在此之后的消息，并广播作恶证据。也可以根据关系图谱处罚相关的其他账户的。
 
-### PDU Evolve Step
+## Timeline of PDU Evolution
 
 PDU账户系统的创建发展过程通常会经历一下的几个步骤：
 1. 构建创世文件，其中包含两个公钥（Adam，Eve），被认为是此PDU的账户系统拓扑图（DAG）的顶端，这两个账户的二元属性必须相异。
