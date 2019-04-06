@@ -8,6 +8,7 @@ email: hello@pdu.pub
 [![GoReport](https://goreportcard.com/badge/github.com/pdupub/go-pdu)](https://goreportcard.com/report/github.com/pdupub/go-pdu)
 [![Travis](https://travis-ci.org/pdupub/go-pdu.svg?branch=master)](https://travis-ci.org/pdupub/go-pdu)
 [![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](LICENSE)
+[![Chat](https://img.shields.io/badge/gitter-Docs%20chat-4AB495.svg)](https://gitter.im/pdupub/Welcome)
 
 **Abstract:** 通常意义上的社交网络服务(SNS)，如Facebook、twitter、微信，用户可以在其上创建身份，维护关系并进行信息传播、交互。但现有的SNS均依赖于某个第三方提供的中心化的网络服务，这使得其很容易被控制或封锁隔离。BitTorrent协议，能够实现P2P的信息传播，但其根本目的是提高对于已知内容的传播效率，其弱化的账户系统设计不利于使用者对未知内容有所判别。对于去中心化的系统，即便用数字签名能够证明每个信息的来源，但是因为缺少第三方验证（如手机号注册）来给予账户创建成本，即便无用的信息充斥整个网络也无法信息来源进行惩罚。
 
