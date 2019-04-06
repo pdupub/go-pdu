@@ -1,5 +1,5 @@
 ## Go PDU
-Official Golang implementation of PDU.
+Golang implementation of PDU.
 
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/pdupub/go-pdu)
 [![GoReport](https://goreportcard.com/badge/github.com/pdupub/go-pdu)](https://goreportcard.com/report/github.com/pdupub/go-pdu)
