@@ -15,13 +15,3 @@
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
 package accounts
-
-import (
-	"errors"
-)
-
-// Various error messages to mark accounts invalid
-var (
-	//ErrUnknownAccount is returned when Account is unknown
-	ErrUnknownAccount = errors.New("unknown account")
-)

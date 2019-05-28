@@ -26,11 +26,8 @@
 // #flags = '-target {} -stdlib=libc++'.format(target)
 // flags = '-target {} '.format(target)
 
-
-// details of embed iOS show in pdu-flutter-plugin
-// git diff 04d002085ff57633a887e4c141645ceca58d0585 11ecdd0a7a3c977e87b15791dfb9bd307386f4ec
 package pdumobile
 
-func SampleAdd(a, b int) int {
+func SampleFunc(a, b int) int {
 	return a + b
 }

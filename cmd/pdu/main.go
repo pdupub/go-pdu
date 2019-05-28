@@ -22,5 +22,5 @@ import (
 
 func main() {
 
-	log.Fatal("pdu node stopped.")
+	log.Fatalf("pdu node stopped.")
 }
