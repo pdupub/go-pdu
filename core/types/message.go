@@ -17,11 +17,7 @@
 package types
 
 type Message struct {
-
 }
 
-
 type MsgBody struct {
-
-
 }

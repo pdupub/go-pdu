@@ -16,13 +16,16 @@
 
 package common
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 var Exists = struct{}{}
 
 type Set struct {
-	m map[interface{}]struct{}
-	sync.RWMutex
+	m  map[interface{}]struct{}
+	mu sync.RWMutex
 }
 
 func NewSet(items ...interface{}) *Set {
@@ -36,47 +39,55 @@ func NewSet(items ...interface{}) *Set {
 }
 
 func (s *Set) Add(item interface{}) {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.m[item] = Exists
 }
 
 func (s *Set) Remove(item interface{}) {
-	s.Lock()
-	s.Unlock()
+	s.mu.Lock()
+	s.mu.Unlock()
 	delete(s.m, item)
 }
 
-func (s *Set) Has(item interface{}) bool {
-	s.RLock()
-	defer s.RUnlock()
+func (s Set) Has(item interface{}) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	_, ok := s.m[item]
 	return ok
 }
 
-func (s *Set) Size() int {
+func (s Set) Size() int {
 	return len(s.m)
 }
 
 func (s *Set) Clear() {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.m = make(map[interface{}]struct{})
 }
 
-func (s *Set) IsEmpty() bool {
+func (s Set) IsEmpty() bool {
 	if s.Size() == 0 {
 		return true
 	}
 	return false
 }
 
-func (s *Set) List() []interface{} {
-	s.RLock()
-	defer s.RUnlock()
+func (s Set) List() []interface{} {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	var list []interface{}
 	for item := range s.m {
 		list = append(list, item)
 	}
 	return list
+}
+
+func (s Set) String() string {
+	var str string
+	for item := range s.m {
+		str += fmt.Sprintf("%v", item)
+	}
+	return str
 }

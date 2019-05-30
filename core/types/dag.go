@@ -36,26 +36,26 @@ const (
 )
 
 var (
-	errRootVertexParentsExist = errors.New("root vertex parents exist")
-	errVertexAlreadyExist = errors.New("vertex already exist")
-	errVertexParentNotExist = errors.New("parent not exist")
+	errRootVertexParentsExist       = errors.New("root vertex parents exist")
+	errVertexAlreadyExist           = errors.New("vertex already exist")
+	errVertexParentNotExist         = errors.New("parent not exist")
 	errVertexParentNumberOutOfRange = errors.New("parent number is out of range")
 )
 
 type DAG struct {
-	sync.Mutex
+	mu    sync.Mutex
 	store map[interface{}]*Vertex
 }
 
 // NewDAG
-func NewDAG(rootVertex ...*Vertex) (*DAG, error ){
+func NewDAG(rootVertex ...*Vertex) (*DAG, error) {
 	dag := &DAG{
-		store:make(map[interface{}]*Vertex),
+		store: make(map[interface{}]*Vertex),
 	}
-	for _, vertex := range rootVertex{
+	for _, vertex := range rootVertex {
 		if vertex.Parents().Size() == 0 {
 			dag.store[vertex.ID()] = vertex
-		}else {
+		} else {
 			return nil, errRootVertexParentsExist
 		}
 	}
@@ -63,25 +63,25 @@ func NewDAG(rootVertex ...*Vertex) (*DAG, error ){
 }
 
 func (d *DAG) AddVertex(vertex *Vertex) error {
-	d.Lock()
-	defer d.Unlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	// check the vertex if exist or not
-	if _,ok := d.store[vertex.id];ok {
+	if _, ok := d.store[vertex.id]; ok {
 		return errVertexAlreadyExist
 	}
 	if vertex.Parents().Size() > maxParentsCount {
 		return errVertexParentNumberOutOfRange
 	}
 	// check parents cloud be found
-	for _,parent := range vertex.Parents().List(){
-		if _,ok := d.store[parent]; !ok {
+	for _, parent := range vertex.Parents().List() {
+		if _, ok := d.store[parent]; !ok {
 			return errVertexParentNotExist
 		}
 	}
 	// add vertex into store
 	d.store[vertex.id] = vertex
 	// update the parent vertex children
-	for _,parent := range vertex.Parents().List(){
+	for _, parent := range vertex.Parents().List() {
 		d.store[parent].AddChild(vertex.id)
 	}
 	return nil

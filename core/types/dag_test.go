@@ -15,3 +15,31 @@
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
 package types
+
+import "testing"
+
+func TestDAG_AddVertex(t *testing.T) {
+	v1 := NewVertex("id-1", "hello world")
+	v2 := NewVertex("id-2", "hello you")
+	dag, err := NewDAG(v1, v2)
+	if err != nil {
+		t.Errorf("create DAG fail , err : %s", err)
+	}
+	v3 := NewVertex("id-3", "hello you", "id-1", "id-2")
+	if err := dag.AddVertex(v3); err != nil {
+		t.Errorf("add vertex fail, err : %s", err)
+	}
+	v3_ := NewVertex("id-3", "hello", "id-1", "id-2")
+	if err := dag.AddVertex(v3_); err == nil {
+		t.Errorf("add vertex should not be success, becasuse id depulicate")
+	}
+	v4 := NewVertex("id-4", "hello", "id-0")
+	if err := dag.AddVertex(v4); err == nil {
+		t.Errorf("add vertex should not be success, becasuse not parent exist")
+	}
+	v5 := NewVertex("id-5", "hello", "id-0")
+	if err := dag.AddVertex(v5); err == nil {
+		t.Errorf("add vertex should not be success, becasuse not all parents exist")
+	}
+
+}

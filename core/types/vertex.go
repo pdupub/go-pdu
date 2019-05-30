@@ -22,22 +22,24 @@ import (
 )
 
 type Vertex struct {
-	id      	interface{}
-	value  		interface{}
-	parents		*common.Set
-	children	*common.Set
+	id       interface{}
+	value    interface{}
+	parents  *common.Set
+	children *common.Set
 }
 
 // NewVertex create vertex, id, value and parents must be set and is immutable
 // parents cloud be Vertex or just key
-func NewVertex(id interface{},value interface{}, parents ...interface{}) *Vertex {
+func NewVertex(id interface{}, value interface{}, parents ...interface{}) *Vertex {
 	v := &Vertex{
-		id:id,
-		value:value,
-		parents:common.NewSet(),
-		children:common.NewSet(),
+		id:       id,
+		value:    value,
+		parents:  common.NewSet(),
+		children: common.NewSet(),
 	}
-	for _,parent := range parents { v.parents.Add(parent)}
+	for _, parent := range parents {
+		v.parents.Add(parent)
+	}
 	return v
 }
 
@@ -57,8 +59,10 @@ func (v Vertex) Value() interface{} {
 	return v.value
 }
 
-func (v *Vertex) AddChild(children ... interface{}) {
-	for _, child := range children{
+// AddChild just add the child for this vertex (usually the key or point of child object)
+// not add this vertex as parent of the child vertex or check their parents at the same time
+func (v *Vertex) AddChild(children ...interface{}) {
+	for _, child := range children {
 		v.children.Add(child)
 	}
 }
@@ -67,4 +71,3 @@ func (v Vertex) String() string {
 	result := fmt.Sprintf("ID: %s - Parents: %d - Children: %d - Value: %v\n", v.id, v.Parents().Size(), v.Children().Size(), v.value)
 	return result
 }
-

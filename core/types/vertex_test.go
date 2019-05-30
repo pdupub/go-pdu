@@ -16,3 +16,18 @@
 
 package types
 
+import "testing"
+
+func TestVertex_AddChild(t *testing.T) {
+	vertex1 := NewVertex("id-1", "hello world")
+	vertex2 := NewVertex("id-2", "hello world again")
+	vertex1.AddChild(vertex2.ID())
+	if !vertex1.Children().Has(vertex2.ID()) {
+		t.Errorf("vertex2 should be child ")
+	}
+
+	vertex2.AddChild(vertex1)
+	if !vertex2.Children().Has(vertex1) {
+		t.Errorf("vertex1 should be child ")
+	}
+}
