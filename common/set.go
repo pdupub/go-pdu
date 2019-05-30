@@ -18,7 +18,7 @@ package common
 
 import "sync"
 
-var Exists = struct {}{}
+var Exists = struct{}{}
 
 type Set struct {
 	m map[interface{}]struct{}
@@ -29,7 +29,9 @@ func NewSet(items ...interface{}) *Set {
 	s := &Set{
 		m: make(map[interface{}]struct{}),
 	}
-	s.Add(items)
+	for _, item := range items {
+		s.Add(item)
+	}
 	return s
 }
 
@@ -59,7 +61,7 @@ func (s *Set) Size() int {
 func (s *Set) Clear() {
 	s.Lock()
 	defer s.Unlock()
-	s.m = map[interface{}]struct{}{}
+	s.m = make(map[interface{}]struct{})
 }
 
 func (s *Set) IsEmpty() bool {
