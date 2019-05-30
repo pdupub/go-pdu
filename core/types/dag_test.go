@@ -37,9 +37,13 @@ func TestDAG_AddVertex(t *testing.T) {
 	if err := dag.AddVertex(v4); err == nil {
 		t.Errorf("add vertex should not be success, becasuse not parent exist")
 	}
-	v5 := NewVertex("id-5", "hello", "id-0")
+	v5 := NewVertex("id-5", "hello", "id-0", "id-1")
 	if err := dag.AddVertex(v5); err == nil {
 		t.Errorf("add vertex should not be success, becasuse not all parents exist")
+	}
+	v6 := NewVertex("id-4", "hello", "id-1", "id-3")
+	if err := dag.AddVertex(v6); err != nil {
+		t.Errorf("add vertex fail, err : %s", err)
 	}
 
 }
