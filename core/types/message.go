@@ -52,7 +52,7 @@ func NewMessage(content MsgContent, sig MsgSig, refs ...MsgRef) (*Message, commo
 	hashKey = sha256.Sum256(append(bodyBytes, append(refsBytes, sigBytes...)...))
 
 	msg := &Message{
-		NewVertex(hashKey, content, parents...),
+		NewVertex(hashKey, MsgBody{content, sig}, parents...),
 	}
 	return msg, hashKey, nil
 }
@@ -72,13 +72,17 @@ func RootMessage(content MsgContent, sig MsgSig) (*Message, common.Hash, error) 
 	var hashKey common.Hash
 	hashKey = sha256.Sum256(append(bodyBytes, sigBytes...))
 	msg := &Message{
-		NewVertex(hashKey, content),
+		NewVertex(hashKey, MsgBody{content, sig}),
 	}
 	return msg, hashKey, nil
 }
 
 // MsgBody
-// todo : change to interface
+type MsgBody struct {
+	MsgContent
+	MsgSig
+}
+
 type MsgContent struct {
 	Nonce    *big.Int
 	Category uint
