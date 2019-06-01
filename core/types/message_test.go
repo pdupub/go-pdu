@@ -28,7 +28,7 @@ func TestNewMessage(t *testing.T) {
 		S: big.NewInt(2),
 	}
 
-	body1 := MsgBody{
+	body1 := MsgContent{
 		Title:    "title1",
 		Category: 100,
 		Nonce:    big.NewInt(0),
@@ -40,7 +40,7 @@ func TestNewMessage(t *testing.T) {
 		t.Errorf("create root msg fail, err : %s", err)
 	}
 
-	body2 := MsgBody{
+	body2 := MsgContent{
 		Title:    "title2",
 		Category: 3,
 		Nonce:    big.NewInt(1),
@@ -51,7 +51,7 @@ func TestNewMessage(t *testing.T) {
 		t.Errorf("create root msg fail, err : %s", err)
 	}
 
-	body3 := MsgBody{
+	body3 := MsgContent{
 		Title:    "title3",
 		Category: 3,
 		Nonce:    big.NewInt(1),

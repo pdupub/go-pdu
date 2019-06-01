@@ -29,14 +29,14 @@ type Message struct {
 }
 
 // NewMessage
-func NewMessage(body MsgBody, sig MsgSig, refs ...MsgRef) (*Message, common.Hash, error) {
+func NewMessage(content MsgContent, sig MsgSig, refs ...MsgRef) (*Message, common.Hash, error) {
 	// todo: verify signature
 	var parents []interface{}
 	for _, ref := range refs {
 		parents = append(parents, ref.hash)
 	}
 	// build id  from refs & body
-	bodyBytes, err := json.Marshal(body)
+	bodyBytes, err := json.Marshal(content)
 	if err != nil {
 		return nil, common.Hash{}, err
 	}
@@ -52,16 +52,16 @@ func NewMessage(body MsgBody, sig MsgSig, refs ...MsgRef) (*Message, common.Hash
 	hashKey = sha256.Sum256(append(bodyBytes, append(refsBytes, sigBytes...)...))
 
 	msg := &Message{
-		NewVertex(hashKey, body, parents...),
+		NewVertex(hashKey, content, parents...),
 	}
 	return msg, hashKey, nil
 }
 
 // RootMessage
-func RootMessage(body MsgBody, sig MsgSig) (*Message, common.Hash, error) {
+func RootMessage(content MsgContent, sig MsgSig) (*Message, common.Hash, error) {
 
 	// build id  from refs & body
-	bodyBytes, err := json.Marshal(body)
+	bodyBytes, err := json.Marshal(content)
 	if err != nil {
 		return nil, common.Hash{}, err
 	}
@@ -72,14 +72,14 @@ func RootMessage(body MsgBody, sig MsgSig) (*Message, common.Hash, error) {
 	var hashKey common.Hash
 	hashKey = sha256.Sum256(append(bodyBytes, sigBytes...))
 	msg := &Message{
-		NewVertex(hashKey, body),
+		NewVertex(hashKey, content),
 	}
 	return msg, hashKey, nil
 }
 
 // MsgBody
 // todo : change to interface
-type MsgBody struct {
+type MsgContent struct {
 	Nonce    *big.Int
 	Category uint
 	Title    string
