@@ -14,6 +14,12 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package common
+package types
 
-type Address [20]byte
+type Gene struct {
+	M   *Gene
+	F   *Gene
+	V   [20]byte
+	DNA [40]byte
+	G   bool
+}

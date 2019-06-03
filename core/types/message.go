@@ -88,9 +88,9 @@ type MsgBody struct {
 
 // MsgRef is the parents of this vertex
 type MsgRef struct {
-	address common.Address
-	id      string
-	hash    common.Hash
+	gene Gene
+	id   string
+	hash common.Hash
 }
 
 // MsgSig
