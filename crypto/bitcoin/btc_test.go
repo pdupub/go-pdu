@@ -14,14 +14,26 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package crypto
+package bitcoin
 
-import "math/big"
+import "testing"
 
+func TestBTC(t *testing.T) {
 
-// Crypto is crypto algorithm interface for different block chain
-type Crypto interface {
-	CrateNewKeyPair()  ([]byte, []byte, error)
-	Sign(priv []byte, hash []byte) (*big.Int, *big.Int, error)
-	Verify(pub []byte, hash []byte, r *big.Int, s *big.Int) bool
+	btc := New()
+	priv, pub, err := btc.CrateNewKeyPair()
+	if err != nil {
+		t.Errorf("create key pari fail, err : %s", err)
+	}
+
+	content := "hello world"
+	r, s, err := btc.Sign(priv, []byte(content))
+	if err != nil {
+		t.Errorf("sign content fail, err : %s", err)
+	}
+
+	v := btc.Verify(pub, []byte(content), r, s)
+	if !v {
+		t.Errorf("verify fail")
+	}
 }
