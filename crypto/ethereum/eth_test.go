@@ -15,3 +15,13 @@
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
 package ethereum
+
+import "testing"
+
+func TestBTC(t *testing.T) {
+	btc := New()
+	priv, pub, err := btc.CrateNewKeyPair()
+	if err != nil {
+		t.Errorf("\nprivateKey : %s \npublicKey : %s \nerr : %v", byteString(priv), byteString(pub), err)
+	}
+}
