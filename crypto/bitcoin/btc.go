@@ -14,18 +14,4 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package crypto
-
-import "math/big"
-
-type KeyPair struct {
-	PrivateKey []byte
-	PublicKey  []byte
-}
-
-// Crypto is crypto algorithm interface for different block chain
-type Crypto interface {
-	Create() (*KeyPair, error)
-	Sign(priv []byte, hash []byte) (*big.Int, *big.Int, error)
-	Verify(pub []byte, hash []byte, r *big.Int, s *big.Int) bool
-}
+package bitcoin
