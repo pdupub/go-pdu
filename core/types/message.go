@@ -30,7 +30,7 @@ type Message struct {
 
 // NewMessage
 func NewMessage(content MsgContent, sig MsgSig, refs ...MsgRef) (*Message, common.Hash, error) {
-	// todo: verify signature
+	// todo: verify signature (for content & refs)
 	var parents []interface{}
 	for _, ref := range refs {
 		parents = append(parents, ref.hash)
@@ -92,8 +92,7 @@ type MsgContent struct {
 
 // MsgRef is the parents of this vertex
 type MsgRef struct {
-	gene Gene
-	id   string
+	user User
 	hash common.Hash
 }
 
