@@ -17,9 +17,9 @@
 package types
 
 type Gene struct {
-	M   *Gene
-	F   *Gene
-	V   [20]byte
-	DNA [40]byte
-	G   bool
+	Mother   *Gene    `json:"mother"`   //
+	Father   *Gene    `json:"father"`   //
+	Mutation [20]byte `json:"mutation"` //
+	DNA      [40]byte `json:"dna"`      //
+	Gender   bool     `json:"gender"`   //
 }
