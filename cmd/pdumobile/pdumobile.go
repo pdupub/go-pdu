@@ -28,6 +28,3 @@
 
 package pdumobile
 
-func SampleFunc(a, b int) int {
-	return a + b
-}
