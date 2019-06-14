@@ -18,9 +18,9 @@ package ethereum
 
 import "testing"
 
-func TestBTC(t *testing.T) {
-	btc := New()
-	priv, pub, err := btc.CrateNewKeyPair()
+func TestETH(t *testing.T) {
+	eth := New()
+	priv, pub, err := eth.CrateNewKeyPair()
 	if err != nil {
 		t.Errorf("\nprivateKey : %s \npublicKey : %s \nerr : %v", byteString(priv), byteString(pub), err)
 	}
