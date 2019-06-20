@@ -14,35 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package types
+package bitcoin
 
-import (
-	"crypto/sha256"
-	"encoding/json"
-	"github.com/pdupub/go-pdu/common"
-)
-
-type User struct {
-	*Vertex
-}
-
-func NewUser(msg Message) (*User, common.Hash, error) {
-
-	msgBytes, err := json.Marshal(msg)
-	if err != nil {
-		return nil, common.Hash{}, err
-	}
-
-	var hashKey common.Hash
-	hashKey = sha256.Sum256(msgBytes)
-
-	user := &User{
-		NewVertex(hashKey, Gene{}, msg.parents),
-	}
-	return user, hashKey, nil
-}
-
-func RootUser(gender bool) (*User, common.Hash, error) {
-
-	return &User{}, common.Hash{}, nil
-}
+//import "github.com/btcsuite/btcd"

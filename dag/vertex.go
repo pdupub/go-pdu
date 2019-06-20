@@ -14,18 +14,17 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package types
+package dag
 
 import (
 	"fmt"
-	"github.com/pdupub/go-pdu/common"
 )
 
 type Vertex struct {
 	id       interface{}
 	value    interface{}
-	parents  *common.Set
-	children *common.Set
+	parents  map[interface{}]struct{}
+	children map[interface{}]struct{}
 }
 
 // NewVertex create vertex, id, value and parents must be set and is immutable
@@ -34,11 +33,11 @@ func NewVertex(id interface{}, value interface{}, parents ...interface{}) *Verte
 	v := &Vertex{
 		id:       id,
 		value:    value,
-		parents:  common.NewSet(),
-		children: common.NewSet(),
+		parents:  make(map[interface{}]struct{}),
+		children: make(map[interface{}]struct{}),
 	}
 	for _, parent := range parents {
-		v.parents.Add(parent)
+		v.parents[parent] = struct{}{}
 	}
 	return v
 }
@@ -47,12 +46,12 @@ func (v Vertex) ID() interface{} {
 	return v.id
 }
 
-func (v Vertex) Parents() common.Set {
-	return *v.parents
+func (v Vertex) Parents() map[interface{}]struct{} {
+	return v.parents
 }
 
-func (v Vertex) Children() common.Set {
-	return *v.children
+func (v Vertex) Children() map[interface{}]struct{} {
+	return v.children
 }
 
 func (v Vertex) Value() interface{} {
@@ -63,11 +62,11 @@ func (v Vertex) Value() interface{} {
 // not add this vertex as parent of the child vertex or check their parents at the same time
 func (v *Vertex) AddChild(children ...interface{}) {
 	for _, child := range children {
-		v.children.Add(child)
+		v.children[child] = struct{}{}
 	}
 }
 
 func (v Vertex) String() string {
-	result := fmt.Sprintf("ID: %s - Parents: %d - Children: %d - Value: %v\n", v.id, v.Parents().Size(), v.Children().Size(), v.value)
+	result := fmt.Sprintf("ID: %s - Parents: %d - Children: %d - Value: %v\n", v.id, len(v.Parents()), len(v.Children()), v.value)
 	return result
 }

@@ -1,4 +1,4 @@
-// Copyright 2018 The PDU Authors
+// Copyright 2019 The PDU Authors
 // This file is part of the PDU library.
 //
 // The PDU library is free software: you can redistribute it and/or modify
@@ -17,10 +17,35 @@
 package main
 
 import (
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"log"
 )
 
 func main() {
 
-	log.Fatalf("pdu node stopped.")
+	viper.New()
+	rootCmd := &cobra.Command{
+		Use:   "pdu",
+		Short: "PDU command line interface",
+	}
+	rootCmd.AddCommand(InitializeCmd())
+
+	rootCmd.Execute()
+}
+
+func InitializeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "init [generation num]",
+		Short: "Initialize the n generations of PDU",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			genNum := args[0]
+			log.Println("generations", genNum)
+
+			return nil
+		},
+	}
+
+	return cmd
 }

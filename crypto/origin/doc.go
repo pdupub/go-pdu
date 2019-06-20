@@ -1,4 +1,4 @@
-// Copyright 2018 The PDU Authors
+// Copyright 2019 The PDU Authors
 // This file is part of the PDU library.
 //
 // The PDU library is free software: you can redistribute it and/or modify
@@ -14,14 +14,4 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package crypto
-
-import "math/big"
-
-
-// Crypto is crypto algorithm interface for different block chain
-type Crypto interface {
-	CrateNewKeyPair()  ([]byte, []byte, error)
-	Sign(priv []byte, hash []byte) (*big.Int, *big.Int, error)
-	Verify(pub []byte, hash []byte, r *big.Int, s *big.Int) bool
-}
+package origin

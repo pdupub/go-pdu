@@ -1,4 +1,4 @@
-// Copyright 2018 The PDU Authors
+// Copyright 2019 The PDU Authors
 // This file is part of the PDU library.
 //
 // The PDU library is free software: you can redistribute it and/or modify
@@ -27,4 +27,3 @@
 // flags = '-target {} '.format(target)
 
 package pdumobile
-

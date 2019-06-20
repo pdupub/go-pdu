@@ -24,7 +24,7 @@
 // such that every edge is directed from earlier to later in the sequence.
 // -------------------from  https://en.wikipedia.org/wiki/Directed_acyclic_graph
 
-package types
+package dag
 
 import (
 	"errors"
@@ -53,7 +53,7 @@ func NewDAG(rootVertex ...*Vertex) (*DAG, error) {
 		store: make(map[interface{}]*Vertex),
 	}
 	for _, vertex := range rootVertex {
-		if vertex.Parents().Size() == 0 {
+		if len(vertex.Parents()) == 0 {
 			dag.store[vertex.ID()] = vertex
 		} else {
 			return nil, errRootVertexParentsExist
@@ -69,11 +69,11 @@ func (d *DAG) AddVertex(vertex *Vertex) error {
 	if _, ok := d.store[vertex.id]; ok {
 		return errVertexAlreadyExist
 	}
-	if vertex.Parents().Size() > maxParentsCount {
+	if len(vertex.Parents()) > maxParentsCount {
 		return errVertexParentNumberOutOfRange
 	}
 	// check parents cloud be found
-	for _, parent := range vertex.Parents().List() {
+	for parent := range vertex.Parents() {
 		if _, ok := d.store[parent]; !ok {
 			return errVertexParentNotExist
 		}
@@ -81,7 +81,7 @@ func (d *DAG) AddVertex(vertex *Vertex) error {
 	// add vertex into store
 	d.store[vertex.id] = vertex
 	// update the parent vertex children
-	for _, parent := range vertex.Parents().List() {
+	for parent := range vertex.Parents() {
 		d.store[parent].AddChild(vertex.id)
 	}
 	return nil

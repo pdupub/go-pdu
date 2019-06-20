@@ -14,4 +14,20 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package types
+package dag
+
+import "testing"
+
+func TestVertex_AddChild(t *testing.T) {
+	vertex1 := NewVertex("id-1", "hello world")
+	vertex2 := NewVertex("id-2", "hello world again")
+	vertex1.AddChild(vertex2)
+	if _, ok := vertex1.Children()[vertex2]; !ok {
+		t.Errorf("vertex2 should be child ")
+	}
+
+	vertex2.AddChild(vertex1)
+	if _, ok := vertex2.Children()[vertex1]; !ok {
+		t.Errorf("vertex1 should be child ")
+	}
+}

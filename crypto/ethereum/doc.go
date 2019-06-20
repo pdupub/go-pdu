@@ -14,12 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package types
+package ethereum
 
-type Gene struct {
-	Mother   *Gene    `json:"mother"`   //
-	Father   *Gene    `json:"father"`   //
-	Mutation [20]byte `json:"mutation"` //
-	DNA      [40]byte `json:"dna"`      //
-	Gender   bool     `json:"gender"`   //
-}
+//import "github.com/ethereum/go-ethereum"
