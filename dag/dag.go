@@ -31,20 +31,19 @@ import (
 	"sync"
 )
 
-const (
-	maxParentsCount = 10
-)
-
 var (
 	errRootVertexParentsExist       = errors.New("root vertex parents exist")
 	errVertexAlreadyExist           = errors.New("vertex already exist")
+	errVertexNotExist               = errors.New("vertex not exist")
+	errVertexHasChildren            = errors.New("vertex has children")
 	errVertexParentNotExist         = errors.New("parent not exist")
 	errVertexParentNumberOutOfRange = errors.New("parent number is out of range")
 )
 
 type DAG struct {
-	mu    sync.Mutex
-	store map[interface{}]*Vertex
+	mu              sync.Mutex
+	maxParentsCount int // 0 = unlimited
+	store           map[interface{}]*Vertex
 }
 
 // NewDAG
@@ -62,14 +61,26 @@ func NewDAG(rootVertex ...*Vertex) (*DAG, error) {
 	return dag, nil
 }
 
+// SetMaxParentsCount
+func (d *DAG) SetMaxParentsCount(maxCount int) {
+	d.maxParentsCount = maxCount
+}
+
+// GetMaxParentsCount
+func (d DAG) GetMaxParentsCount() int {
+	return d.maxParentsCount
+}
+
+// AddVertex
 func (d *DAG) AddVertex(vertex *Vertex) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	// check the vertex if exist or not
-	if _, ok := d.store[vertex.id]; ok {
+	if _, ok := d.store[vertex.ID()]; ok {
 		return errVertexAlreadyExist
 	}
-	if len(vertex.Parents()) > maxParentsCount {
+
+	if d.maxParentsCount != 0 && len(vertex.Parents()) > d.maxParentsCount {
 		return errVertexParentNumberOutOfRange
 	}
 	// check parents cloud be found
@@ -79,10 +90,31 @@ func (d *DAG) AddVertex(vertex *Vertex) error {
 		}
 	}
 	// add vertex into store
-	d.store[vertex.id] = vertex
+	d.store[vertex.ID()] = vertex
 	// update the parent vertex children
 	for parent := range vertex.Parents() {
-		d.store[parent].AddChild(vertex.id)
+		d.store[parent].AddChild(vertex.ID())
 	}
+	return nil
+}
+
+// DelVertex
+func (d *DAG) DelVertex(id interface{}) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	// check the key exist and no children
+	if v, ok := d.store[id]; !ok {
+		return errVertexNotExist
+	} else if len(v.Children()) > 0 {
+		return errVertexHasChildren
+	} else {
+		// remove this child vertex from parents
+		for pid := range v.Parents() {
+			if parent, ok := d.store[pid]; ok {
+				parent.DelChild(id)
+			}
+		}
+	}
+	delete(d.store, id)
 	return nil
 }

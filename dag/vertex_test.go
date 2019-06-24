@@ -18,7 +18,7 @@ package dag
 
 import "testing"
 
-func TestVertex_AddChild(t *testing.T) {
+func TestVertex(t *testing.T) {
 	vertex1 := NewVertex("id-1", "hello world")
 	vertex2 := NewVertex("id-2", "hello world again")
 	vertex1.AddChild(vertex2)
@@ -29,5 +29,10 @@ func TestVertex_AddChild(t *testing.T) {
 	vertex2.AddChild(vertex1)
 	if _, ok := vertex2.Children()[vertex1]; !ok {
 		t.Errorf("vertex1 should be child ")
+	}
+
+	vertex2.DelChild(vertex1)
+	if _, ok := vertex2.Children()[vertex1]; ok {
+		t.Errorf("vertex1 should be removed ")
 	}
 }

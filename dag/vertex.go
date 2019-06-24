@@ -66,6 +66,12 @@ func (v *Vertex) AddChild(children ...interface{}) {
 	}
 }
 
+func (v *Vertex) DelChild(children ...interface{}) {
+	for _, child := range children {
+		delete(v.children, child)
+	}
+}
+
 func (v Vertex) String() string {
 	result := fmt.Sprintf("ID: %s - Parents: %d - Children: %d - Value: %v\n", v.id, len(v.Parents()), len(v.Children()), v.value)
 	return result
