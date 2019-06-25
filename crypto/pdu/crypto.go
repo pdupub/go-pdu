@@ -36,7 +36,7 @@ const (
 var (
 	errSourceNotMatch    = errors.New("signature source not match")
 	errSigTypeNotSupport = errors.New("signature type not support")
-	errPKTypeNotSupport  = errors.New("privatekey type not support")
+	errKeyTypeNotSupport = errors.New("key type not support")
 )
 
 func GenerateKey() (*ecdsa.PrivateKey, error) {
@@ -64,7 +64,24 @@ func getKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 		pk.D = new(big.Int).Set(priKey.(*big.Int))
 		pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
 	default:
-		return nil, errPKTypeNotSupport
+		return nil, errKeyTypeNotSupport
+	}
+	return pk, nil
+}
+
+func getPubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
+	pk := new(ecdsa.PublicKey)
+	switch pubKey.(type) {
+	case *ecdsa.PublicKey:
+		pk = pubKey.(*ecdsa.PublicKey)
+	case ecdsa.PublicKey:
+		*pk = pubKey.(ecdsa.PublicKey)
+	case []byte:
+		pk.Curve = elliptic.P256()
+		pk.X = new(big.Int).SetBytes(pubKey.([]byte)[:32])
+		pk.Y = new(big.Int).SetBytes(pubKey.([]byte)[32:])
+	default:
+		return nil, errKeyTypeNotSupport
 	}
 	return pk, nil
 }
@@ -72,9 +89,6 @@ func getKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 func (pc *PDUCrypto) Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signature, error) {
 	if priKey.Source != SourceName {
 		return nil, errSourceNotMatch
-	}
-	if priKey.SigType != MultipleSignatures && priKey.SigType != Signature2PublicKey {
-		return nil, errSigTypeNotSupport
 	}
 	switch priKey.SigType {
 	case Signature2PublicKey:
@@ -114,10 +128,27 @@ func (pc *PDUCrypto) Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signat
 			Signature: signature,
 			PubKey:    pubKeys,
 		}, nil
+	default:
+		return nil, errSigTypeNotSupport
 	}
-	return &crypto.Signature{}, nil
 }
 
-func (pc *PDUCrypto) Verify(hash []byte, sig crypto.Signature) bool {
-	return true
+func (pc *PDUCrypto) Verify(hash []byte, sig crypto.Signature) (bool, error) {
+	if sig.Source != SourceName {
+		return false, errSourceNotMatch
+	}
+	switch sig.SigType {
+	case Signature2PublicKey:
+		pk, err := getPubKey(sig.PubKey)
+		if err != nil {
+			return false, err
+		}
+		r := new(big.Int).SetBytes(sig.Signature[:32])
+		s := new(big.Int).SetBytes(sig.Signature[32:])
+		return ecdsa.Verify(pk, hash, r, s), nil
+	case MultipleSignatures:
+		return true, nil
+	default:
+		return false, errSigTypeNotSupport
+	}
 }

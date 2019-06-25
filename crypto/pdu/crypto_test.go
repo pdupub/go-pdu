@@ -53,8 +53,32 @@ func TestPDUCrypto_Sign(t *testing.T) {
 		t.Errorf("signature type should be %s", Signature2PublicKey)
 	}
 
-}
+	verify1, err := pdu.Verify([]byte(content1), crypto.Signature{Source: SourceName,
+		SigType: Signature2PublicKey, Signature: sig1.Signature, PubKey: pk.PublicKey})
+	if err != nil {
+		t.Errorf("verify fail, err : %s", err)
+	}
+	if !verify1 {
+		t.Errorf("verify fail")
+	}
 
-func TestPDUCrypto_Verify(t *testing.T) {
+	verify2, err := pdu.Verify([]byte(content1), crypto.Signature{Source: SourceName,
+		SigType: Signature2PublicKey, Signature: sig1.Signature, PubKey: &pk.PublicKey})
+	if err != nil {
+		t.Errorf("verify fail, err : %s", err)
+	}
+	if !verify2 {
+		t.Errorf("verify fail")
+	}
+
+	pubKeyBytes := append(pk.PublicKey.X.Bytes(), pk.PublicKey.Y.Bytes()...)
+	verify3, err := pdu.Verify([]byte(content1), crypto.Signature{Source: SourceName,
+		SigType: Signature2PublicKey, Signature: sig1.Signature, PubKey: pubKeyBytes})
+	if err != nil {
+		t.Errorf("verify fail, err : %s", err)
+	}
+	if !verify3 {
+		t.Errorf("verify fail")
+	}
 
 }
