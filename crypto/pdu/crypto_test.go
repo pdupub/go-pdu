@@ -81,4 +81,14 @@ func TestPDUCrypto_Sign(t *testing.T) {
 		t.Errorf("verify fail")
 	}
 
+	pubKeyBytes = append(pk.PublicKey.Y.Bytes(), pk.PublicKey.X.Bytes()...)
+	verify4, err := pdu.Verify([]byte(content1), crypto.Signature{Source: SourceName,
+		SigType: Signature2PublicKey, Signature: sig1.Signature, PubKey: pubKeyBytes})
+	if err != nil {
+		t.Errorf("verify fail, err : %s", err)
+	}
+	if verify4 {
+		t.Errorf("verify should fail")
+	}
+
 }
