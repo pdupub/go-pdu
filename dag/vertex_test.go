@@ -40,4 +40,9 @@ func TestVertex(t *testing.T) {
 	if vertex2.HasChild(vertex1) {
 		t.Errorf("vertex1 should be removed ")
 	}
+
+	vertex1.SetValue("nihao")
+	if vertex1.Value() != "nihao" {
+		t.Errorf("vertex1 set value fail")
+	}
 }

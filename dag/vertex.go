@@ -79,6 +79,10 @@ func (v Vertex) Value() interface{} {
 	return v.value
 }
 
+func (v *Vertex) SetValue(value interface{}) {
+	v.value = value
+}
+
 // AddChild just add the child for this vertex (usually the key or point of child object)
 // not add this vertex as parent of the child vertex or check their parents at the same time
 func (v *Vertex) AddChild(children ...interface{}) {
