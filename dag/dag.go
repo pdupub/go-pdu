@@ -28,6 +28,7 @@ package dag
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -84,16 +85,16 @@ func (d *DAG) AddVertex(vertex *Vertex) error {
 		return errVertexParentNumberOutOfRange
 	}
 	// check parents cloud be found
-	for parent := range vertex.Parents() {
-		if _, ok := d.store[parent]; !ok {
+	for _, pid := range vertex.Parents() {
+		if _, ok := d.store[pid]; !ok {
 			return errVertexParentNotExist
 		}
 	}
 	// add vertex into store
 	d.store[vertex.ID()] = vertex
 	// update the parent vertex children
-	for parent := range vertex.Parents() {
-		d.store[parent].AddChild(vertex.ID())
+	for _, pid := range vertex.Parents() {
+		d.store[pid].AddChild(vertex.ID())
 	}
 	return nil
 }
@@ -109,7 +110,7 @@ func (d *DAG) DelVertex(id interface{}) error {
 		return errVertexHasChildren
 	} else {
 		// remove this child vertex from parents
-		for pid := range v.Parents() {
+		for _, pid := range v.Parents() {
 			if parent, ok := d.store[pid]; ok {
 				parent.DelChild(id)
 			}
@@ -117,4 +118,13 @@ func (d *DAG) DelVertex(id interface{}) error {
 	}
 	delete(d.store, id)
 	return nil
+}
+
+func (d DAG) String() string {
+	result := fmt.Sprintf("maxParentsCount : %d - storeSize : %d \n", d.maxParentsCount, len(d.store))
+	for k, v := range d.store {
+		result += fmt.Sprintf("k = %v \n", k)
+		result += fmt.Sprintf("v = %v \n", v)
+	}
+	return result
 }

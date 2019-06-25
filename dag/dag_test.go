@@ -21,29 +21,34 @@ import (
 )
 
 func TestDAG(t *testing.T) {
-	v1 := NewVertex("id-1", "hello world")
-	v2 := NewVertex("id-2", "hello you")
+	v1, _ := NewVertex("id-1", "hello world")
+	v2, _ := NewVertex("id-2", "hello you")
 	dag, err := NewDAG(v1, v2)
 	if err != nil {
 		t.Errorf("create DAG fail , err : %s", err)
 	}
-	v3 := NewVertex("id-3", "hello you", "id-1", "id-2")
+
+	v3, _ := NewVertex("id-3", "hello you", v1, v2)
 	if err := dag.AddVertex(v3); err != nil {
 		t.Errorf("add vertex fail, err : %s", err)
 	}
-	v3_ := NewVertex("id-3", "hello", "id-1", "id-2")
+
+	v3_, _ := NewVertex("id-3", "hello", "id-1", "id-2")
 	if err := dag.AddVertex(v3_); err != errVertexAlreadyExist {
 		t.Errorf("add vertex should not be success, becasuse id depulicate")
 	}
-	v4 := NewVertex("id-4", "hello", "id-0")
+
+	v4, _ := NewVertex("id-4", "hello", "id-0")
 	if err := dag.AddVertex(v4); err != errVertexParentNotExist {
 		t.Errorf("add vertex should not be success, becasuse not parent exist")
 	}
-	v5 := NewVertex("id-5", "hello", "id-0", "id-1")
+
+	v5, _ := NewVertex("id-5", "hello", "id-0", "id-1")
 	if err := dag.AddVertex(v5); err != errVertexParentNotExist {
 		t.Errorf("add vertex should not be success, becasuse not all parents exist")
 	}
-	v6 := NewVertex("id-4", "hello", "id-1", "id-3")
+
+	v6, _ := NewVertex("id-4", "hello", "id-1", "id-3")
 	if err := dag.AddVertex(v6); err != nil {
 		t.Errorf("add vertex fail, err : %s", err)
 	}
@@ -59,9 +64,11 @@ func TestDAG(t *testing.T) {
 	if err := dag.DelVertex("id-4"); err != nil {
 		t.Errorf("del vertex fail, err : %s", err)
 	}
+
 	if err := dag.DelVertex("id-3"); err != nil {
 		t.Errorf("del vertex fail, err : %s", err)
 	}
+
 	if err := dag.DelVertex("id-2"); err != nil {
 		t.Errorf("del vertex fail, err : %s", err)
 	}

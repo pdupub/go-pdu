@@ -19,20 +19,25 @@ package dag
 import "testing"
 
 func TestVertex(t *testing.T) {
-	vertex1 := NewVertex("id-1", "hello world")
-	vertex2 := NewVertex("id-2", "hello world again")
+	vertex1, _ := NewVertex("id-1", "hello world")
+	vertex2, _ := NewVertex("id-2", "hello world again")
+
+	if _, err := NewVertex(vertex2, "invalid id"); err != errVertexIDInvalid {
+		t.Errorf("vertex id should be invalid")
+	}
+
 	vertex1.AddChild(vertex2)
-	if _, ok := vertex1.Children()[vertex2]; !ok {
+	if !vertex1.HasChild(vertex2) {
 		t.Errorf("vertex2 should be child ")
 	}
 
 	vertex2.AddChild(vertex1)
-	if _, ok := vertex2.Children()[vertex1]; !ok {
+	if vertex2.HasChild(vertex2) {
 		t.Errorf("vertex1 should be child ")
 	}
 
 	vertex2.DelChild(vertex1)
-	if _, ok := vertex2.Children()[vertex1]; ok {
+	if vertex2.HasChild(vertex1) {
 		t.Errorf("vertex1 should be removed ")
 	}
 }

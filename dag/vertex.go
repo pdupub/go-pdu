@@ -17,7 +17,12 @@
 package dag
 
 import (
+	"errors"
 	"fmt"
+)
+
+var (
+	errVertexIDInvalid = errors.New("vertex ID invalid")
 )
 
 type Vertex struct {
@@ -29,7 +34,14 @@ type Vertex struct {
 
 // NewVertex create vertex, id, value and parents must be set and is immutable
 // parents cloud be Vertex or just key
-func NewVertex(id interface{}, value interface{}, parents ...interface{}) *Vertex {
+func NewVertex(id interface{}, value interface{}, parents ...interface{}) (*Vertex, error) {
+	switch id.(type) {
+	case *Vertex:
+		return nil, errVertexIDInvalid
+	case Vertex:
+		return nil, errVertexIDInvalid
+	}
+
 	v := &Vertex{
 		id:       id,
 		value:    value,
@@ -37,21 +49,30 @@ func NewVertex(id interface{}, value interface{}, parents ...interface{}) *Verte
 		children: make(map[interface{}]struct{}),
 	}
 	for _, parent := range parents {
-		v.parents[parent] = struct{}{}
+		pk := getItemID(parent)
+		v.parents[pk] = struct{}{}
 	}
-	return v
+	return v, nil
 }
 
 func (v Vertex) ID() interface{} {
 	return v.id
 }
 
-func (v Vertex) Parents() map[interface{}]struct{} {
-	return v.parents
+func (v Vertex) Parents() []interface{} {
+	var pks []interface{}
+	for k := range v.parents {
+		pks = append(pks, k)
+	}
+	return pks
 }
 
-func (v Vertex) Children() map[interface{}]struct{} {
-	return v.children
+func (v Vertex) Children() []interface{} {
+	var cks []interface{}
+	for k := range v.children {
+		cks = append(cks, k)
+	}
+	return cks
 }
 
 func (v Vertex) Value() interface{} {
@@ -62,17 +83,44 @@ func (v Vertex) Value() interface{} {
 // not add this vertex as parent of the child vertex or check their parents at the same time
 func (v *Vertex) AddChild(children ...interface{}) {
 	for _, child := range children {
-		v.children[child] = struct{}{}
+		ck := getItemID(child)
+		v.children[ck] = struct{}{}
 	}
 }
 
 func (v *Vertex) DelChild(children ...interface{}) {
 	for _, child := range children {
-		delete(v.children, child)
+		ck := getItemID(child)
+		delete(v.children, ck)
 	}
+}
+
+func (v Vertex) HasParent(item interface{}) bool {
+	if _, ok := v.parents[getItemID(item)]; !ok {
+		return false
+	}
+	return true
+}
+
+func (v Vertex) HasChild(item interface{}) bool {
+	if _, ok := v.children[getItemID(item)]; !ok {
+		return false
+	}
+	return true
 }
 
 func (v Vertex) String() string {
 	result := fmt.Sprintf("ID: %s - Parents: %d - Children: %d - Value: %v\n", v.id, len(v.Parents()), len(v.Children()), v.value)
 	return result
+}
+
+func getItemID(item interface{}) interface{} {
+	switch item.(type) {
+	case *Vertex:
+		return item.(*Vertex).ID()
+	case Vertex:
+		return item.(Vertex).ID()
+	default:
+		return item
+	}
 }
