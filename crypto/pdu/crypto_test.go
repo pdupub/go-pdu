@@ -22,10 +22,8 @@ import (
 
 func TestSign(t *testing.T) {
 
-
 }
 
-func TestVerify(t *testing.T){
-
+func TestVerify(t *testing.T) {
 
 }

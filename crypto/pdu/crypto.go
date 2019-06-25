@@ -29,13 +29,14 @@ import (
 const (
 	SourceName = "PDU"
 
-	MultipleSignatures = "MS"
+	MultipleSignatures  = "MS"
 	Signature2PublicKey = "S2PK"
 )
 
 var (
-	errSourceNotMatch = errors.New("signature source not match")
-	errTypeNotSupport = errors.New("signature type not support")
+	errSourceNotMatch    = errors.New("signature source not match")
+	errSigTypeNotSupport = errors.New("signature type not support")
+	errPKTypeNotSupport  = errors.New("privatekey type not support")
 )
 
 func GenerateKey() (*ecdsa.PrivateKey, error) {
@@ -43,58 +44,76 @@ func GenerateKey() (*ecdsa.PrivateKey, error) {
 }
 
 type PDUCrypto struct {
-
 }
 
+func getKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
+	pk := new(ecdsa.PrivateKey)
+	switch priKey.(type) {
+	case *ecdsa.PrivateKey:
+		pk = priKey.(*ecdsa.PrivateKey)
+	case []byte:
+		pk.PublicKey.Curve = elliptic.P256()
+		pk.D = new(big.Int).SetBytes(priKey.([]byte))
+		pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
+	case *big.Int:
+		pk.PublicKey.Curve = elliptic.P256()
+		pk.D = new(big.Int).Set(priKey.(*big.Int))
+		pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
+	default:
+		return nil, errPKTypeNotSupport
+	}
+	return pk, nil
+}
 
-func (pc *PDUCrypto)Sign(hash []byte,priKey crypto.PrivateKey) (*crypto.Signature, error) {
+func (pc *PDUCrypto) Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signature, error) {
 	if priKey.Source != SourceName {
 		return nil, errSourceNotMatch
 	}
 	if priKey.SigType != MultipleSignatures && priKey.SigType != Signature2PublicKey {
-		return nil, errTypeNotSupport
+		return nil, errSigTypeNotSupport
 	}
 	switch priKey.SigType {
 	case Signature2PublicKey:
-
-		pk := new(ecdsa.PrivateKey)
-		switch priKey.PriKey.(type){
-		case *ecdsa.PrivateKey:
-			pk = priKey.PriKey.(*ecdsa.PrivateKey)
-		case []byte:
-			pk.PublicKey.Curve = elliptic.P256()
-			pk.D = new(big.Int).SetBytes(priKey.PriKey.([]byte))
-			pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
-		case *big.Int:
-			pk.PublicKey.Curve = elliptic.P256()
-			pk.D = new(big.Int).Set(priKey.PriKey.(*big.Int))
-			pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
-
+		pk, err := getKey(priKey.PriKey)
+		if err != nil {
+			return nil, err
 		}
 		r, s, err := ecdsa.Sign(rand.Reader, pk, hash[:])
 		if err != nil {
 			return nil, err
 		}
 		return &crypto.Signature{
-			Source:SourceName,
-			SigType:priKey.SigType,
-			Signature: append(r.Bytes(),s.Bytes()...),
-			PubKey:pk.PublicKey,
-		},nil
+			Source:    SourceName,
+			SigType:   priKey.SigType,
+			Signature: append(r.Bytes(), s.Bytes()...),
+			PubKey:    pk.PublicKey,
+		}, nil
 	case MultipleSignatures:
-		pks := priKey.PriKey.([]*ecdsa.PrivateKey)
-		for _, pk := range pks {
+		pks := priKey.PriKey.([]interface{})
+		var pubKeys []ecdsa.PublicKey
+		var signature []byte
+		for _, item := range pks {
+			pk, err := getKey(item)
+			if err != nil {
+				return nil, err
+			}
 			r, s, err := ecdsa.Sign(rand.Reader, pk, hash[:])
 			if err != nil {
-				return nil,err
+				return nil, err
 			}
+			signature = append(signature, append(r.Bytes(), s.Bytes()...)...)
+			pubKeys = append(pubKeys, pk.PublicKey)
 		}
+		return &crypto.Signature{
+			Source:    SourceName,
+			SigType:   priKey.SigType,
+			Signature: signature,
+			PubKey:    pubKeys,
+		}, nil
 	}
-	return &crypto.Signature{},nil
+	return &crypto.Signature{}, nil
 }
 
-func (pc *PDUCrypto)Verify(hash []byte, sig crypto.Signature) bool {
+func (pc *PDUCrypto) Verify(hash []byte, sig crypto.Signature) bool {
 	return true
 }
-
-

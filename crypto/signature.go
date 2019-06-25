@@ -16,19 +16,17 @@
 
 package crypto
 
-
 type Signature struct {
-	Source 	string 		`json:"source"`
-	SigType string 		`json:"sigType"`
-	Signature []byte    `json:"signature"`
-	PubKey    interface{}    `json:"pubKey"`
+	Source    string      `json:"source"`
+	SigType   string      `json:"sigType"`
+	Signature []byte      `json:"signature"`
+	PubKey    interface{} `json:"pubKey"`
 }
 
 type PrivateKey struct {
-	Source 	string 		`json:"source"`
-	SigType string 		`json:"sigType"`
-	PriKey    interface{}    `json:"priKey"`
-
+	Source  string      `json:"source"`
+	SigType string      `json:"sigType"`
+	PriKey  interface{} `json:"priKey"`
 }
 
 type Engine interface {
