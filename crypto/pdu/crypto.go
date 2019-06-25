@@ -46,6 +46,10 @@ func GenerateKey() (*ecdsa.PrivateKey, error) {
 type PDUCrypto struct {
 }
 
+func New() *PDUCrypto {
+	return &PDUCrypto{}
+}
+
 func getKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 	pk := new(ecdsa.PrivateKey)
 	switch priKey.(type) {
