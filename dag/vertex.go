@@ -35,6 +35,7 @@ type Vertex struct {
 // NewVertex create vertex, id, value and parents must be set and is immutable
 // parents cloud be Vertex or just key
 func NewVertex(id interface{}, value interface{}, parents ...interface{}) (*Vertex, error) {
+	// Vertex & *Vertex can not be used as Vertex.ID
 	switch id.(type) {
 	case *Vertex:
 		return nil, errVertexIDInvalid
