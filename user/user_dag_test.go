@@ -14,14 +14,4 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package crypto
-
-import "fmt"
-
-func Byte2String(b []byte) (s string) {
-	s = ""
-	for i := 0; i < len(b); i++ {
-		s += fmt.Sprintf("%02X", b[i])
-	}
-	return s
-}
+package user
