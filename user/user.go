@@ -15,3 +15,6 @@
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
 package user
+
+type User struct {
+}
