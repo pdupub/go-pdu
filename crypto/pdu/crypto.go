@@ -102,10 +102,8 @@ func (pc *PDUCrypto) Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signat
 			return nil, err
 		}
 		return &crypto.Signature{
-			Source:    SourceName,
-			SigType:   priKey.SigType,
+			PublicKey: crypto.PublicKey{Source: SourceName, SigType: priKey.SigType, PubKey: pk.PublicKey},
 			Signature: append(r.Bytes(), s.Bytes()...),
-			PubKey:    pk.PublicKey,
 		}, nil
 	case MultipleSignatures:
 		pks := priKey.PriKey.([]interface{})
@@ -124,10 +122,8 @@ func (pc *PDUCrypto) Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signat
 			pubKeys = append(pubKeys, pk.PublicKey)
 		}
 		return &crypto.Signature{
-			Source:    SourceName,
-			SigType:   priKey.SigType,
+			PublicKey: crypto.PublicKey{Source: SourceName, SigType: priKey.SigType, PubKey: pubKeys},
 			Signature: signature,
-			PubKey:    pubKeys,
 		}, nil
 	default:
 		return nil, errSigTypeNotSupport

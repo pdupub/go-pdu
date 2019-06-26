@@ -16,11 +16,15 @@
 
 package crypto
 
+type PublicKey struct {
+	Source  string      `json:"source"`
+	SigType string      `json:"sigType"`
+	PubKey  interface{} `json:"pubKey"`
+}
+
 type Signature struct {
-	Source    string      `json:"source"`
-	SigType   string      `json:"sigType"`
-	Signature []byte      `json:"signature"`
-	PubKey    interface{} `json:"pubKey"`
+	PublicKey
+	Signature []byte `json:"signature"`
 }
 
 type PrivateKey struct {
