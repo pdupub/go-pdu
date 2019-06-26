@@ -37,6 +37,7 @@ var (
 	errSourceNotMatch    = errors.New("signature source not match")
 	errSigTypeNotSupport = errors.New("signature type not support")
 	errKeyTypeNotSupport = errors.New("key type not support")
+	errSigPubKeyNotMatch = errors.New("count of signature and public key not match")
 )
 
 func GenerateKey() (*ecdsa.PrivateKey, error) {
@@ -147,6 +148,21 @@ func (pc *PDUCrypto) Verify(hash []byte, sig crypto.Signature) (bool, error) {
 		s := new(big.Int).SetBytes(sig.Signature[32:])
 		return ecdsa.Verify(pk, hash, r, s), nil
 	case MultipleSignatures:
+		pks := sig.PubKey.([]interface{})
+		if len(pks) != len(sig.Signature)/64 {
+			return false, errSigPubKeyNotMatch
+		}
+		for i, pubkey := range pks {
+			pk, err := getPubKey(pubkey)
+			if err != nil {
+				return false, err
+			}
+			r := new(big.Int).SetBytes(sig.Signature[i*64 : i*64+32])
+			s := new(big.Int).SetBytes(sig.Signature[i*64+32 : i*64+64])
+			if !ecdsa.Verify(pk, hash, r, s) {
+				return false, nil
+			}
+		}
 		return true, nil
 	default:
 		return false, errSigTypeNotSupport

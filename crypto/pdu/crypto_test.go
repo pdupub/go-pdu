@@ -21,7 +21,7 @@ import (
 	"testing"
 )
 
-func TestPDUCrypto_Sign(t *testing.T) {
+func TestS2PK(t *testing.T) {
 
 	pk, err := GenerateKey()
 	if err != nil {
@@ -86,6 +86,104 @@ func TestPDUCrypto_Sign(t *testing.T) {
 		SigType: Signature2PublicKey, Signature: sig1.Signature, PubKey: pubKeyBytes})
 	if err != nil {
 		t.Errorf("verify fail, err : %s", err)
+	}
+	if verify4 {
+		t.Errorf("verify should fail")
+	}
+
+}
+
+func TestMS(t *testing.T) {
+
+	pk1, err := GenerateKey()
+	if err != nil {
+		t.Errorf("generate key pair fail, err : %s", err)
+	}
+	pk2, err := GenerateKey()
+	if err != nil {
+		t.Errorf("generate key pair fail, err : %s", err)
+	}
+	pk3, err := GenerateKey()
+	if err != nil {
+		t.Errorf("generate key pair fail, err : %s", err)
+	}
+
+	pdu := New()
+	content1 := "hello world"
+	var pks []interface{}
+	sig1, err := pdu.Sign([]byte(content1), crypto.PrivateKey{Source: SourceName, SigType: MultipleSignatures, PriKey: append(pks, pk1.D, pk2.D, pk3.D)})
+	if err != nil {
+		t.Errorf("sign fail, err : %s", err)
+	}
+	pks = []interface{}{}
+	sig2, err := pdu.Sign([]byte(content1), crypto.PrivateKey{Source: SourceName, SigType: MultipleSignatures, PriKey: append(pks, pk1.D.Bytes(), pk2.D.Bytes(), pk3.D.Bytes())})
+	if err != nil {
+		t.Errorf("sign fail, err : %s", err)
+	}
+	pks = []interface{}{}
+	sig3, err := pdu.Sign([]byte(content1), crypto.PrivateKey{Source: SourceName, SigType: MultipleSignatures, PriKey: append(pks, pk1, pk2, pk3)})
+	if err != nil {
+		t.Errorf("sign fail, err : %s", err)
+	}
+
+	if sig1.Source != sig2.Source || sig1.Source != sig3.Source || sig1.Source != SourceName {
+		t.Errorf("signature source should be %s", SourceName)
+	}
+
+	if sig1.SigType != sig2.SigType || sig1.SigType != sig3.SigType || sig1.SigType != MultipleSignatures {
+		t.Errorf("signature type should be %s", MultipleSignatures)
+	}
+
+	var pubks []interface{}
+	verify1, err := pdu.Verify([]byte(content1), crypto.Signature{Source: SourceName,
+		SigType: MultipleSignatures, Signature: sig1.Signature, PubKey: append(pubks, pk1.PublicKey, pk2.PublicKey, pk3.PublicKey)})
+	if err != nil {
+		t.Errorf("verify fail, err : %s", err)
+	}
+	if !verify1 {
+		t.Errorf("verify fail")
+	}
+
+	pubks = []interface{}{}
+	verify2, err := pdu.Verify([]byte(content1), crypto.Signature{Source: SourceName,
+		SigType: MultipleSignatures, Signature: sig1.Signature, PubKey: append(pubks, &pk1.PublicKey, &pk2.PublicKey, &pk3.PublicKey)})
+	if err != nil {
+		t.Errorf("verify fail, err : %s", err)
+	}
+	if !verify2 {
+		t.Errorf("verify fail")
+	}
+
+	pubks = []interface{}{}
+	pubKeyBytes1 := append(pk1.PublicKey.X.Bytes(), pk1.PublicKey.Y.Bytes()...)
+	pubKeyBytes2 := append(pk2.PublicKey.X.Bytes(), pk2.PublicKey.Y.Bytes()...)
+	pubKeyBytes3 := append(pk3.PublicKey.X.Bytes(), pk3.PublicKey.Y.Bytes()...)
+	verify3, err := pdu.Verify([]byte(content1), crypto.Signature{Source: SourceName,
+		SigType: MultipleSignatures, Signature: sig1.Signature, PubKey: append(pubks, pubKeyBytes1, pubKeyBytes2, pubKeyBytes3)})
+	if err != nil {
+		t.Errorf("verify fail, err : %s", err)
+	}
+	if !verify3 {
+		t.Errorf("verify fail")
+	}
+
+	pubks = []interface{}{}
+	pubKeyBytes1 = append(pk1.PublicKey.X.Bytes(), pk1.PublicKey.Y.Bytes()...)
+	pubKeyBytes3 = append(pk3.PublicKey.X.Bytes(), pk3.PublicKey.Y.Bytes()...)
+	_, err = pdu.Verify([]byte(content1), crypto.Signature{Source: SourceName,
+		SigType: MultipleSignatures, Signature: sig1.Signature, PubKey: append(pubks, pubKeyBytes1, pubKeyBytes3)})
+	if err != errSigPubKeyNotMatch {
+		t.Errorf("verify should fail with err : %s", errSigPubKeyNotMatch)
+	}
+
+	pubks = []interface{}{}
+	pubKeyBytes1 = append(pk1.PublicKey.X.Bytes(), pk1.PublicKey.Y.Bytes()...)
+	pubKeyBytes2 = append(pk2.PublicKey.X.Bytes(), pk2.PublicKey.Y.Bytes()...)
+	pubKeyBytes3 = append(pk3.PublicKey.X.Bytes(), pk3.PublicKey.Y.Bytes()...)
+	verify4, err := pdu.Verify([]byte(content1), crypto.Signature{Source: SourceName,
+		SigType: MultipleSignatures, Signature: sig1.Signature, PubKey: append(pubks, pubKeyBytes1, pubKeyBytes3, pubKeyBytes2)})
+	if err != nil {
+		t.Errorf("verify should fail with no err : %s", err)
 	}
 	if verify4 {
 		t.Errorf("verify should fail")
