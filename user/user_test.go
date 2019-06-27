@@ -17,6 +17,7 @@
 package user
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/crypto/pdu"
@@ -35,6 +36,7 @@ func TestCreateRootUsers(t *testing.T) {
 	for i, user := range users {
 		if user != nil {
 			fmt.Println("User:", i, "ID:", crypto.Byte2String(user.ID()))
+			fmt.Println("User:", i, "ID2", crypto.Byte2String(encode(user).ID()))
 		} else {
 			fmt.Println("User:", i, "No user being created")
 		}
@@ -50,10 +52,27 @@ func TestCreateRootUsers(t *testing.T) {
 	for i, user := range users {
 		if user != nil {
 			fmt.Println("User:", i, "ID:", crypto.Byte2String(user.ID()))
+			fmt.Println("User:", i, "ID2", crypto.Byte2String(encode(user).ID()))
 		} else {
 			fmt.Println("User:", i, "No user being created")
 		}
 	}
+
+}
+
+func encode(u *User) *User {
+	res, err := json.Marshal(u)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	var user User
+	err = json.Unmarshal(res, &user)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return &user
 }
 
 func TestCreateNewUser(t *testing.T) {

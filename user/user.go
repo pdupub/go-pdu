@@ -18,6 +18,7 @@ package user
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/msg"
@@ -99,4 +100,42 @@ func (u User) ParentsID() [2][]byte {
 	PID[0] = []byte{}
 	PID[1] = []byte{}
 	return PID
+}
+
+func (u *User) UnmarshalJSON(input []byte) error {
+	userMap := make(map[string]interface{})
+	err := json.Unmarshal(input, &userMap)
+	if err != nil {
+		return err
+	} else {
+		u.name = userMap["name"].(string)
+		u.dobExtra = []byte(userMap["dobExtra"].(string))
+
+		json.Unmarshal([]byte(userMap["dobMsg"].(string)), u.dobMsg)
+
+		var auth Auth
+		json.Unmarshal([]byte(userMap["auth"].(string)), &auth)
+		u.auth = auth
+
+	}
+	return nil
+}
+
+func (u *User) MarshalJSON() ([]byte, error) {
+	userMap := make(map[string]interface{})
+	userMap["name"] = u.name
+	userMap["dobExtra"] = string(u.dobExtra)
+
+	if auth, err := json.Marshal(&u.auth); err != nil {
+		return []byte{}, err
+	} else {
+		userMap["auth"] = string(auth)
+	}
+
+	if dobMsg, err := json.Marshal(u.dobMsg); err != nil {
+		return []byte{}, err
+	} else {
+		userMap["dobMsg"] = dobMsg
+	}
+	return json.Marshal(userMap)
 }

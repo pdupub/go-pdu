@@ -16,8 +16,62 @@
 
 package user
 
-import "github.com/pdupub/go-pdu/crypto"
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/pdu"
+)
 
 type Auth struct {
 	crypto.PublicKey
+}
+
+func (a *Auth) UnmarshalJSON(input []byte) error {
+	aMap := make(map[string]interface{})
+	err := json.Unmarshal(input, &aMap)
+	if err != nil {
+		return err
+	} else {
+		a.Source = aMap["source"].(string)
+		a.SigType = aMap["sigType"].(string)
+
+		if a.Source == pdu.SourceName {
+			if a.SigType == pdu.Signature2PublicKey {
+				var pubKey interface{}
+				err := json.Unmarshal([]byte(aMap["pubKey"].(string)), &pubKey)
+				if err != nil {
+					return err
+				} else {
+					fmt.Println("s2pk", pubKey)
+					a.PubKey = pubKey
+				}
+			} else if a.SigType == pdu.MultipleSignatures {
+				pubKey := make([]interface{}, 0)
+				err := json.Unmarshal([]byte(aMap["pubKey"].(string)), &pubKey)
+				if err != nil {
+					return err
+				} else {
+					fmt.Println("ms:", pubKey)
+					a.PubKey = pubKey
+				}
+			} else {
+
+			}
+		}
+
+	}
+	return nil
+}
+
+func (a *Auth) MarshalJSON() ([]byte, error) {
+	aMap := make(map[string]interface{})
+	aMap["source"] = a.Source
+	aMap["sigType"] = a.SigType
+	if pubKey, err := json.Marshal(a.PubKey); err != nil {
+		return []byte{}, err
+	} else {
+		aMap["pubKey"] = string(pubKey)
+	}
+	return json.Marshal(aMap)
 }

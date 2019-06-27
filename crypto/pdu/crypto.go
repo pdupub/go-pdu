@@ -51,7 +51,7 @@ func New() *PDUCrypto {
 	return &PDUCrypto{}
 }
 
-func getKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
+func GetKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 	pk := new(ecdsa.PrivateKey)
 	switch priKey.(type) {
 	case *ecdsa.PrivateKey:
@@ -70,7 +70,7 @@ func getKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 	return pk, nil
 }
 
-func getPubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
+func GetPubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
 	pk := new(ecdsa.PublicKey)
 	switch pubKey.(type) {
 	case *ecdsa.PublicKey:
@@ -93,7 +93,7 @@ func (pc *PDUCrypto) Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signat
 	}
 	switch priKey.SigType {
 	case Signature2PublicKey:
-		pk, err := getKey(priKey.PriKey)
+		pk, err := GetKey(priKey.PriKey)
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +110,7 @@ func (pc *PDUCrypto) Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signat
 		var pubKeys []ecdsa.PublicKey
 		var signature []byte
 		for _, item := range pks {
-			pk, err := getKey(item)
+			pk, err := GetKey(item)
 			if err != nil {
 				return nil, err
 			}
@@ -136,7 +136,7 @@ func (pc *PDUCrypto) Verify(hash []byte, sig crypto.Signature) (bool, error) {
 	}
 	switch sig.SigType {
 	case Signature2PublicKey:
-		pk, err := getPubKey(sig.PubKey)
+		pk, err := GetPubKey(sig.PubKey)
 		if err != nil {
 			return false, err
 		}
@@ -149,7 +149,7 @@ func (pc *PDUCrypto) Verify(hash []byte, sig crypto.Signature) (bool, error) {
 			return false, errSigPubKeyNotMatch
 		}
 		for i, pubkey := range pks {
-			pk, err := getPubKey(pubkey)
+			pk, err := GetPubKey(pubkey)
 			if err != nil {
 				return false, err
 			}
