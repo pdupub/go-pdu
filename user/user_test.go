@@ -29,7 +29,6 @@ func TestCreateRootUsers(t *testing.T) {
 	if err != nil {
 		t.Errorf("generate key pair fail, err : %s", err)
 	}
-
 	pubKey := crypto.PublicKey{Source: pdu.SourceName, SigType: pdu.Signature2PublicKey, PubKey: pk.PublicKey}
 
 	users, err := CreateRootUsers(pubKey)
@@ -46,6 +45,7 @@ func TestCreateRootUsers(t *testing.T) {
 		t.Errorf("generate key pair fail, err : %s", err)
 	}
 	pubKey = crypto.PublicKey{Source: pdu.SourceName, SigType: pdu.MultipleSignatures, PubKey: append(append([]interface{}{}, pk.PublicKey), pk2.PublicKey)}
+
 	users, err = CreateRootUsers(pubKey)
 	for i, user := range users {
 		if user != nil {
@@ -54,7 +54,6 @@ func TestCreateRootUsers(t *testing.T) {
 			fmt.Println("User:", i, "No user being created")
 		}
 	}
-
 }
 
 func TestCreateNewUser(t *testing.T) {

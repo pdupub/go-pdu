@@ -56,6 +56,10 @@ func CreateRootUsers(key crypto.PublicKey) ([2]*User, error) {
 }
 
 // CreateNewUser create new user by cosign message
+// The msg must be signed by user in local user dag.
+// Both parents must be in the local use dag.
+// Both parents fit the nature rules.
+// The BOD struct signed by both parents.
 func CreateNewUser(msg *msg.Message) (*User, error) {
 	newUser := User{}
 
