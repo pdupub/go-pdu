@@ -16,5 +16,8 @@
 
 package user
 
+import "github.com/pdupub/go-pdu/crypto"
+
 type Auth struct {
+	crypto.PublicKey
 }
