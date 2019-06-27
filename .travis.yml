@@ -1,5 +1,5 @@
 language: go
-go_import_path: github.com/pdupub/PDU
+go_import_path: github.com/pdupub/go-pdu
 sudo: false
 matrix:
   include:
