@@ -15,3 +15,13 @@
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
 package user
+
+import "testing"
+
+func TestCreateRootUsers(t *testing.T) {
+
+}
+
+func TestCreateNewUser(t *testing.T) {
+
+}
