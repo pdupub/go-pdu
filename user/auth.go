@@ -18,8 +18,8 @@ package user
 
 import (
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"encoding/json"
-	"fmt"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/crypto/pdu"
 	"math/big"
@@ -37,25 +37,23 @@ func (a *Auth) UnmarshalJSON(input []byte) error {
 	} else {
 		a.Source = aMap["source"].(string)
 		a.SigType = aMap["sigType"].(string)
-
 		if a.Source == pdu.SourceName {
 			if a.SigType == pdu.Signature2PublicKey {
 				if err != nil {
 					return err
 				} else {
-					X := new(big.Int).SetBytes([]byte(aMap["pubKeyX"].(string)))
-					Y := new(big.Int).SetBytes([]byte(aMap["pubKeyY"].(string)))
-
-					fmt.Println("x2", X)
-					fmt.Println("y2", Y)
+					pubKey := new(ecdsa.PublicKey)
+					pubKey.Curve = elliptic.P256()
+					pubKey.X, pubKey.Y = big.NewInt(0), big.NewInt(0)
+					pubKey.X.UnmarshalText([]byte(aMap["pubKeyX"].(string)))
+					pubKey.Y.UnmarshalText([]byte(aMap["pubKeyY"].(string)))
+					a.PubKey = *pubKey
 
 				}
-				fmt.Println("uuuu", aMap["pubKey"])
 			} else if a.SigType == pdu.MultipleSignatures {
 
 			} else {
 				// todo : err
-
 			}
 		}
 
@@ -63,20 +61,15 @@ func (a *Auth) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-func (a *Auth) MarshalJSON() ([]byte, error) {
+func (a Auth) MarshalJSON() ([]byte, error) {
 	aMap := make(map[string]interface{})
 	aMap["source"] = a.Source
 	aMap["sigType"] = a.SigType
 	if a.Source == pdu.SourceName {
 		if a.SigType == pdu.Signature2PublicKey {
 			pk := a.PubKey.(ecdsa.PublicKey)
-			//todo: fix here!!!
-
-			aMap["pubKeyX"] = crypto.Byte2String(pk.X.Bytes())
-			aMap["pubKeyY"] = crypto.Byte2String(pk.Y.Bytes())
-			fmt.Println("x1", pk.X)
-			fmt.Println("y1", pk.Y)
-
+			aMap["pubKeyX"] = pk.X.String()
+			aMap["pubKeyY"] = pk.Y.String()
 		} else if a.SigType == pdu.MultipleSignatures {
 
 		}
