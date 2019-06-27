@@ -12,4 +12,8 @@ matrix:
         - sudo chmod 666 /dev/fuse
         - sudo chown root:$USER /etc/fuse.conf
         - make install
+        - go test ./crypto/pdu
+        - go test ./dag
+        - go test ./msg
+        - go test ./user
 
