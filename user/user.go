@@ -17,14 +17,17 @@
 package user
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/msg"
+	"math/big"
 )
 
 const (
-	rootMName     = "1" //Adam
+	rootMName     = "Adam"
 	rootMDOBExtra = "Hello World!"
-	rootFName     = "0" //Eve
+	rootFName     = "Eve"
 	rootFDOBExtra = ";-)"
 	male          = true
 	female        = false
@@ -62,12 +65,20 @@ func CreateNewUser(msg *msg.Message) (*User, error) {
 // ID return the vertex.id, related to parents and value of the vertex
 // ID cloud use as address of user account
 func (u User) ID() []byte {
-	return []byte{}
+	hash := sha256.New()
+	hash.Reset()
+	auth := fmt.Sprintf("%v", u.auth)
+	dobMsg := fmt.Sprintf("%v", u.dobMsg)
+	hash.Write(append(append(append([]byte(u.name), u.dobExtra...), auth...), dobMsg...))
+	return hash.Sum(nil)
 }
 
 // Gender return the gender of user, true = male = end of ID is odd
 func (u User) Gender() bool {
-	return true
+	if uid := new(big.Int).SetBytes(u.ID()); uid.Mod(uid, big.NewInt(2)).Cmp(big.NewInt(1)) == 0 {
+		return true
+	}
+	return false
 }
 
 // Value return the vertex.value

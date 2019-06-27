@@ -16,9 +16,30 @@
 
 package user
 
-import "testing"
+import (
+	"fmt"
+	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/pdu"
+	"testing"
+)
 
 func TestCreateRootUsers(t *testing.T) {
+
+	pk, err := pdu.GenerateKey()
+	if err != nil {
+		t.Errorf("generate key pair fail, err : %s", err)
+	}
+
+	pubKey := crypto.PublicKey{Source: pdu.SourceName, SigType: pdu.Signature2PublicKey, PubKey: pk.PublicKey}
+
+	users, err := CreateRootUsers(pubKey)
+	for i, user := range users {
+		if user != nil {
+			fmt.Println("User:", i, "ID:", crypto.Byte2String(user.ID()))
+		} else {
+			fmt.Println("User:", i, "No user being created")
+		}
+	}
 
 }
 
