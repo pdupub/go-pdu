@@ -35,8 +35,11 @@ func TestCreateRootUsers(t *testing.T) {
 	users, err := CreateRootUsers(pubKey)
 	for i, user := range users {
 		if user != nil {
-			fmt.Println("User:", i, "ID:", crypto.Byte2String(user.ID()))
-			fmt.Println("User:", i, "ID2", crypto.Byte2String(encode(user).ID()))
+			if crypto.Byte2String(user.ID()) == crypto.Byte2String(encode(user).ID()) {
+				fmt.Println("User:", i, "ID:", crypto.Byte2String(user.ID()))
+			} else {
+				t.Errorf("%s : %s json Encode & Decode fail ", pdu.SourceName, pdu.MultipleSignatures)
+			}
 		} else {
 			fmt.Println("User:", i, "No user being created")
 		}
@@ -51,8 +54,11 @@ func TestCreateRootUsers(t *testing.T) {
 	users, err = CreateRootUsers(pubKey)
 	for i, user := range users {
 		if user != nil {
-			fmt.Println("User:", i, "ID:", crypto.Byte2String(user.ID()))
-			fmt.Println("User:", i, "ID2", crypto.Byte2String(encode(user).ID()))
+			if crypto.Byte2String(user.ID()) == crypto.Byte2String(encode(user).ID()) {
+				fmt.Println("User:", i, "ID:", crypto.Byte2String(user.ID()))
+			} else {
+				t.Errorf("%s : %s json Encode & Decode fail ", pdu.SourceName, pdu.MultipleSignatures)
+			}
 		} else {
 			fmt.Println("User:", i, "No user being created")
 		}
@@ -63,15 +69,13 @@ func TestCreateRootUsers(t *testing.T) {
 func encode(u *User) *User {
 	res, err := json.Marshal(u)
 	if err != nil {
-		fmt.Println(err)
+		return nil
 	}
-
 	var user User
 	err = json.Unmarshal(res, &user)
 	if err != nil {
-		fmt.Println(err)
+		return nil
 	}
-
 	return &user
 }
 

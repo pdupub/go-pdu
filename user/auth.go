@@ -39,19 +39,25 @@ func (a *Auth) UnmarshalJSON(input []byte) error {
 		a.SigType = aMap["sigType"].(string)
 		if a.Source == pdu.SourceName {
 			if a.SigType == pdu.Signature2PublicKey {
-				if err != nil {
-					return err
-				} else {
+				pubKey := new(ecdsa.PublicKey)
+				pubKey.Curve = elliptic.P256()
+				pubKey.X, pubKey.Y = big.NewInt(0), big.NewInt(0)
+				pk := aMap["pubKey"].([]interface{})
+				pubKey.X.UnmarshalText([]byte(pk[0].(string)))
+				pubKey.Y.UnmarshalText([]byte(pk[1].(string)))
+				a.PubKey = *pubKey
+			} else if a.SigType == pdu.MultipleSignatures {
+				pk := aMap["pubKey"].([]interface{})
+				var pubKeys []ecdsa.PublicKey
+				for i := 0; i < len(pk)/2; i++ {
 					pubKey := new(ecdsa.PublicKey)
 					pubKey.Curve = elliptic.P256()
 					pubKey.X, pubKey.Y = big.NewInt(0), big.NewInt(0)
-					pubKey.X.UnmarshalText([]byte(aMap["pubKeyX"].(string)))
-					pubKey.Y.UnmarshalText([]byte(aMap["pubKeyY"].(string)))
-					a.PubKey = *pubKey
-
+					pubKey.X.UnmarshalText([]byte(pk[i*2].(string)))
+					pubKey.Y.UnmarshalText([]byte(pk[i*2+1].(string)))
+					pubKeys = append(pubKeys, *pubKey)
 				}
-			} else if a.SigType == pdu.MultipleSignatures {
-
+				a.PubKey = pubKeys
 			} else {
 				// todo : err
 			}
@@ -68,10 +74,19 @@ func (a Auth) MarshalJSON() ([]byte, error) {
 	if a.Source == pdu.SourceName {
 		if a.SigType == pdu.Signature2PublicKey {
 			pk := a.PubKey.(ecdsa.PublicKey)
-			aMap["pubKeyX"] = pk.X.String()
-			aMap["pubKeyY"] = pk.Y.String()
+			pubKey := make([]string, 2)
+			pubKey[0] = pk.X.String()
+			pubKey[1] = pk.Y.String()
+			aMap["pubKey"] = pubKey
 		} else if a.SigType == pdu.MultipleSignatures {
-
+			pks := a.PubKey.([]interface{})
+			pubKey := make([]string, len(pks)*2)
+			for i, v := range pks {
+				pk := v.(ecdsa.PublicKey)
+				pubKey[i*2] = pk.X.String()
+				pubKey[i*2+1] = pk.Y.String()
+			}
+			aMap["pubKey"] = pubKey
 		}
 	}
 	return json.Marshal(aMap)
