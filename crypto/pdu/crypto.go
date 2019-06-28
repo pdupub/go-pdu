@@ -80,7 +80,7 @@ func GetPubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
 	return pk, nil
 }
 
-func (pc *PDUCrypto) Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signature, error) {
+func Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signature, error) {
 	if priKey.Source != SourceName {
 		return nil, crypto.ErrSourceNotMatch
 	}
@@ -123,7 +123,7 @@ func (pc *PDUCrypto) Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signat
 	}
 }
 
-func (pc *PDUCrypto) Verify(hash []byte, sig crypto.Signature) (bool, error) {
+func Verify(hash []byte, sig crypto.Signature) (bool, error) {
 	if sig.Source != SourceName {
 		return false, crypto.ErrSourceNotMatch
 	}

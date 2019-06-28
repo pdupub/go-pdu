@@ -28,19 +28,18 @@ func TestS2PK(t *testing.T) {
 		t.Errorf("generate key pair fail, err : %s", err)
 	}
 
-	pdu := New()
 	content1 := "hello world"
-	sig1, err := pdu.Sign([]byte(content1), crypto.PrivateKey{Source: SourceName, SigType: Signature2PublicKey, PriKey: pk.D})
+	sig1, err := Sign([]byte(content1), crypto.PrivateKey{Source: SourceName, SigType: Signature2PublicKey, PriKey: pk.D})
 	if err != nil {
 		t.Errorf("sign fail, err : %s", err)
 	}
 
-	sig2, err := pdu.Sign([]byte(content1), crypto.PrivateKey{Source: SourceName, SigType: Signature2PublicKey, PriKey: pk.D.Bytes()})
+	sig2, err := Sign([]byte(content1), crypto.PrivateKey{Source: SourceName, SigType: Signature2PublicKey, PriKey: pk.D.Bytes()})
 	if err != nil {
 		t.Errorf("sign fail, err : %s", err)
 	}
 
-	sig3, err := pdu.Sign([]byte(content1), crypto.PrivateKey{Source: SourceName, SigType: Signature2PublicKey, PriKey: pk})
+	sig3, err := Sign([]byte(content1), crypto.PrivateKey{Source: SourceName, SigType: Signature2PublicKey, PriKey: pk})
 	if err != nil {
 		t.Errorf("sign fail, err : %s", err)
 	}
@@ -53,7 +52,7 @@ func TestS2PK(t *testing.T) {
 		t.Errorf("signature type should be %s", Signature2PublicKey)
 	}
 
-	verify1, err := pdu.Verify([]byte(content1), crypto.Signature{
+	verify1, err := Verify([]byte(content1), crypto.Signature{
 		PublicKey: crypto.PublicKey{Source: SourceName, SigType: Signature2PublicKey, PubKey: pk.PublicKey}, Signature: sig1.Signature})
 	if err != nil {
 		t.Errorf("verify fail, err : %s", err)
@@ -62,7 +61,7 @@ func TestS2PK(t *testing.T) {
 		t.Errorf("verify fail")
 	}
 
-	verify2, err := pdu.Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
+	verify2, err := Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
 		SigType: Signature2PublicKey, PubKey: &pk.PublicKey}, Signature: sig1.Signature})
 	if err != nil {
 		t.Errorf("verify fail, err : %s", err)
@@ -72,7 +71,7 @@ func TestS2PK(t *testing.T) {
 	}
 
 	pubKeyBytes := append(pk.PublicKey.X.Bytes(), pk.PublicKey.Y.Bytes()...)
-	verify3, err := pdu.Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
+	verify3, err := Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
 		SigType: Signature2PublicKey, PubKey: pubKeyBytes}, Signature: sig1.Signature})
 	if err != nil {
 		t.Errorf("verify fail, err : %s", err)
@@ -82,7 +81,7 @@ func TestS2PK(t *testing.T) {
 	}
 
 	pubKeyBytes = append(pk.PublicKey.Y.Bytes(), pk.PublicKey.X.Bytes()...)
-	verify4, err := pdu.Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
+	verify4, err := Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
 		SigType: Signature2PublicKey, PubKey: pubKeyBytes}, Signature: sig1.Signature})
 	if err != nil {
 		t.Errorf("verify fail, err : %s", err)
@@ -108,20 +107,19 @@ func TestMS(t *testing.T) {
 		t.Errorf("generate key pair fail, err : %s", err)
 	}
 
-	pdu := New()
 	content1 := "hello world"
 	var pks []interface{}
-	sig1, err := pdu.Sign([]byte(content1), crypto.PrivateKey{Source: SourceName, SigType: MultipleSignatures, PriKey: append(pks, pk1.D, pk2.D, pk3.D)})
+	sig1, err := Sign([]byte(content1), crypto.PrivateKey{Source: SourceName, SigType: MultipleSignatures, PriKey: append(pks, pk1.D, pk2.D, pk3.D)})
 	if err != nil {
 		t.Errorf("sign fail, err : %s", err)
 	}
 	pks = []interface{}{}
-	sig2, err := pdu.Sign([]byte(content1), crypto.PrivateKey{Source: SourceName, SigType: MultipleSignatures, PriKey: append(pks, pk1.D.Bytes(), pk2.D.Bytes(), pk3.D.Bytes())})
+	sig2, err := Sign([]byte(content1), crypto.PrivateKey{Source: SourceName, SigType: MultipleSignatures, PriKey: append(pks, pk1.D.Bytes(), pk2.D.Bytes(), pk3.D.Bytes())})
 	if err != nil {
 		t.Errorf("sign fail, err : %s", err)
 	}
 	pks = []interface{}{}
-	sig3, err := pdu.Sign([]byte(content1), crypto.PrivateKey{Source: SourceName, SigType: MultipleSignatures, PriKey: append(pks, pk1, pk2, pk3)})
+	sig3, err := Sign([]byte(content1), crypto.PrivateKey{Source: SourceName, SigType: MultipleSignatures, PriKey: append(pks, pk1, pk2, pk3)})
 	if err != nil {
 		t.Errorf("sign fail, err : %s", err)
 	}
@@ -135,7 +133,7 @@ func TestMS(t *testing.T) {
 	}
 
 	var pubks []interface{}
-	verify1, err := pdu.Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
+	verify1, err := Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
 		SigType: MultipleSignatures, PubKey: append(pubks, pk1.PublicKey, pk2.PublicKey, pk3.PublicKey)}, Signature: sig1.Signature})
 	if err != nil {
 		t.Errorf("verify fail, err : %s", err)
@@ -145,7 +143,7 @@ func TestMS(t *testing.T) {
 	}
 
 	pubks = []interface{}{}
-	verify2, err := pdu.Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
+	verify2, err := Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
 		SigType: MultipleSignatures, PubKey: append(pubks, &pk1.PublicKey, &pk2.PublicKey, &pk3.PublicKey)}, Signature: sig1.Signature})
 	if err != nil {
 		t.Errorf("verify fail, err : %s", err)
@@ -158,7 +156,7 @@ func TestMS(t *testing.T) {
 	pubKeyBytes1 := append(pk1.PublicKey.X.Bytes(), pk1.PublicKey.Y.Bytes()...)
 	pubKeyBytes2 := append(pk2.PublicKey.X.Bytes(), pk2.PublicKey.Y.Bytes()...)
 	pubKeyBytes3 := append(pk3.PublicKey.X.Bytes(), pk3.PublicKey.Y.Bytes()...)
-	verify3, err := pdu.Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
+	verify3, err := Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
 		SigType: MultipleSignatures, PubKey: append(pubks, pubKeyBytes1, pubKeyBytes2, pubKeyBytes3)}, Signature: sig1.Signature})
 	if err != nil {
 		t.Errorf("verify fail, err : %s", err)
@@ -170,7 +168,7 @@ func TestMS(t *testing.T) {
 	pubks = []interface{}{}
 	pubKeyBytes1 = append(pk1.PublicKey.X.Bytes(), pk1.PublicKey.Y.Bytes()...)
 	pubKeyBytes3 = append(pk3.PublicKey.X.Bytes(), pk3.PublicKey.Y.Bytes()...)
-	_, err = pdu.Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
+	_, err = Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
 		SigType: MultipleSignatures, PubKey: append(pubks, pubKeyBytes1, pubKeyBytes3)}, Signature: sig1.Signature})
 	if err != crypto.ErrSigPubKeyNotMatch {
 		t.Errorf("verify should fail with err : %s", crypto.ErrSigPubKeyNotMatch)
@@ -180,7 +178,7 @@ func TestMS(t *testing.T) {
 	pubKeyBytes1 = append(pk1.PublicKey.X.Bytes(), pk1.PublicKey.Y.Bytes()...)
 	pubKeyBytes2 = append(pk2.PublicKey.X.Bytes(), pk2.PublicKey.Y.Bytes()...)
 	pubKeyBytes3 = append(pk3.PublicKey.X.Bytes(), pk3.PublicKey.Y.Bytes()...)
-	verify4, err := pdu.Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
+	verify4, err := Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
 		SigType: MultipleSignatures, PubKey: append(pubks, pubKeyBytes1, pubKeyBytes3, pubKeyBytes2)}, Signature: sig1.Signature})
 	if err != nil {
 		t.Errorf("verify should fail with no err : %s", err)
