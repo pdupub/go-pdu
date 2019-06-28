@@ -20,7 +20,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"errors"
+	"encoding/json"
 	"math/big"
 
 	"github.com/pdupub/go-pdu/crypto"
@@ -31,13 +31,6 @@ const (
 
 	MultipleSignatures  = "MS"
 	Signature2PublicKey = "S2PK"
-)
-
-var (
-	errSourceNotMatch    = errors.New("signature source not match")
-	errSigTypeNotSupport = errors.New("signature type not support")
-	errKeyTypeNotSupport = errors.New("key type not support")
-	errSigPubKeyNotMatch = errors.New("count of signature and public key not match")
 )
 
 func GenerateKey() (*ecdsa.PrivateKey, error) {
@@ -65,7 +58,7 @@ func GetKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 		pk.D = new(big.Int).Set(priKey.(*big.Int))
 		pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
 	default:
-		return nil, errKeyTypeNotSupport
+		return nil, crypto.ErrKeyTypeNotSupport
 	}
 	return pk, nil
 }
@@ -82,14 +75,14 @@ func GetPubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
 		pk.X = new(big.Int).SetBytes(pubKey.([]byte)[:32])
 		pk.Y = new(big.Int).SetBytes(pubKey.([]byte)[32:])
 	default:
-		return nil, errKeyTypeNotSupport
+		return nil, crypto.ErrKeyTypeNotSupport
 	}
 	return pk, nil
 }
 
 func (pc *PDUCrypto) Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signature, error) {
 	if priKey.Source != SourceName {
-		return nil, errSourceNotMatch
+		return nil, crypto.ErrSourceNotMatch
 	}
 	switch priKey.SigType {
 	case Signature2PublicKey:
@@ -126,13 +119,13 @@ func (pc *PDUCrypto) Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signat
 			Signature: signature,
 		}, nil
 	default:
-		return nil, errSigTypeNotSupport
+		return nil, crypto.ErrSigTypeNotSupport
 	}
 }
 
 func (pc *PDUCrypto) Verify(hash []byte, sig crypto.Signature) (bool, error) {
 	if sig.Source != SourceName {
-		return false, errSourceNotMatch
+		return false, crypto.ErrSourceNotMatch
 	}
 	switch sig.SigType {
 	case Signature2PublicKey:
@@ -146,7 +139,7 @@ func (pc *PDUCrypto) Verify(hash []byte, sig crypto.Signature) (bool, error) {
 	case MultipleSignatures:
 		pks := sig.PubKey.([]interface{})
 		if len(pks) != len(sig.Signature)/64 {
-			return false, errSigPubKeyNotMatch
+			return false, crypto.ErrSigPubKeyNotMatch
 		}
 		for i, pubkey := range pks {
 			pk, err := GetPubKey(pubkey)
@@ -161,6 +154,76 @@ func (pc *PDUCrypto) Verify(hash []byte, sig crypto.Signature) (bool, error) {
 		}
 		return true, nil
 	default:
-		return false, errSigTypeNotSupport
+		return false, crypto.ErrSigTypeNotSupport
 	}
+}
+
+func UnmarshalJSON(input []byte) (*crypto.PublicKey, error) {
+	p := crypto.PublicKey{}
+	aMap := make(map[string]interface{})
+	err := json.Unmarshal(input, &aMap)
+	if err != nil {
+		return nil, err
+	} else {
+		p.Source = aMap["source"].(string)
+		p.SigType = aMap["sigType"].(string)
+
+		if p.Source == SourceName {
+			if p.SigType == Signature2PublicKey {
+				pubKey := new(ecdsa.PublicKey)
+				pubKey.Curve = elliptic.P256()
+				pubKey.X, pubKey.Y = big.NewInt(0), big.NewInt(0)
+				pk := aMap["pubKey"].([]interface{})
+				pubKey.X.UnmarshalText([]byte(pk[0].(string)))
+				pubKey.Y.UnmarshalText([]byte(pk[1].(string)))
+				p.PubKey = *pubKey
+			} else if p.SigType == MultipleSignatures {
+				pk := aMap["pubKey"].([]interface{})
+				var pubKeys []ecdsa.PublicKey
+				for i := 0; i < len(pk)/2; i++ {
+					pubKey := new(ecdsa.PublicKey)
+					pubKey.Curve = elliptic.P256()
+					pubKey.X, pubKey.Y = big.NewInt(0), big.NewInt(0)
+					pubKey.X.UnmarshalText([]byte(pk[i*2].(string)))
+					pubKey.Y.UnmarshalText([]byte(pk[i*2+1].(string)))
+					pubKeys = append(pubKeys, *pubKey)
+				}
+				p.PubKey = pubKeys
+			} else {
+				return nil, crypto.ErrSigTypeNotSupport
+			}
+		} else {
+			return nil, crypto.ErrSourceNotMatch
+		}
+	}
+	return &p, nil
+}
+
+func MarshalJSON(a crypto.PublicKey) ([]byte, error) {
+	aMap := make(map[string]interface{})
+	aMap["source"] = a.Source
+	aMap["sigType"] = a.SigType
+	if a.Source == SourceName {
+		if a.SigType == Signature2PublicKey {
+			pk := a.PubKey.(ecdsa.PublicKey)
+			pubKey := make([]string, 2)
+			pubKey[0] = pk.X.String()
+			pubKey[1] = pk.Y.String()
+			aMap["pubKey"] = pubKey
+		} else if a.SigType == MultipleSignatures {
+			pks := a.PubKey.([]interface{})
+			pubKey := make([]string, len(pks)*2)
+			for i, v := range pks {
+				pk := v.(ecdsa.PublicKey)
+				pubKey[i*2] = pk.X.String()
+				pubKey[i*2+1] = pk.Y.String()
+			}
+			aMap["pubKey"] = pubKey
+		} else {
+			return nil, crypto.ErrSigTypeNotSupport
+		}
+	} else {
+		return nil, crypto.ErrSourceNotMatch
+	}
+	return json.Marshal(aMap)
 }

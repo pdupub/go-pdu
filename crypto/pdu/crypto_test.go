@@ -172,8 +172,8 @@ func TestMS(t *testing.T) {
 	pubKeyBytes3 = append(pk3.PublicKey.X.Bytes(), pk3.PublicKey.Y.Bytes()...)
 	_, err = pdu.Verify([]byte(content1), crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
 		SigType: MultipleSignatures, PubKey: append(pubks, pubKeyBytes1, pubKeyBytes3)}, Signature: sig1.Signature})
-	if err != errSigPubKeyNotMatch {
-		t.Errorf("verify should fail with err : %s", errSigPubKeyNotMatch)
+	if err != crypto.ErrSigPubKeyNotMatch {
+		t.Errorf("verify should fail with err : %s", crypto.ErrSigPubKeyNotMatch)
 	}
 
 	pubks = []interface{}{}

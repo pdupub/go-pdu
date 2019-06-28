@@ -16,6 +16,15 @@
 
 package crypto
 
+import "errors"
+
+var (
+	ErrSourceNotMatch    = errors.New("signature source not match")
+	ErrSigTypeNotSupport = errors.New("signature type not support")
+	ErrKeyTypeNotSupport = errors.New("key type not support")
+	ErrSigPubKeyNotMatch = errors.New("count of signature and public key not match")
+)
+
 type PublicKey struct {
 	Source  string      `json:"source"`
 	SigType string      `json:"sigType"`
