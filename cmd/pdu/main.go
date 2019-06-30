@@ -17,9 +17,19 @@
 package main
 
 import (
+	"crypto/ecdsa"
+	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/pdu"
+	"github.com/pdupub/go-pdu/user"
+	"github.com/qiniu/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
+	"os"
+)
+
+var (
+	DefaultNodeHome = os.ExpandEnv("$HOME/.pdu")
 )
 
 func main() {
@@ -30,6 +40,7 @@ func main() {
 		Short: "PDU command line interface",
 	}
 	rootCmd.AddCommand(InitializeCmd())
+	rootCmd.AddCommand(StartCmd())
 
 	rootCmd.Execute()
 }
@@ -37,11 +48,88 @@ func main() {
 func InitializeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init [generation num]",
-		Short: "Initialize the n generations of PDU",
+		Short: "Initialize the root user",
+		RunE: func(_ *cobra.Command, args []string) error {
+
+			retryCnt := 100
+			var Adam, Eve *user.User
+			var privKeyAdam, privKeyEve []*ecdsa.PrivateKey
+			for i := 0; i < retryCnt; i++ {
+				if Adam == nil {
+					privKeyAdam, Adam, _ = createRootUser(true)
+				}
+				if Eve == nil {
+					privKeyEve, Eve, _ = createRootUser(false)
+				}
+				if Adam != nil && Eve != nil {
+
+					log.Println("Adam ID :", crypto.Byte2String(Adam.ID()))
+					log.Println("private key start ", "#########")
+					for _, v := range privKeyAdam {
+						log.Println(crypto.Byte2String(v.D.Bytes()))
+					}
+					log.Println("private key end ", "#########")
+					log.Println("Eve ID  :", crypto.Byte2String(Eve.ID()))
+					log.Println("private key start :", "#########")
+					for _, v := range privKeyEve {
+						log.Println(crypto.Byte2String(v.D.Bytes()))
+					}
+					log.Println("private key end :", "#########")
+
+					break
+				}
+			}
+
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+func createRootUser(male bool) ([]*ecdsa.PrivateKey, *user.User, error) {
+	keyCnt := 7
+	if !male {
+		keyCnt = 3
+	}
+
+	var privateKeyPool []*ecdsa.PrivateKey
+	for i := 0; i < keyCnt; i++ {
+		pk, err := pdu.GenerateKey()
+		if err != nil {
+			i--
+			continue
+		} else {
+			privateKeyPool = append(privateKeyPool, pk)
+		}
+	}
+
+	var pubKeys []ecdsa.PublicKey
+	for _, pk := range privateKeyPool {
+		pubKeys = append(pubKeys, pk.PublicKey)
+	}
+
+	users, err := user.CreateRootUsers(crypto.PublicKey{Source: pdu.SourceName, SigType: pdu.MultipleSignatures, PubKey: pubKeys})
+	if err != nil {
+		return privateKeyPool, nil, err
+	}
+
+	if male && users[1] != nil {
+		return privateKeyPool, users[1], nil
+	} else if !male && users[0] != nil {
+		return privateKeyPool, users[0], nil
+	}
+	return privateKeyPool, nil, errors.New("create root user fail")
+}
+
+func StartCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "start [port]",
+		Short: "Start PDU Server on ",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
-			genNum := args[0]
-			log.Println("generations", genNum)
+			port := args[0]
+			log.Println("listen on", port)
 
 			return nil
 		},
