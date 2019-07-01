@@ -90,6 +90,10 @@ func (u User) Value() interface{} {
 	return nil
 }
 
+func (u User) Auth() *Auth {
+	return u.auth
+}
+
 // ParentsID return the ID of user parents,
 // res[0] should be the female parent (id end by even)
 // res[1] should be the male parent (id end by odd)

@@ -16,9 +16,18 @@
 
 package core
 
+import (
+	"encoding/json"
+	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/pdu"
+	"github.com/qiniu/errors"
+)
+
 type Message struct {
-	MsgReference []*MsgReference
-	MsgValue     *MsgValue
+	SenderID  []byte
+	Reference []*MsgReference
+	Value     *MsgValue
+	Signature *crypto.Signature
 }
 
 type MsgReference struct {
@@ -26,11 +35,37 @@ type MsgReference struct {
 	MsgID  []byte
 }
 
+func CreateMsg(user *User, value *MsgValue, privKey *crypto.PrivateKey, refs ...*MsgReference) (*Message, error) {
+
+	msg := &Message{
+		SenderID:  user.ID(),
+		Reference: refs,
+		Value:     value,
+		Signature: nil,
+	}
+	switch privKey.Source {
+	case pdu.SourceName:
+		jsonMsg, err := json.Marshal(msg)
+		if err != nil {
+			return nil, err
+		}
+		sig, err := pdu.Sign(jsonMsg, *privKey)
+		if err != nil {
+			return nil, err
+		} else {
+			msg.Signature = sig
+		}
+		return msg, nil
+	}
+
+	return nil, errors.New("not support right now")
+}
+
 func (msg Message) ID() []byte {
 	return []byte{}
 }
 
-func (msg Message) Value() *MsgValue {
+func (msg Message) GetValue() *MsgValue {
 
 	return nil
 }

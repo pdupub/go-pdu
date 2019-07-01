@@ -80,6 +80,28 @@ func InitializeCmd() *cobra.Command {
 				}
 			}
 
+			var privKeys []interface{}
+			for _, k := range privKeyAdam {
+				privKeys = append(privKeys, k)
+			}
+			privKey := crypto.PrivateKey{
+				Source:  Adam.Auth().Source,
+				SigType: Adam.Auth().SigType,
+				PriKey:  privKeys,
+			}
+			value := core.MsgValue{
+				Content: []byte("hello world!"),
+			}
+			msg, err := core.CreateMsg(Adam, &value, &privKey)
+			if err != nil {
+				log.Println("create msg fail , err :", err)
+			} else {
+				log.Println("first msg from Adam ", "sender", crypto.Byte2String(msg.SenderID))
+				log.Println("first msg from Adam ", "value.content", string(msg.Value.Content))
+				log.Println("first msg from Adam ", "reference", msg.Reference)
+				log.Println("first msg from Adam ", "signature", msg.Signature)
+			}
+
 			return nil
 		},
 	}
