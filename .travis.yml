@@ -14,6 +14,5 @@ matrix:
         - make install
         - go test ./crypto/pdu
         - go test ./dag
-        - go test ./msg
-        - go test ./user
+        - go test ./core
 
