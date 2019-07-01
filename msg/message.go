@@ -18,3 +18,23 @@ package msg
 
 type Message struct {
 }
+
+type MsgValue struct {
+}
+
+func (msg Message) ID() []byte {
+	return []byte{}
+}
+
+func (msg Message) Value() *MsgValue {
+
+	return &MsgValue{}
+}
+
+func (msg Message) Parents() [][]byte {
+	return nil
+}
+
+func (msg Message) Children() [][]byte {
+	return nil
+}
