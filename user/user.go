@@ -35,21 +35,21 @@ const (
 )
 
 type User struct {
-	name     string      `json:"name"`
-	dobExtra []byte      `json:"extra"`
-	auth     *Auth       `json:"auth"`
-	dobMsg   msg.Message `json:"dobMsg"`
+	name     string       `json:"name"`
+	dobExtra []byte       `json:"extra"`
+	auth     *Auth        `json:"auth"`
+	dobMsg   *msg.Message `json:"dobMsg"`
 }
 
 // CreateRootUser try to create two root users by public key
 // One Male user and one female user,
 func CreateRootUsers(key crypto.PublicKey) ([2]*User, error) {
 	rootUsers := [2]*User{nil, nil}
-	rootFUser := User{name: rootFName, dobExtra: []byte(rootFDOBExtra), auth: &Auth{key}, dobMsg: msg.Message{}}
+	rootFUser := User{name: rootFName, dobExtra: []byte(rootFDOBExtra), auth: &Auth{key}, dobMsg: &msg.Message{}}
 	if rootFUser.Gender() == female {
 		rootUsers[0] = &rootFUser
 	}
-	rootMUser := User{name: rootMName, dobExtra: []byte(rootMDOBExtra), auth: &Auth{key}, dobMsg: msg.Message{}}
+	rootMUser := User{name: rootMName, dobExtra: []byte(rootMDOBExtra), auth: &Auth{key}, dobMsg: &msg.Message{}}
 	if rootMUser.Gender() == male {
 		rootUsers[1] = &rootMUser
 	}
@@ -110,7 +110,7 @@ func (u *User) UnmarshalJSON(input []byte) error {
 	} else {
 		u.name = userMap["name"].(string)
 		u.dobExtra = []byte(userMap["dobExtra"].(string))
-		json.Unmarshal([]byte(userMap["dobMsg"].(string)), u.dobMsg)
+		json.Unmarshal([]byte(userMap["dobMsg"].(string)), &u.dobMsg)
 		json.Unmarshal([]byte(userMap["auth"].(string)), &u.auth)
 	}
 	return nil
@@ -127,10 +127,10 @@ func (u *User) MarshalJSON() ([]byte, error) {
 		userMap["auth"] = string(auth)
 	}
 
-	if dobMsg, err := json.Marshal(u.dobMsg); err != nil {
+	if dobMsg, err := json.Marshal(&u.dobMsg); err != nil {
 		return []byte{}, err
 	} else {
-		userMap["dobMsg"] = dobMsg
+		userMap["dobMsg"] = string(dobMsg)
 	}
 	return json.Marshal(userMap)
 }
