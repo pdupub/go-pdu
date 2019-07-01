@@ -50,7 +50,7 @@ func InitializeCmd() *cobra.Command {
 		Use:   "init [generation num]",
 		Short: "Initialize the root user",
 		RunE: func(_ *cobra.Command, args []string) error {
-
+			// create root users
 			retryCnt := 100
 			var Adam, Eve *core.User
 			var privKeyAdam, privKeyEve []*ecdsa.PrivateKey
@@ -79,7 +79,9 @@ func InitializeCmd() *cobra.Command {
 					break
 				}
 			}
+			// add root user into dag
 
+			// create msg
 			var privKeys []interface{}
 			for _, k := range privKeyAdam {
 				privKeys = append(privKeys, k)
@@ -102,11 +104,17 @@ func InitializeCmd() *cobra.Command {
 				log.Println("first msg from Adam ", "signature", msg.Signature)
 			}
 
-			res, err := core.VerifyMsg(*msg)
-			if err != nil {
-				log.Println("verfiy fail, err :", err)
-			} else {
-				log.Println("verify result is: ", res)
+			// verify msg
+			if crypto.Byte2String(msg.SenderID) == crypto.Byte2String(Adam.ID()) {
+
+				msg.Signature.PubKey = Adam.Auth().PubKey
+				res, err := core.VerifyMsg(*msg)
+				if err != nil {
+					log.Println("verfiy fail, err :", err)
+				} else {
+					log.Println("verify result is: ", res)
+				}
+
 			}
 
 			return nil
@@ -133,7 +141,7 @@ func createRootUser(male bool) ([]*ecdsa.PrivateKey, *core.User, error) {
 		}
 	}
 
-	var pubKeys []ecdsa.PublicKey
+	var pubKeys []interface{}
 	for _, pk := range privateKeyPool {
 		pubKeys = append(pubKeys, pk.PublicKey)
 	}

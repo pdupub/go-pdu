@@ -53,6 +53,7 @@ func CreateMsg(user *User, value *MsgValue, privKey *crypto.PrivateKey, refs ...
 		if err != nil {
 			return nil, err
 		} else {
+			sig.PubKey = nil
 			msg.Signature = sig
 		}
 		return msg, nil
