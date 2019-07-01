@@ -14,12 +14,16 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package msg
+package core
 
 type Message struct {
+	MsgReference []*MsgReference
+	MsgValue     *MsgValue
 }
 
-type MsgValue struct {
+type MsgReference struct {
+	Sender *User
+	MsgID  []byte
 }
 
 func (msg Message) ID() []byte {
@@ -28,13 +32,16 @@ func (msg Message) ID() []byte {
 
 func (msg Message) Value() *MsgValue {
 
-	return &MsgValue{}
-}
-
-func (msg Message) Parents() [][]byte {
 	return nil
 }
 
-func (msg Message) Children() [][]byte {
+// ParentsID return the parents id
+// Parents are the message referenced by this Message
+func (msg Message) ParentsID() [][]byte {
+
+	return nil
+}
+
+func (msg Message) ChildrenID() [][]byte {
 	return nil
 }

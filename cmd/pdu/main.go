@@ -18,9 +18,9 @@ package main
 
 import (
 	"crypto/ecdsa"
+	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/crypto/pdu"
-	"github.com/pdupub/go-pdu/user"
 	"github.com/qiniu/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -52,7 +52,7 @@ func InitializeCmd() *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 
 			retryCnt := 100
-			var Adam, Eve *user.User
+			var Adam, Eve *core.User
 			var privKeyAdam, privKeyEve []*ecdsa.PrivateKey
 			for i := 0; i < retryCnt; i++ {
 				if Adam == nil {
@@ -87,7 +87,7 @@ func InitializeCmd() *cobra.Command {
 	return cmd
 }
 
-func createRootUser(male bool) ([]*ecdsa.PrivateKey, *user.User, error) {
+func createRootUser(male bool) ([]*ecdsa.PrivateKey, *core.User, error) {
 	keyCnt := 7
 	if !male {
 		keyCnt = 3
@@ -109,7 +109,7 @@ func createRootUser(male bool) ([]*ecdsa.PrivateKey, *user.User, error) {
 		pubKeys = append(pubKeys, pk.PublicKey)
 	}
 
-	users, err := user.CreateRootUsers(crypto.PublicKey{Source: pdu.SourceName, SigType: pdu.MultipleSignatures, PubKey: pubKeys})
+	users, err := core.CreateRootUsers(crypto.PublicKey{Source: pdu.SourceName, SigType: pdu.MultipleSignatures, PubKey: pubKeys})
 	if err != nil {
 		return privateKeyPool, nil, err
 	}

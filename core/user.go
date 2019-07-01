@@ -14,14 +14,13 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package user
+package core
 
 import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"github.com/pdupub/go-pdu/crypto"
-	"github.com/pdupub/go-pdu/msg"
 	"math/big"
 )
 
@@ -35,21 +34,21 @@ const (
 )
 
 type User struct {
-	name     string       `json:"name"`
-	dobExtra []byte       `json:"extra"`
-	auth     *Auth        `json:"auth"`
-	dobMsg   *msg.Message `json:"dobMsg"`
+	name     string   `json:"name"`
+	dobExtra []byte   `json:"extra"`
+	auth     *Auth    `json:"auth"`
+	dobMsg   *Message `json:"dobMsg"`
 }
 
 // CreateRootUser try to create two root users by public key
 // One Male user and one female user,
 func CreateRootUsers(key crypto.PublicKey) ([2]*User, error) {
 	rootUsers := [2]*User{nil, nil}
-	rootFUser := User{name: rootFName, dobExtra: []byte(rootFDOBExtra), auth: &Auth{key}, dobMsg: &msg.Message{}}
+	rootFUser := User{name: rootFName, dobExtra: []byte(rootFDOBExtra), auth: &Auth{key}, dobMsg: &Message{}}
 	if rootFUser.Gender() == female {
 		rootUsers[0] = &rootFUser
 	}
-	rootMUser := User{name: rootMName, dobExtra: []byte(rootMDOBExtra), auth: &Auth{key}, dobMsg: &msg.Message{}}
+	rootMUser := User{name: rootMName, dobExtra: []byte(rootMDOBExtra), auth: &Auth{key}, dobMsg: &Message{}}
 	if rootMUser.Gender() == male {
 		rootUsers[1] = &rootMUser
 	}
@@ -61,7 +60,7 @@ func CreateRootUsers(key crypto.PublicKey) ([2]*User, error) {
 // Both parents must be in the local use dag.
 // Both parents fit the nature rules.
 // The BOD struct signed by both parents.
-func CreateNewUser(msg *msg.Message) (*User, error) {
+func CreateNewUser(msg *Message) (*User, error) {
 	newUser := User{}
 
 	return &newUser, nil
@@ -96,9 +95,10 @@ func (u User) Value() interface{} {
 // res[1] should be the male parent (id end by odd)
 func (u User) ParentsID() [2][]byte {
 	var PID [2][]byte
+	if u.dobMsg != nil {
+		// get parents from dobMsg
 
-	PID[0] = []byte{}
-	PID[1] = []byte{}
+	}
 	return PID
 }
 

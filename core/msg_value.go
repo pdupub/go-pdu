@@ -14,4 +14,26 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package msg
+package core
+
+import "github.com/pdupub/go-pdu/crypto"
+
+var (
+	DOB = "DOB"
+)
+
+type MsgValue interface {
+	GetType() string
+	Verify(*crypto.Signature) bool
+}
+
+type DOBMsgValue struct {
+}
+
+func (v *DOBMsgValue) GetType() string {
+	return DOB
+}
+
+func (v *DOBMsgValue) Verify(pubKey *crypto.Signature) bool {
+	return true
+}
