@@ -100,7 +100,7 @@ func Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signature, error) {
 		}, nil
 	case MultipleSignatures:
 		pks := priKey.PriKey.([]interface{})
-		var pubKeys []ecdsa.PublicKey
+		var pubKeys []interface{}
 		var signature []byte
 		for _, item := range pks {
 			pk, err := GetKey(item)

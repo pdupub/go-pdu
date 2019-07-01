@@ -102,6 +102,13 @@ func InitializeCmd() *cobra.Command {
 				log.Println("first msg from Adam ", "signature", msg.Signature)
 			}
 
+			res, err := core.VerifyMsg(*msg)
+			if err != nil {
+				log.Println("verfiy fail, err :", err)
+			} else {
+				log.Println("verify result is: ", res)
+			}
+
 			return nil
 		},
 	}

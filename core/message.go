@@ -61,6 +61,21 @@ func CreateMsg(user *User, value *MsgValue, privKey *crypto.PrivateKey, refs ...
 	return nil, errors.New("not support right now")
 }
 
+func VerifyMsg(msg Message) (bool, error) {
+	signature := msg.Signature
+	msg.Signature = nil
+	switch signature.Source {
+	case pdu.SourceName:
+		jsonMsg, err := json.Marshal(&msg)
+		if err != nil {
+			return false, err
+		}
+		return pdu.Verify(jsonMsg, *signature)
+	}
+	return false, errors.New("not support right now")
+
+}
+
 func (msg Message) ID() []byte {
 	return []byte{}
 }
