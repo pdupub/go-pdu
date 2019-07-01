@@ -38,7 +38,7 @@ func TestCreateRootUsers(t *testing.T) {
 			if crypto.Byte2String(user.ID()) == crypto.Byte2String(encode(user).ID()) {
 				fmt.Println("User:", i, "ID:", crypto.Byte2String(user.ID()))
 			} else {
-				t.Errorf("%s : %s json Encode & Decode fail ", pdu.SourceName, pdu.MultipleSignatures)
+				t.Errorf("%s : %s json Encode & Decode fail ", pdu.SourceName, pdu.Signature2PublicKey)
 			}
 		} else {
 			fmt.Println("User:", i, "No user being created")
