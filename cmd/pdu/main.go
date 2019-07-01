@@ -106,7 +106,7 @@ func InitializeCmd() *cobra.Command {
 
 			// verify msg
 			if crypto.Byte2String(msg.SenderID) == crypto.Byte2String(Adam.ID()) {
-
+				// public key should be found in user_dag by user id.
 				msg.Signature.PubKey = Adam.Auth().PubKey
 				res, err := core.VerifyMsg(*msg)
 				if err != nil {
@@ -114,7 +114,43 @@ func InitializeCmd() *cobra.Command {
 				} else {
 					log.Println("verify result is: ", res)
 				}
+			}
 
+			// new msg reference first msg
+			// create msg
+			var privKeys2 []interface{}
+			for _, k := range privKeyEve {
+				privKeys2 = append(privKeys2, k)
+			}
+			privKey2 := crypto.PrivateKey{
+				Source:  Eve.Auth().Source,
+				SigType: Eve.Auth().SigType,
+				PriKey:  privKeys2,
+			}
+			value2 := core.MsgValue{
+				Content: []byte("hey u!"),
+			}
+			ref := core.MsgReference{Adam, msg.ID()}
+			msg2, err := core.CreateMsg(Eve, &value2, &privKey2, &ref)
+			if err != nil {
+				log.Println("create msg fail , err :", err)
+			} else {
+				log.Println("first msg from Adam ", "sender", crypto.Byte2String(msg2.SenderID))
+				log.Println("first msg from Adam ", "value.content", string(msg2.Value.Content))
+				log.Println("first msg from Adam ", "reference", msg2.Reference)
+				log.Println("first msg from Adam ", "signature", msg2.Signature)
+			}
+
+			// verify msg
+			if crypto.Byte2String(msg.SenderID) == crypto.Byte2String(Eve.ID()) {
+				// public key should be found in user_dag by user id.
+				msg2.Signature.PubKey = Eve.Auth().PubKey
+				res, err := core.VerifyMsg(*msg2)
+				if err != nil {
+					log.Println("verfiy fail, err :", err)
+				} else {
+					log.Println("verify result is: ", res)
+				}
 			}
 
 			return nil

@@ -17,7 +17,9 @@
 package core
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/crypto/pdu"
 	"github.com/qiniu/errors"
@@ -78,7 +80,12 @@ func VerifyMsg(msg Message) (bool, error) {
 }
 
 func (msg Message) ID() []byte {
-	return []byte{}
+	hash := sha256.New()
+	hash.Reset()
+	ref := fmt.Sprintf("%v", msg.Reference)
+	val := fmt.Sprintf("%v", msg.Value)
+	hash.Write(append(append(msg.SenderID, ref...), val...))
+	return hash.Sum(nil)
 }
 
 func (msg Message) GetValue() *MsgValue {
