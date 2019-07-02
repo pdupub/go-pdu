@@ -16,6 +16,12 @@
 
 package core
 
+const (
+	TypeText = iota
+	TypeDOB
+)
+
 type MsgValue struct {
-	Content []byte
+	ContentType int
+	Content     []byte
 }

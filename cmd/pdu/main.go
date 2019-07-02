@@ -105,22 +105,25 @@ func InitializeCmd() *cobra.Command {
 				PriKey:  privKeys,
 			}
 			value := core.MsgValue{
-				Content: []byte("hello world!"),
+				ContentType: core.TypeText,
+				Content:     []byte("hello world!"),
 			}
 			msg, err := core.CreateMsg(Adam, &value, &privKey)
 			if err != nil {
 				log.Println("create msg fail , err :", err)
 			} else {
-				log.Println("first msg from Adam ", "sender", crypto.Hash2String(msg.SenderID))
-				log.Println("first msg from Adam ", "value.content", string(msg.Value.Content))
-				log.Println("first msg from Adam ", "reference", msg.Reference)
-				log.Println("first msg from Adam ", "signature", msg.Signature)
+				log.Println("first msg from Adam ", "sender", crypto.Hash2String(msg.SenderID()))
+				if msg.Value().ContentType == core.TypeText {
+					log.Println("first msg from Adam ", "value.content", string(msg.Value().Content))
+				}
+				log.Println("first msg from Adam ", "reference", msg.Reference())
+				log.Println("first msg from Adam ", "signature", msg.Signature())
 			}
 
 			// verify msg
-			if msg.SenderID == Adam.ID() {
+			if msg.SenderID() == Adam.ID() {
 				// public key should be found in user_dag by user id.
-				msg.Signature.PubKey = Adam.Auth().PubKey
+				msg.Signature().PubKey = Adam.Auth().PubKey
 				res, err := core.VerifyMsg(*msg)
 				if err != nil {
 					log.Println("verfiy fail, err :", err)
@@ -141,23 +144,26 @@ func InitializeCmd() *cobra.Command {
 				PriKey:  privKeys2,
 			}
 			value2 := core.MsgValue{
-				Content: []byte("hey u!"),
+				ContentType: core.TypeText,
+				Content:     []byte("hey u!"),
 			}
-			ref := core.MsgReference{Adam, msg.ID()}
+			ref := core.MsgReference{Sender: Adam, MsgID: msg.ID()}
 			msg2, err := core.CreateMsg(Eve, &value2, &privKey2, &ref)
 			if err != nil {
 				log.Println("create msg fail , err :", err)
 			} else {
-				log.Println("first msg from Adam ", "sender", crypto.Hash2String(msg2.SenderID))
-				log.Println("first msg from Adam ", "value.content", string(msg2.Value.Content))
-				log.Println("first msg from Adam ", "reference", msg2.Reference)
-				log.Println("first msg from Adam ", "signature", msg2.Signature)
+				log.Println("first msg from Adam ", "sender", crypto.Hash2String(msg2.SenderID()))
+				if msg2.Value().ContentType == core.TypeText {
+					log.Println("first msg from Adam ", "value.content", string(msg2.Value().Content))
+				}
+				log.Println("first msg from Adam ", "reference", msg2.Reference())
+				log.Println("first msg from Adam ", "signature", msg2.Signature())
 			}
 
 			// verify msg
-			sender := userDAG.GetUserByID(msg2.SenderID)
+			sender := userDAG.GetUserByID(msg2.SenderID())
 			if sender != nil {
-				msg2.Signature.PubKey = sender.Auth().PubKey
+				msg2.Signature().PubKey = sender.Auth().PubKey
 				res, err := core.VerifyMsg(*msg2)
 				if err != nil {
 					log.Println("verfiy fail, err :", err)

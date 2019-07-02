@@ -26,10 +26,10 @@ import (
 )
 
 type Message struct {
-	SenderID  crypto.Hash
-	Reference []*MsgReference
-	Value     *MsgValue
-	Signature *crypto.Signature
+	senderID  crypto.Hash
+	reference []*MsgReference
+	value     *MsgValue
+	signature *crypto.Signature
 }
 
 type MsgReference struct {
@@ -37,13 +37,29 @@ type MsgReference struct {
 	MsgID  crypto.Hash
 }
 
+func (msg Message) Signature() *crypto.Signature {
+	return msg.signature
+}
+
+func (msg Message) SenderID() crypto.Hash {
+	return msg.senderID
+}
+
+func (msg Message) Reference() []*MsgReference {
+	return msg.reference
+}
+
+func (msg Message) Value() *MsgValue {
+	return msg.value
+}
+
 func CreateMsg(user *User, value *MsgValue, privKey *crypto.PrivateKey, refs ...*MsgReference) (*Message, error) {
 
 	msg := &Message{
-		SenderID:  user.ID(),
-		Reference: refs,
-		Value:     value,
-		Signature: nil,
+		senderID:  user.ID(),
+		reference: refs,
+		value:     value,
+		signature: nil,
 	}
 	switch privKey.Source {
 	case pdu.SourceName:
@@ -56,7 +72,7 @@ func CreateMsg(user *User, value *MsgValue, privKey *crypto.PrivateKey, refs ...
 			return nil, err
 		} else {
 			sig.PubKey = nil
-			msg.Signature = sig
+			msg.signature = sig
 		}
 		return msg, nil
 	}
@@ -65,8 +81,8 @@ func CreateMsg(user *User, value *MsgValue, privKey *crypto.PrivateKey, refs ...
 }
 
 func VerifyMsg(msg Message) (bool, error) {
-	signature := msg.Signature
-	msg.Signature = nil
+	signature := msg.signature
+	msg.signature = nil
 	switch signature.Source {
 	case pdu.SourceName:
 		jsonMsg, err := json.Marshal(&msg)
@@ -82,24 +98,23 @@ func VerifyMsg(msg Message) (bool, error) {
 func (msg Message) ID() crypto.Hash {
 	hash := sha256.New()
 	hash.Reset()
-	ref := fmt.Sprintf("%v", msg.Reference)
-	val := fmt.Sprintf("%v", msg.Value)
-	hash.Write(append(append(msg.SenderID[:], ref...), val...))
+	ref := fmt.Sprintf("%v", msg.reference)
+	val := fmt.Sprintf("%v", msg.value)
+	hash.Write(append(append(msg.senderID[:], ref...), val...))
 	return crypto.Bytes2Hash(hash.Sum(nil))
-}
-
-func (msg Message) GetValue() *MsgValue {
-
-	return nil
 }
 
 // ParentsID return the parents id
 // Parents are the message referenced by this Message
-func (msg Message) ParentsID() [][]byte {
-
-	return nil
+func (msg Message) ParentsID() []crypto.Hash {
+	var parentsID []crypto.Hash
+	for _, ref := range msg.reference {
+		parentsID = append(parentsID, ref.MsgID)
+	}
+	return parentsID
 }
 
-func (msg Message) ChildrenID() [][]byte {
+// always return nil for msg
+func (msg Message) ChildrenID() []crypto.Hash {
 	return nil
 }

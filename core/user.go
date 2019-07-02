@@ -98,13 +98,13 @@ func (u User) Auth() *Auth {
 // ParentsID return the ID of user parents,
 // res[0] should be the female parent (id end by even)
 // res[1] should be the male parent (id end by odd)
-func (u User) ParentsID() [2][]byte {
-	var PID [2][]byte
+func (u User) ParentsID() [2]crypto.Hash {
+	var parentsID [2]crypto.Hash
 	if u.dobMsg != nil {
 		// get parents from dobMsg
 
 	}
-	return PID
+	return parentsID
 }
 
 func (u *User) UnmarshalJSON(input []byte) error {
