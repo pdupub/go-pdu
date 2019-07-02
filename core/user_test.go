@@ -35,8 +35,8 @@ func TestCreateRootUsers(t *testing.T) {
 	users, err := CreateRootUsers(pubKey)
 	for i, user := range users {
 		if user != nil {
-			if crypto.Byte2String(user.ID()) == crypto.Byte2String(encode(user).ID()) {
-				fmt.Println("User:", i, "ID:", crypto.Byte2String(user.ID()))
+			if user.ID() == encode(user).ID() {
+				fmt.Println("User:", i, "ID:", crypto.Hash2String(user.ID()))
 			} else {
 				t.Errorf("%s : %s json Encode & Decode fail ", pdu.SourceName, pdu.Signature2PublicKey)
 			}
@@ -54,8 +54,8 @@ func TestCreateRootUsers(t *testing.T) {
 	users, err = CreateRootUsers(pubKey)
 	for i, user := range users {
 		if user != nil {
-			if crypto.Byte2String(user.ID()) == crypto.Byte2String(encode(user).ID()) {
-				fmt.Println("User:", i, "ID:", crypto.Byte2String(user.ID()))
+			if user.ID() == encode(user).ID() {
+				fmt.Println("User:", i, "ID:", crypto.Hash2String(user.ID()))
 			} else {
 				t.Errorf("%s : %s json Encode & Decode fail ", pdu.SourceName, pdu.MultipleSignatures)
 			}

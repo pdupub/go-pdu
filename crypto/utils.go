@@ -18,10 +18,31 @@ package crypto
 
 import "fmt"
 
-func Byte2String(b []byte) (s string) {
+type Hash [HashLength]byte
+
+const HashLength = 32
+
+func Hash2String(b Hash) (s string) {
 	s = ""
-	for i := 0; i < len(b); i++ {
+	for i := 0; i < HashLength; i++ {
 		s += fmt.Sprintf("%02X", b[i])
 	}
 	return s
+}
+
+func Bytes2String(b []byte) (s string) {
+	s = ""
+	for i := 0; i < HashLength; i++ {
+		s += fmt.Sprintf("%02X", b[i])
+	}
+	return s
+}
+
+func Bytes2Hash(b []byte) Hash {
+	hash := [HashLength]byte{}
+	if len(b) > HashLength {
+		b = b[len(b)-HashLength:]
+	}
+	copy(hash[HashLength-len(b):], b)
+	return hash
 }

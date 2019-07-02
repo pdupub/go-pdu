@@ -19,14 +19,14 @@ package core
 import (
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/crypto/pdu"
-	"github.com/qiniu/errors"
 )
 
 type Message struct {
-	SenderID  []byte
+	SenderID  crypto.Hash
 	Reference []*MsgReference
 	Value     *MsgValue
 	Signature *crypto.Signature
@@ -34,7 +34,7 @@ type Message struct {
 
 type MsgReference struct {
 	Sender *User
-	MsgID  []byte
+	MsgID  crypto.Hash
 }
 
 func CreateMsg(user *User, value *MsgValue, privKey *crypto.PrivateKey, refs ...*MsgReference) (*Message, error) {
@@ -79,13 +79,13 @@ func VerifyMsg(msg Message) (bool, error) {
 
 }
 
-func (msg Message) ID() []byte {
+func (msg Message) ID() crypto.Hash {
 	hash := sha256.New()
 	hash.Reset()
 	ref := fmt.Sprintf("%v", msg.Reference)
 	val := fmt.Sprintf("%v", msg.Value)
-	hash.Write(append(append(msg.SenderID, ref...), val...))
-	return hash.Sum(nil)
+	hash.Write(append(append(msg.SenderID[:], ref...), val...))
+	return crypto.Bytes2Hash(hash.Sum(nil))
 }
 
 func (msg Message) GetValue() *MsgValue {

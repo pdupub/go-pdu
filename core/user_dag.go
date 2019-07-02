@@ -15,3 +15,32 @@
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
 package core
+
+import (
+	"github.com/pdupub/go-pdu/dag"
+)
+
+type UserDAG struct {
+	dag *dag.DAG
+}
+
+func NewUserDag(Eve, Adam *User) (*UserDAG, error) {
+
+	EveVertex, err := dag.NewVertex(Eve.ID(), Eve)
+	if err != nil {
+		return nil, err
+	}
+
+	AdamVertex, err := dag.NewVertex(Adam.ID(), Adam)
+	if err != nil {
+		return nil, err
+	}
+
+	userDAG, err := dag.NewDAG(EveVertex, AdamVertex)
+	if err != nil {
+		return nil, err
+	}
+
+	return &UserDAG{dag: userDAG}, nil
+
+}

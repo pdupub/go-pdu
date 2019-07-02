@@ -18,10 +18,10 @@ package main
 
 import (
 	"crypto/ecdsa"
+	"errors"
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/crypto/pdu"
-	"github.com/qiniu/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
@@ -63,16 +63,16 @@ func InitializeCmd() *cobra.Command {
 				}
 				if Adam != nil && Eve != nil {
 
-					log.Println("Adam ID :", crypto.Byte2String(Adam.ID()))
+					log.Println("Adam ID :", crypto.Hash2String(Adam.ID()))
 					log.Println("private key start ", "#########")
 					for _, v := range privKeyAdam {
-						log.Println(crypto.Byte2String(v.D.Bytes()))
+						log.Println(crypto.Bytes2String(v.D.Bytes()))
 					}
 					log.Println("private key end ", "#########")
-					log.Println("Eve ID  :", crypto.Byte2String(Eve.ID()))
+					log.Println("Eve ID  :", crypto.Hash2String(Eve.ID()))
 					log.Println("private key start :", "#########")
 					for _, v := range privKeyEve {
-						log.Println(crypto.Byte2String(v.D.Bytes()))
+						log.Println(crypto.Bytes2String(v.D.Bytes()))
 					}
 					log.Println("private key end :", "#########")
 
@@ -80,6 +80,12 @@ func InitializeCmd() *cobra.Command {
 				}
 			}
 			// add root user into dag
+			userDAG, err := core.NewUserDag(Eve, Adam)
+			if err != nil {
+				log.Println("create new user dag fail, err :", err)
+			} else {
+				log.Println("user dag :", userDAG)
+			}
 
 			// create msg
 			var privKeys []interface{}
@@ -98,14 +104,14 @@ func InitializeCmd() *cobra.Command {
 			if err != nil {
 				log.Println("create msg fail , err :", err)
 			} else {
-				log.Println("first msg from Adam ", "sender", crypto.Byte2String(msg.SenderID))
+				log.Println("first msg from Adam ", "sender", crypto.Hash2String(msg.SenderID))
 				log.Println("first msg from Adam ", "value.content", string(msg.Value.Content))
 				log.Println("first msg from Adam ", "reference", msg.Reference)
 				log.Println("first msg from Adam ", "signature", msg.Signature)
 			}
 
 			// verify msg
-			if crypto.Byte2String(msg.SenderID) == crypto.Byte2String(Adam.ID()) {
+			if msg.SenderID == Adam.ID() {
 				// public key should be found in user_dag by user id.
 				msg.Signature.PubKey = Adam.Auth().PubKey
 				res, err := core.VerifyMsg(*msg)
@@ -135,14 +141,14 @@ func InitializeCmd() *cobra.Command {
 			if err != nil {
 				log.Println("create msg fail , err :", err)
 			} else {
-				log.Println("first msg from Adam ", "sender", crypto.Byte2String(msg2.SenderID))
+				log.Println("first msg from Adam ", "sender", crypto.Hash2String(msg2.SenderID))
 				log.Println("first msg from Adam ", "value.content", string(msg2.Value.Content))
 				log.Println("first msg from Adam ", "reference", msg2.Reference)
 				log.Println("first msg from Adam ", "signature", msg2.Signature)
 			}
 
 			// verify msg
-			if crypto.Byte2String(msg.SenderID) == crypto.Byte2String(Eve.ID()) {
+			if msg.SenderID == Eve.ID() {
 				// public key should be found in user_dag by user id.
 				msg2.Signature.PubKey = Eve.Auth().PubKey
 				res, err := core.VerifyMsg(*msg2)

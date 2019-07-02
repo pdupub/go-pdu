@@ -68,18 +68,19 @@ func CreateNewUser(msg *Message) (*User, error) {
 
 // ID return the vertex.id, related to parents and value of the vertex
 // ID cloud use as address of user account
-func (u User) ID() []byte {
+func (u User) ID() crypto.Hash {
 	hash := sha256.New()
 	hash.Reset()
 	auth := fmt.Sprintf("%v", u.auth)
 	dobMsg := fmt.Sprintf("%v", u.dobMsg)
 	hash.Write(append(append(append([]byte(u.name), u.dobExtra...), auth...), dobMsg...))
-	return hash.Sum(nil)
+	return crypto.Bytes2Hash(hash.Sum(nil))
 }
 
 // Gender return the gender of user, true = male = end of ID is odd
 func (u User) Gender() bool {
-	if uid := new(big.Int).SetBytes(u.ID()); uid.Mod(uid, big.NewInt(2)).Cmp(big.NewInt(1)) == 0 {
+	hashID := u.ID()
+	if uid := new(big.Int).SetBytes(hashID[:]); uid.Mod(uid, big.NewInt(2)).Cmp(big.NewInt(1)) == 0 {
 		return true
 	}
 	return false
