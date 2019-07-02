@@ -72,6 +72,14 @@ func (d DAG) GetMaxParentsCount() int {
 	return d.maxParentsCount
 }
 
+func (d *DAG) GetVertex(id interface{}) *Vertex {
+	if v, ok := d.store[id]; !ok {
+		return nil
+	} else {
+		return v
+	}
+}
+
 // AddVertex
 func (d *DAG) AddVertex(vertex *Vertex) error {
 	d.mu.Lock()

@@ -79,12 +79,19 @@ func InitializeCmd() *cobra.Command {
 					break
 				}
 			}
+
 			// add root user into dag
 			userDAG, err := core.NewUserDag(Eve, Adam)
 			if err != nil {
 				log.Println("create new user dag fail, err :", err)
 			} else {
 				log.Println("user dag :", userDAG)
+			}
+
+			// try get Adam
+			newAdam := userDAG.GetUserByID(Adam.ID())
+			if newAdam != nil {
+				log.Println("get Adam from userDAG :", crypto.Hash2String(newAdam.ID()))
 			}
 
 			// create msg

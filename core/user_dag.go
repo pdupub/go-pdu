@@ -17,6 +17,7 @@
 package core
 
 import (
+	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/dag"
 )
 
@@ -43,4 +44,12 @@ func NewUserDag(Eve, Adam *User) (*UserDAG, error) {
 
 	return &UserDAG{dag: userDAG}, nil
 
+}
+
+func (ud *UserDAG) GetUserByID(uid crypto.Hash) *User {
+	if v := ud.dag.GetVertex(uid); v != nil {
+		return v.Value().(*User)
+	} else {
+		return nil
+	}
 }
