@@ -155,17 +155,18 @@ func InitializeCmd() *cobra.Command {
 			}
 
 			// verify msg
-			if msg.SenderID == Eve.ID() {
-				// public key should be found in user_dag by user id.
-				msg2.Signature.PubKey = Eve.Auth().PubKey
+			sender := userDAG.GetUserByID(msg2.SenderID)
+			if sender != nil {
+				msg2.Signature.PubKey = sender.Auth().PubKey
 				res, err := core.VerifyMsg(*msg2)
 				if err != nil {
 					log.Println("verfiy fail, err :", err)
 				} else {
 					log.Println("verify result is: ", res)
 				}
+			} else {
+				log.Println("verify fail, err:", errors.New("user not exist in system"))
 			}
-
 			return nil
 		},
 	}
