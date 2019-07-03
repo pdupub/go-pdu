@@ -175,20 +175,54 @@ func InitializeCmd() *cobra.Command {
 
 			verifyMsg(userDAG, msg3)
 
+			// marshal and unmarshal the msg
 			msgBytes, err := json.Marshal(msg3)
-			log.Println(crypto.Bytes2String(msgBytes))
+			//log.Println(crypto.Bytes2String(msgBytes))
 
+			var msg4 core.Message
 			if err != nil {
 				log.Println("marshal fail err :", err)
 			} else {
-				var msg4 core.Message
 				err = json.Unmarshal(msgBytes, &msg4)
 				if err != nil {
 					log.Println("unmarshal fail err:", err)
 				}
-				msgBytes, err = json.Marshal(msg4)
-				log.Println(crypto.Bytes2String(msgBytes))
 				verifyMsg(userDAG, &msg4)
+				msgBytes, err = json.Marshal(msg4)
+				//log.Println(crypto.Bytes2String(msgBytes))
+			}
+
+			// verify the signature in the content of DOBMsg
+			if msg4.Value.ContentType == core.TypeDOB {
+				var dobContent core.DOBMsgContent
+				err = json.Unmarshal(msg4.Value.Content, &dobContent)
+				if err != nil {
+					log.Println("dob message can not be unmarshl, err:", err)
+				}
+
+				jsonBytes, err := json.Marshal(dobContent.User)
+				if err != nil {
+					log.Println("user to json fail , err:", err)
+				}
+
+				log.Println("length of sig0", len(dobContent.Sig0))
+				log.Println(Eve.Auth.PublicKey)
+
+				log.Println("length of sig1", len(dobContent.Sig1))
+				log.Println(Adam.Auth.PublicKey)
+
+				sigAdam := crypto.Signature{Signature: dobContent.Sig1, PublicKey: Adam.Auth.PublicKey}
+				sigEve := crypto.Signature{Signature: dobContent.Sig0, PublicKey: Eve.Auth.PublicKey}
+
+				if res, err := pdu.Verify(jsonBytes, sigAdam); err != nil || res == false {
+					log.Println("verify adam fail, err", err)
+				}
+
+				if res, err := pdu.Verify(jsonBytes, sigEve); err != nil || res == false {
+					log.Println("verify eve fail, err", err)
+				}
+			} else {
+				log.Println("should be dob msg")
 			}
 
 			return nil
