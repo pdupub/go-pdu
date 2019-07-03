@@ -26,10 +26,10 @@ import (
 )
 
 type Message struct {
-	senderID  crypto.Hash
-	reference []*MsgReference
-	value     *MsgValue
-	signature *crypto.Signature
+	SenderID  crypto.Hash       `json:"senderID"`
+	Reference []*MsgReference   `json:"reference"`
+	Value     *MsgValue         `json:"value"`
+	Signature *crypto.Signature `json:"signature"`
 }
 
 type MsgReference struct {
@@ -37,29 +37,13 @@ type MsgReference struct {
 	MsgID  crypto.Hash
 }
 
-func (msg Message) Signature() *crypto.Signature {
-	return msg.signature
-}
-
-func (msg Message) SenderID() crypto.Hash {
-	return msg.senderID
-}
-
-func (msg Message) Reference() []*MsgReference {
-	return msg.reference
-}
-
-func (msg Message) Value() *MsgValue {
-	return msg.value
-}
-
 func CreateMsg(user *User, value *MsgValue, privKey *crypto.PrivateKey, refs ...*MsgReference) (*Message, error) {
 
 	msg := &Message{
-		senderID:  user.ID(),
-		reference: refs,
-		value:     value,
-		signature: nil,
+		SenderID:  user.ID(),
+		Reference: refs,
+		Value:     value,
+		Signature: nil,
 	}
 	switch privKey.Source {
 	case pdu.SourceName:
@@ -72,7 +56,7 @@ func CreateMsg(user *User, value *MsgValue, privKey *crypto.PrivateKey, refs ...
 			return nil, err
 		} else {
 			sig.PubKey = nil
-			msg.signature = sig
+			msg.Signature = sig
 		}
 		return msg, nil
 	}
@@ -81,8 +65,8 @@ func CreateMsg(user *User, value *MsgValue, privKey *crypto.PrivateKey, refs ...
 }
 
 func VerifyMsg(msg Message) (bool, error) {
-	signature := msg.signature
-	msg.signature = nil
+	signature := msg.Signature
+	msg.Signature = nil
 	switch signature.Source {
 	case pdu.SourceName:
 		jsonMsg, err := json.Marshal(&msg)
@@ -98,9 +82,12 @@ func VerifyMsg(msg Message) (bool, error) {
 func (msg Message) ID() crypto.Hash {
 	hash := sha256.New()
 	hash.Reset()
-	ref := fmt.Sprintf("%v", msg.reference)
-	val := fmt.Sprintf("%v", msg.value)
-	hash.Write(append(append(msg.senderID[:], ref...), val...))
+	var ref string
+	for _, r := range msg.Reference {
+		ref += fmt.Sprintf("%v%v", r.Sender.ID(), r.MsgID)
+	}
+	val := fmt.Sprintf("%v", msg.Value)
+	hash.Write(append(append(msg.SenderID[:], ref...), val...))
 	return crypto.Bytes2Hash(hash.Sum(nil))
 }
 
@@ -108,7 +95,7 @@ func (msg Message) ID() crypto.Hash {
 // Parents are the message referenced by this Message
 func (msg Message) ParentsID() []crypto.Hash {
 	var parentsID []crypto.Hash
-	for _, ref := range msg.reference {
+	for _, ref := range msg.Reference {
 		parentsID = append(parentsID, ref.MsgID)
 	}
 	return parentsID

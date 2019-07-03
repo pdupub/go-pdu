@@ -34,21 +34,21 @@ const (
 )
 
 type User struct {
-	name     string   `json:"name"`
-	dobExtra []byte   `json:"extra"`
-	auth     *Auth    `json:"auth"`
-	dobMsg   *Message `json:"dobMsg"`
+	Name     string   `json:"name"`
+	DOBExtra []byte   `json:"extra"`
+	Auth     *Auth    `json:"auth"`
+	DOBMsg   *Message `json:"dobMsg"`
 }
 
 // CreateRootUser try to create two root users by public key
 // One Male user and one female user,
 func CreateRootUsers(key crypto.PublicKey) ([2]*User, error) {
 	rootUsers := [2]*User{nil, nil}
-	rootFUser := User{name: rootFName, dobExtra: []byte(rootFDOBExtra), auth: &Auth{key}, dobMsg: &Message{}}
+	rootFUser := User{Name: rootFName, DOBExtra: []byte(rootFDOBExtra), Auth: &Auth{key}, DOBMsg: &Message{}}
 	if rootFUser.Gender() == female {
 		rootUsers[0] = &rootFUser
 	}
-	rootMUser := User{name: rootMName, dobExtra: []byte(rootMDOBExtra), auth: &Auth{key}, dobMsg: &Message{}}
+	rootMUser := User{Name: rootMName, DOBExtra: []byte(rootMDOBExtra), Auth: &Auth{key}, DOBMsg: &Message{}}
 	if rootMUser.Gender() == male {
 		rootUsers[1] = &rootMUser
 	}
@@ -71,9 +71,9 @@ func CreateNewUser(msg *Message) (*User, error) {
 func (u User) ID() crypto.Hash {
 	hash := sha256.New()
 	hash.Reset()
-	auth := fmt.Sprintf("%v", u.auth)
-	dobMsg := fmt.Sprintf("%v", u.dobMsg)
-	hash.Write(append(append(append([]byte(u.name), u.dobExtra...), auth...), dobMsg...))
+	auth := fmt.Sprintf("%v", u.Auth)
+	dobMsg := fmt.Sprintf("%v", u.DOBMsg)
+	hash.Write(append(append(append([]byte(u.Name), u.DOBExtra...), auth...), dobMsg...))
 	return crypto.Bytes2Hash(hash.Sum(nil))
 }
 
@@ -91,16 +91,12 @@ func (u User) Value() interface{} {
 	return nil
 }
 
-func (u User) Auth() *Auth {
-	return u.auth
-}
-
 // ParentsID return the ID of user parents,
 // res[0] should be the female parent (id end by even)
 // res[1] should be the male parent (id end by odd)
 func (u User) ParentsID() [2]crypto.Hash {
 	var parentsID [2]crypto.Hash
-	if u.dobMsg != nil {
+	if u.DOBMsg != nil {
 		// get parents from dobMsg
 
 	}
@@ -113,26 +109,26 @@ func (u *User) UnmarshalJSON(input []byte) error {
 	if err != nil {
 		return err
 	} else {
-		u.name = userMap["name"].(string)
-		u.dobExtra = []byte(userMap["dobExtra"].(string))
-		json.Unmarshal([]byte(userMap["dobMsg"].(string)), &u.dobMsg)
-		json.Unmarshal([]byte(userMap["auth"].(string)), &u.auth)
+		u.Name = userMap["name"].(string)
+		u.DOBExtra = []byte(userMap["dobExtra"].(string))
+		json.Unmarshal([]byte(userMap["dobMsg"].(string)), &u.DOBMsg)
+		json.Unmarshal([]byte(userMap["auth"].(string)), &u.Auth)
 	}
 	return nil
 }
 
 func (u *User) MarshalJSON() ([]byte, error) {
 	userMap := make(map[string]interface{})
-	userMap["name"] = u.name
-	userMap["dobExtra"] = string(u.dobExtra)
+	userMap["name"] = u.Name
+	userMap["dobExtra"] = string(u.DOBExtra)
 
-	if auth, err := json.Marshal(&u.auth); err != nil {
+	if auth, err := json.Marshal(&u.Auth); err != nil {
 		return []byte{}, err
 	} else {
 		userMap["auth"] = string(auth)
 	}
 
-	if dobMsg, err := json.Marshal(&u.dobMsg); err != nil {
+	if dobMsg, err := json.Marshal(&u.DOBMsg); err != nil {
 		return []byte{}, err
 	} else {
 		userMap["dobMsg"] = string(dobMsg)

@@ -211,14 +211,26 @@ func MarshalJSON(a crypto.PublicKey) ([]byte, error) {
 			pubKey[1] = pk.Y.String()
 			aMap["pubKey"] = pubKey
 		} else if a.SigType == MultipleSignatures {
-			pks := a.PubKey.([]interface{})
-			pubKey := make([]string, len(pks)*2)
-			for i, v := range pks {
-				pk := v.(ecdsa.PublicKey)
-				pubKey[i*2] = pk.X.String()
-				pubKey[i*2+1] = pk.Y.String()
+			switch a.PubKey.(type) {
+			case []ecdsa.PublicKey:
+				pks := a.PubKey.([]ecdsa.PublicKey)
+				pubKey := make([]string, len(pks)*2)
+				for i, pk := range pks {
+					pubKey[i*2] = pk.X.String()
+					pubKey[i*2+1] = pk.Y.String()
+				}
+				aMap["pubKey"] = pubKey
+			case []interface{}:
+				pks := a.PubKey.([]interface{})
+				pubKey := make([]string, len(pks)*2)
+				for i, v := range pks {
+					pk := v.(ecdsa.PublicKey)
+					pubKey[i*2] = pk.X.String()
+					pubKey[i*2+1] = pk.Y.String()
+				}
+				aMap["pubKey"] = pubKey
 			}
-			aMap["pubKey"] = pubKey
+
 		} else {
 			return nil, crypto.ErrSigTypeNotSupport
 		}

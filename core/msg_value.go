@@ -39,7 +39,7 @@ type DOBMsgContent struct {
 }
 
 func CreateDOBMsgContent(name string, extra []byte, auth *Auth) (*DOBMsgContent, error) {
-	user := User{name: name, dobExtra: extra, auth: auth}
+	user := User{Name: name, DOBExtra: extra, Auth: auth}
 	return &DOBMsgContent{User: user}, nil
 
 }

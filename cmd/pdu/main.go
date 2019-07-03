@@ -105,12 +105,12 @@ func InitializeCmd() *cobra.Command {
 			if err != nil {
 				log.Println("create msg fail , err :", err)
 			} else {
-				log.Println("first msg from Adam ", "sender", crypto.Hash2String(msg.SenderID()))
-				if msg.Value().ContentType == core.TypeText {
-					log.Println("first msg from Adam ", "value.content", string(msg.Value().Content))
+				log.Println("first msg from Adam ", "sender", crypto.Hash2String(msg.SenderID))
+				if msg.Value.ContentType == core.TypeText {
+					log.Println("first msg from Adam ", "value.content", string(msg.Value.Content))
 				}
-				log.Println("first msg from Adam ", "reference", msg.Reference())
-				log.Println("first msg from Adam ", "signature", msg.Signature())
+				log.Println("first msg from Adam ", "reference", msg.Reference)
+				log.Println("first msg from Adam ", "signature", msg.Signature)
 			}
 
 			// verify msg
@@ -128,12 +128,12 @@ func InitializeCmd() *cobra.Command {
 			if err != nil {
 				log.Println("create msg fail , err :", err)
 			} else {
-				log.Println("first msg from Eve ", "sender", crypto.Hash2String(msg2.SenderID()))
-				if msg2.Value().ContentType == core.TypeText {
-					log.Println("first msg from Eve ", "value.content", string(msg2.Value().Content))
+				log.Println("first msg from Eve ", "sender", crypto.Hash2String(msg2.SenderID))
+				if msg2.Value.ContentType == core.TypeText {
+					log.Println("first msg from Eve ", "value.content", string(msg2.Value.Content))
 				}
-				log.Println("first msg from Eve ", "reference", msg2.Reference())
-				log.Println("first msg from Eve ", "signature", msg2.Signature())
+				log.Println("first msg from Eve ", "reference", msg2.Reference)
+				log.Println("first msg from Eve ", "signature", msg2.Signature)
 			}
 
 			// verify msg
@@ -145,7 +145,7 @@ func InitializeCmd() *cobra.Command {
 				ContentType: core.TypeDOB,
 			}
 			// test, same with adam
-			auth := core.Auth{PublicKey: Adam.Auth().PublicKey}
+			auth := core.Auth{PublicKey: Adam.Auth.PublicKey}
 			content, err := core.CreateDOBMsgContent("A2", nil, &auth)
 			if err != nil {
 				log.Println("create bod content fail, err:", err)
@@ -163,17 +163,33 @@ func InitializeCmd() *cobra.Command {
 			if err != nil {
 				log.Println("create msg fail , err :", err)
 			} else {
-				log.Println("first dob msg ", "sender", crypto.Hash2String(msg3.SenderID()))
-				if msg3.Value().ContentType == core.TypeText {
-					log.Println("first dob msg ", "value.content", string(msg3.Value().Content))
-				} else if msg3.Value().ContentType == core.TypeDOB {
-					log.Println("first dob msg ", "bod.content", string(msg3.Value().Content))
+				log.Println("first dob msg ", "sender", crypto.Hash2String(msg3.SenderID))
+				if msg3.Value.ContentType == core.TypeText {
+					log.Println("first dob msg ", "value.content", string(msg3.Value.Content))
+				} else if msg3.Value.ContentType == core.TypeDOB {
+					log.Println("first dob msg ", "bod.content", string(msg3.Value.Content))
 				}
-				log.Println("first dob msg ", "reference", msg3.Reference())
-				log.Println("first dob msg ", "signature", msg3.Signature())
+				log.Println("first dob msg ", "reference", msg3.Reference)
+				log.Println("first dob msg ", "signature", msg3.Signature)
 			}
 
 			verifyMsg(userDAG, msg3)
+
+			msgBytes, err := json.Marshal(msg3)
+			log.Println(crypto.Bytes2String(msgBytes))
+
+			if err != nil {
+				log.Println("marshal fail err :", err)
+			} else {
+				var msg4 core.Message
+				err = json.Unmarshal(msgBytes, &msg4)
+				if err != nil {
+					log.Println("unmarshal fail err:", err)
+				}
+				msgBytes, err = json.Marshal(msg4)
+				log.Println(crypto.Bytes2String(msgBytes))
+				verifyMsg(userDAG, &msg4)
+			}
 
 			return nil
 		},
@@ -197,9 +213,9 @@ func buildPrivateKey(privKeyGroup []*ecdsa.PrivateKey) crypto.PrivateKey {
 func verifyMsg(userDAG *core.UserDAG, msg *core.Message) {
 
 	// verify msg
-	sender := userDAG.GetUserByID(msg.SenderID())
+	sender := userDAG.GetUserByID(msg.SenderID)
 	if sender != nil {
-		msg.Signature().PubKey = sender.Auth().PubKey
+		msg.Signature.PubKey = sender.Auth.PubKey
 		res, err := core.VerifyMsg(*msg)
 		if err != nil {
 			log.Println("verfiy fail, err :", err)
