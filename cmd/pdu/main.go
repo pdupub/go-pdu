@@ -18,6 +18,7 @@ package main
 
 import (
 	"crypto/ecdsa"
+	"encoding/json"
 	"errors"
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/crypto"
@@ -53,25 +54,25 @@ func InitializeCmd() *cobra.Command {
 			// create root users
 			retryCnt := 100
 			var Adam, Eve *core.User
-			var privKeyAdam, privKeyEve []*ecdsa.PrivateKey
+			var privKeyAdamGroup, privKeyEveGroup []*ecdsa.PrivateKey
 			for i := 0; i < retryCnt; i++ {
 				if Adam == nil {
-					privKeyAdam, Adam, _ = createRootUser(true)
+					privKeyAdamGroup, Adam, _ = createRootUser(true)
 				}
 				if Eve == nil {
-					privKeyEve, Eve, _ = createRootUser(false)
+					privKeyEveGroup, Eve, _ = createRootUser(false)
 				}
 				if Adam != nil && Eve != nil {
 
 					log.Println("Adam ID :", crypto.Hash2String(Adam.ID()))
 					log.Println("private key start ", "#########")
-					for _, v := range privKeyAdam {
+					for _, v := range privKeyAdamGroup {
 						log.Println(crypto.Bytes2String(v.D.Bytes()))
 					}
 					log.Println("private key end ", "#########")
 					log.Println("Eve ID  :", crypto.Hash2String(Eve.ID()))
 					log.Println("private key start :", "#########")
-					for _, v := range privKeyEve {
+					for _, v := range privKeyEveGroup {
 						log.Println(crypto.Bytes2String(v.D.Bytes()))
 					}
 					log.Println("private key end :", "#########")
@@ -95,20 +96,12 @@ func InitializeCmd() *cobra.Command {
 			}
 
 			// create msg
-			var privKeys []interface{}
-			for _, k := range privKeyAdam {
-				privKeys = append(privKeys, k)
-			}
-			privKey := crypto.PrivateKey{
-				Source:  Adam.Auth().Source,
-				SigType: Adam.Auth().SigType,
-				PriKey:  privKeys,
-			}
+			privKeyAdam := buildPrivateKey(privKeyAdamGroup)
 			value := core.MsgValue{
 				ContentType: core.TypeText,
 				Content:     []byte("hello world!"),
 			}
-			msg, err := core.CreateMsg(Adam, &value, &privKey)
+			msg, err := core.CreateMsg(Adam, &value, &privKeyAdam)
 			if err != nil {
 				log.Println("create msg fail , err :", err)
 			} else {
@@ -121,63 +114,102 @@ func InitializeCmd() *cobra.Command {
 			}
 
 			// verify msg
-			if msg.SenderID() == Adam.ID() {
-				// public key should be found in user_dag by user id.
-				msg.Signature().PubKey = Adam.Auth().PubKey
-				res, err := core.VerifyMsg(*msg)
-				if err != nil {
-					log.Println("verfiy fail, err :", err)
-				} else {
-					log.Println("verify result is: ", res)
-				}
-			}
+			verifyMsg(userDAG, msg)
 
 			// new msg reference first msg
 			// create msg
-			var privKeys2 []interface{}
-			for _, k := range privKeyEve {
-				privKeys2 = append(privKeys2, k)
-			}
-			privKey2 := crypto.PrivateKey{
-				Source:  Eve.Auth().Source,
-				SigType: Eve.Auth().SigType,
-				PriKey:  privKeys2,
-			}
+			privKeyEve := buildPrivateKey(privKeyEveGroup)
 			value2 := core.MsgValue{
 				ContentType: core.TypeText,
 				Content:     []byte("hey u!"),
 			}
 			ref := core.MsgReference{Sender: Adam, MsgID: msg.ID()}
-			msg2, err := core.CreateMsg(Eve, &value2, &privKey2, &ref)
+			msg2, err := core.CreateMsg(Eve, &value2, &privKeyEve, &ref)
 			if err != nil {
 				log.Println("create msg fail , err :", err)
 			} else {
-				log.Println("first msg from Adam ", "sender", crypto.Hash2String(msg2.SenderID()))
+				log.Println("first msg from Eve ", "sender", crypto.Hash2String(msg2.SenderID()))
 				if msg2.Value().ContentType == core.TypeText {
-					log.Println("first msg from Adam ", "value.content", string(msg2.Value().Content))
+					log.Println("first msg from Eve ", "value.content", string(msg2.Value().Content))
 				}
-				log.Println("first msg from Adam ", "reference", msg2.Reference())
-				log.Println("first msg from Adam ", "signature", msg2.Signature())
+				log.Println("first msg from Eve ", "reference", msg2.Reference())
+				log.Println("first msg from Eve ", "signature", msg2.Signature())
 			}
 
 			// verify msg
-			sender := userDAG.GetUserByID(msg2.SenderID())
-			if sender != nil {
-				msg2.Signature().PubKey = sender.Auth().PubKey
-				res, err := core.VerifyMsg(*msg2)
-				if err != nil {
-					log.Println("verfiy fail, err :", err)
-				} else {
-					log.Println("verify result is: ", res)
-				}
-			} else {
-				log.Println("verify fail, err:", errors.New("user not exist in system"))
+			verifyMsg(userDAG, msg2)
+
+			// new msg reference first & second msg
+			// create bod msg
+			value3 := core.MsgValue{
+				ContentType: core.TypeDOB,
 			}
+			// test, same with adam
+			auth := core.Auth{PublicKey: Adam.Auth().PublicKey}
+			content, err := core.CreateDOBMsgContent("A2", nil, &auth)
+			if err != nil {
+				log.Println("create bod content fail, err:", err)
+			}
+			content.SignByParent(privKeyAdam, true)
+			content.SignByParent(privKeyEve, false)
+			value3.Content, err = json.Marshal(content)
+			log.Println()
+			if err != nil {
+				log.Println("content marshal fail , err:", err)
+			}
+
+			ref2 := core.MsgReference{Sender: Eve, MsgID: msg2.ID()}
+			msg3, err := core.CreateMsg(Eve, &value3, &privKeyEve, &ref, &ref2)
+			if err != nil {
+				log.Println("create msg fail , err :", err)
+			} else {
+				log.Println("first dob msg ", "sender", crypto.Hash2String(msg3.SenderID()))
+				if msg3.Value().ContentType == core.TypeText {
+					log.Println("first dob msg ", "value.content", string(msg3.Value().Content))
+				} else if msg3.Value().ContentType == core.TypeDOB {
+					log.Println("first dob msg ", "bod.content", string(msg3.Value().Content))
+				}
+				log.Println("first dob msg ", "reference", msg3.Reference())
+				log.Println("first dob msg ", "signature", msg3.Signature())
+			}
+
+			verifyMsg(userDAG, msg3)
+
 			return nil
 		},
 	}
 
 	return cmd
+}
+
+func buildPrivateKey(privKeyGroup []*ecdsa.PrivateKey) crypto.PrivateKey {
+	var privKeys []interface{}
+	for _, k := range privKeyGroup {
+		privKeys = append(privKeys, k)
+	}
+	return crypto.PrivateKey{
+		Source:  pdu.SourceName,
+		SigType: pdu.MultipleSignatures,
+		PriKey:  privKeys,
+	}
+}
+
+func verifyMsg(userDAG *core.UserDAG, msg *core.Message) {
+
+	// verify msg
+	sender := userDAG.GetUserByID(msg.SenderID())
+	if sender != nil {
+		msg.Signature().PubKey = sender.Auth().PubKey
+		res, err := core.VerifyMsg(*msg)
+		if err != nil {
+			log.Println("verfiy fail, err :", err)
+		} else {
+			log.Println("verify result is: ", res)
+		}
+	} else {
+		log.Println("verify fail, err:", errors.New("user not exist in system"))
+	}
+
 }
 
 func createRootUser(male bool) ([]*ecdsa.PrivateKey, *core.User, error) {

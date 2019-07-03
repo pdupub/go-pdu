@@ -16,6 +16,12 @@
 
 package core
 
+import (
+	"encoding/json"
+	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/pdu"
+)
+
 const (
 	TypeText = iota
 	TypeDOB
@@ -24,4 +30,38 @@ const (
 type MsgValue struct {
 	ContentType int
 	Content     []byte
+}
+
+type DOBMsgContent struct {
+	User User
+	Sig0 []byte
+	Sig1 []byte
+}
+
+func CreateDOBMsgContent(name string, extra []byte, auth *Auth) (*DOBMsgContent, error) {
+	user := User{name: name, dobExtra: extra, auth: auth}
+	return &DOBMsgContent{User: user}, nil
+
+}
+
+func (mv *DOBMsgContent) SignByParent(privKey crypto.PrivateKey, male bool) error {
+
+	jsonByte, err := json.Marshal(mv.User)
+	if err != nil {
+		return err
+	}
+	var signature *crypto.Signature
+	switch privKey.Source {
+	case pdu.SourceName:
+		signature, err = pdu.Sign(jsonByte, privKey)
+		if err != nil {
+			return err
+		}
+	}
+	if male {
+		mv.Sig1 = signature.Signature
+	} else {
+		mv.Sig0 = signature.Signature
+	}
+	return nil
 }
