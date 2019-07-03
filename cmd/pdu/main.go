@@ -145,7 +145,16 @@ func InitializeCmd() *cobra.Command {
 				ContentType: core.TypeDOB,
 			}
 			// test, same with adam
-			auth := core.Auth{PublicKey: Adam.Auth.PublicKey}
+			var privKeyA2Group []*ecdsa.PrivateKey
+			for i := 0; i < 5; i++ {
+				pk, _ := pdu.GenerateKey()
+				privKeyA2Group = append(privKeyA2Group, pk)
+			}
+			var pubKeyA2Group []interface{}
+			for _, v := range privKeyA2Group {
+				pubKeyA2Group = append(pubKeyA2Group, v.PublicKey)
+			}
+			auth := core.Auth{PublicKey: crypto.PublicKey{Source: pdu.SourceName, SigType: pdu.MultipleSignatures, PubKey: pubKeyA2Group}}
 			content, err := core.CreateDOBMsgContent("A2", "1234", &auth)
 			if err != nil {
 				log.Println("create bod content fail, err:", err)
@@ -230,6 +239,20 @@ func InitializeCmd() *cobra.Command {
 				log.Println("should be dob msg")
 			}
 
+			// reate new User from dob message
+			// user create from msg3 and msg4 should be same user
+			newUser1, err := core.CreateNewUser(msg3)
+			if err != nil {
+				log.Println("create user1 fail , err:", err)
+			} else {
+				log.Println("user1 be created, ID :", crypto.Hash2String(newUser1.ID()))
+			}
+			newUser2, err := core.CreateNewUser(&msg4)
+			if err != nil {
+				log.Println("create user2 fail, err:", err)
+			} else {
+				log.Println("user2 be created, ID :", crypto.Hash2String(newUser2.ID()))
+			}
 			return nil
 		},
 	}

@@ -19,6 +19,7 @@ package core
 import (
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/pdupub/go-pdu/crypto"
 	"math/big"
@@ -40,15 +41,19 @@ type User struct {
 	DOBMsg   *Message `json:"dobMsg"`
 }
 
+var (
+	errContentTypeNotDOB = errors.New("content type is not TypeDOB")
+)
+
 // CreateRootUser try to create two root users by public key
 // One Male user and one female user,
 func CreateRootUsers(key crypto.PublicKey) ([2]*User, error) {
 	rootUsers := [2]*User{nil, nil}
-	rootFUser := User{Name: rootFName, DOBExtra: rootFDOBExtra, Auth: &Auth{key}, DOBMsg: &Message{}}
+	rootFUser := User{Name: rootFName, DOBExtra: rootFDOBExtra, Auth: &Auth{key}, DOBMsg: nil}
 	if rootFUser.Gender() == female {
 		rootUsers[0] = &rootFUser
 	}
-	rootMUser := User{Name: rootMName, DOBExtra: rootMDOBExtra, Auth: &Auth{key}, DOBMsg: &Message{}}
+	rootMUser := User{Name: rootMName, DOBExtra: rootMDOBExtra, Auth: &Auth{key}, DOBMsg: nil}
 	if rootMUser.Gender() == male {
 		rootUsers[1] = &rootMUser
 	}
@@ -61,8 +66,15 @@ func CreateRootUsers(key crypto.PublicKey) ([2]*User, error) {
 // Both parents fit the nature rules.
 // The BOD struct signed by both parents.
 func CreateNewUser(msg *Message) (*User, error) {
-	newUser := User{}
-
+	if msg.Value.ContentType != TypeDOB {
+		return nil, errContentTypeNotDOB
+	}
+	var dobContent DOBMsgContent
+	if err := json.Unmarshal(msg.Value.Content, &dobContent); err != nil {
+		return nil, err
+	}
+	newUser := dobContent.User
+	newUser.DOBMsg = msg
 	return &newUser, nil
 }
 
@@ -72,7 +84,17 @@ func (u User) ID() crypto.Hash {
 	hash := sha256.New()
 	hash.Reset()
 	auth := fmt.Sprintf("%v", u.Auth)
-	dobMsg := fmt.Sprintf("%v", u.DOBMsg)
+	var dobMsg string
+	// todo : add init DOBMsg to rootUser
+	// todo : so this condition can be deleted
+	if u.DOBMsg != nil {
+		dobMsg += fmt.Sprintf("-%v", u.DOBMsg.SenderID)
+		for _, v := range u.DOBMsg.Reference {
+			dobMsg += fmt.Sprintf("-%v-%v", v.Sender.ID(), v.MsgID)
+		}
+		dobMsg += fmt.Sprintf("-%v-%v-%v", u.DOBMsg.Signature.Signature, u.DOBMsg.Signature.Source, u.DOBMsg.Signature.SigType)
+		dobMsg += fmt.Sprintf("-%v-%v", u.DOBMsg.Value.Content, u.DOBMsg.Value.ContentType)
+	}
 	hash.Write(append(append(append([]byte(u.Name), u.DOBExtra...), auth...), dobMsg...))
 	return crypto.Bytes2Hash(hash.Sum(nil))
 }
