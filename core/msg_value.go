@@ -38,7 +38,7 @@ type DOBMsgContent struct {
 	Sig1 []byte
 }
 
-func CreateDOBMsgContent(name string, extra []byte, auth *Auth) (*DOBMsgContent, error) {
+func CreateDOBMsgContent(name string, extra string, auth *Auth) (*DOBMsgContent, error) {
 	user := User{Name: name, DOBExtra: extra, Auth: auth}
 	return &DOBMsgContent{User: user}, nil
 

@@ -146,12 +146,13 @@ func InitializeCmd() *cobra.Command {
 			}
 			// test, same with adam
 			auth := core.Auth{PublicKey: Adam.Auth.PublicKey}
-			content, err := core.CreateDOBMsgContent("A2", nil, &auth)
+			content, err := core.CreateDOBMsgContent("A2", "1234", &auth)
 			if err != nil {
 				log.Println("create bod content fail, err:", err)
 			}
 			content.SignByParent(privKeyAdam, true)
 			content.SignByParent(privKeyEve, false)
+
 			value3.Content, err = json.Marshal(content)
 			log.Println()
 			if err != nil {
@@ -215,11 +216,15 @@ func InitializeCmd() *cobra.Command {
 				sigEve := crypto.Signature{Signature: dobContent.Sig0, PublicKey: Eve.Auth.PublicKey}
 
 				if res, err := pdu.Verify(jsonBytes, sigAdam); err != nil || res == false {
-					log.Println("verify adam fail, err", err)
+					log.Println("verify Adam fail, err", err)
+				} else {
+					log.Println("verify Adam true")
 				}
 
 				if res, err := pdu.Verify(jsonBytes, sigEve); err != nil || res == false {
-					log.Println("verify eve fail, err", err)
+					log.Println("verify Eve fail, err", err)
+				} else {
+					log.Println("verify Eve true")
 				}
 			} else {
 				log.Println("should be dob msg")

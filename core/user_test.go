@@ -59,6 +59,33 @@ func TestCreateRootUsers(t *testing.T) {
 			} else {
 				t.Errorf("%s : %s json Encode & Decode fail ", pdu.SourceName, pdu.MultipleSignatures)
 			}
+
+			/*
+				target := User{
+					Name:user.Name,
+					DOBExtra:user.DOBExtra,
+					DOBMsg:user.DOBMsg,
+					Auth:user.Auth,
+				}
+
+				b1,_ := json.Marshal(target)
+				var u1 User
+				json.Unmarshal(b1,&u1)
+
+				b2,_ := json.Marshal(u1)
+
+				if len(b1) != len(b2) {
+					t.Errorf("length not match")
+				}
+				for i,_ := range b1 {
+					if b1[i] != b2[i] {
+						t.Errorf("b1 not equal b2 ; %d", i)
+						break
+					}
+				}
+				fmt.Println(b1)
+				fmt.Println(b2)
+			*/
 		} else {
 			fmt.Println("User:", i, "No user being created")
 		}
