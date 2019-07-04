@@ -113,6 +113,14 @@ func InitializeCmd() *cobra.Command {
 				log.Println("first msg from Adam ", "signature", msg.Signature)
 			}
 
+			// create msgDaG
+			msgDAG, err := core.NewMsgDag(msg)
+			if err != nil {
+				log.Println("create msg dag fail, err:", err)
+			} else {
+				log.Println("add msg", msgDAG.GetMsgByID(msg.ID()))
+			}
+
 			// verify msg
 			verifyMsg(userDAG, msg)
 
@@ -134,6 +142,11 @@ func InitializeCmd() *cobra.Command {
 				}
 				log.Println("first msg from Eve ", "reference", msg2.Reference)
 				log.Println("first msg from Eve ", "signature", msg2.Signature)
+			}
+
+			// add msg2
+			if err := msgDAG.Add(msg2); err != nil {
+				log.Println("add msg2 fail, err:", err)
 			}
 
 			// verify msg
@@ -250,18 +263,28 @@ func InitializeCmd() *cobra.Command {
 				log.Println("user2 be created, ID :", crypto.Hash2String(newUser2.ID()))
 			}
 
-			err = userDAG.Add(newUser1)
-			if err != nil {
+			if err := userDAG.Add(newUser1); err != nil {
 				log.Println("dag add user1 fail, err:", err)
 			} else {
 				log.Println("dag add user1 success :", crypto.Hash2String(userDAG.GetUserByID(newUser1.ID()).ID()))
 			}
 
-			err = userDAG.Add(newUser2)
-			if err != nil {
-				log.Println("dag add user2 fail, err:", err)
+			if err := userDAG.Add(newUser2); err != nil {
+				log.Println("dag add user2 fail, should fail here,  err:", err)
 			} else {
-				log.Println("dag add user2 success :", crypto.Hash2String(userDAG.GetUserByID(newUser2.ID()).ID()))
+				log.Println("dag add user2 success, should fail here :", crypto.Hash2String(userDAG.GetUserByID(newUser2.ID()).ID()))
+			}
+
+			if err := msgDAG.Add(msg3); err != nil {
+				log.Println("add msg3 fail , err", err)
+			} else {
+				log.Println("add msg3 success")
+			}
+
+			if err := msgDAG.Add(&msg4); err != nil {
+				log.Println("add msg4 fail , should fail here , err", err)
+			} else {
+				log.Println("add msg4 success, should fail here")
 			}
 
 			return nil
