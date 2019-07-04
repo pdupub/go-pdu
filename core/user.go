@@ -88,12 +88,12 @@ func (u User) ID() crypto.Hash {
 	// todo : add init DOBMsg to rootUser
 	// todo : so this condition can be deleted
 	if u.DOBMsg != nil {
-		dobMsg += fmt.Sprintf("-%v", u.DOBMsg.SenderID)
+		dobMsg += fmt.Sprintf("%v", u.DOBMsg.SenderID)
 		for _, v := range u.DOBMsg.Reference {
-			dobMsg += fmt.Sprintf("-%v-%v", v.SenderID, v.MsgID)
+			dobMsg += fmt.Sprintf("%v%v", v.SenderID, v.MsgID)
 		}
-		dobMsg += fmt.Sprintf("-%v-%v-%v", u.DOBMsg.Signature.Signature, u.DOBMsg.Signature.Source, u.DOBMsg.Signature.SigType)
-		dobMsg += fmt.Sprintf("-%v-%v", u.DOBMsg.Value.Content, u.DOBMsg.Value.ContentType)
+		dobMsg += fmt.Sprintf("%v%v%v", u.DOBMsg.Signature.Signature, u.DOBMsg.Signature.Source, u.DOBMsg.Signature.SigType)
+		dobMsg += fmt.Sprintf("%v%v", u.DOBMsg.Value.Content, u.DOBMsg.Value.ContentType)
 	}
 	hash.Write(append(append(append([]byte(u.Name), u.DOBExtra...), auth...), dobMsg...))
 	return crypto.Bytes2Hash(hash.Sum(nil))
