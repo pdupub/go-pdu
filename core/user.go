@@ -90,7 +90,7 @@ func (u User) ID() crypto.Hash {
 	if u.DOBMsg != nil {
 		dobMsg += fmt.Sprintf("-%v", u.DOBMsg.SenderID)
 		for _, v := range u.DOBMsg.Reference {
-			dobMsg += fmt.Sprintf("-%v-%v", v.Sender.ID(), v.MsgID)
+			dobMsg += fmt.Sprintf("-%v-%v", v.SenderID, v.MsgID)
 		}
 		dobMsg += fmt.Sprintf("-%v-%v-%v", u.DOBMsg.Signature.Signature, u.DOBMsg.Signature.Source, u.DOBMsg.Signature.SigType)
 		dobMsg += fmt.Sprintf("-%v-%v", u.DOBMsg.Value.Content, u.DOBMsg.Value.ContentType)

@@ -123,7 +123,7 @@ func InitializeCmd() *cobra.Command {
 				ContentType: core.TypeText,
 				Content:     []byte("hey u!"),
 			}
-			ref := core.MsgReference{Sender: Adam, MsgID: msg.ID()}
+			ref := core.MsgReference{SenderID: Adam.ID(), MsgID: msg.ID()}
 			msg2, err := core.CreateMsg(Eve, &value2, &privKeyEve, &ref)
 			if err != nil {
 				log.Println("create msg fail , err :", err)
@@ -168,7 +168,7 @@ func InitializeCmd() *cobra.Command {
 				log.Println("content marshal fail , err:", err)
 			}
 
-			ref2 := core.MsgReference{Sender: Eve, MsgID: msg2.ID()}
+			ref2 := core.MsgReference{SenderID: Eve.ID(), MsgID: msg2.ID()}
 			msg3, err := core.CreateMsg(Eve, &value3, &privKeyEve, &ref, &ref2)
 			if err != nil {
 				log.Println("create msg fail , err :", err)

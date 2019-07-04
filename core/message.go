@@ -33,8 +33,8 @@ type Message struct {
 }
 
 type MsgReference struct {
-	Sender *User
-	MsgID  crypto.Hash
+	SenderID crypto.Hash `json:"senderID"`
+	MsgID    crypto.Hash `json:"msgID"`
 }
 
 func CreateMsg(user *User, value *MsgValue, privKey *crypto.PrivateKey, refs ...*MsgReference) (*Message, error) {
@@ -84,7 +84,7 @@ func (msg Message) ID() crypto.Hash {
 	hash.Reset()
 	var ref string
 	for _, r := range msg.Reference {
-		ref += fmt.Sprintf("%v%v", r.Sender.ID(), r.MsgID)
+		ref += fmt.Sprintf("%v%v", r.SenderID, r.MsgID)
 	}
 	val := fmt.Sprintf("%v", msg.Value)
 	hash.Write(append(append(msg.SenderID[:], ref...), val...))
