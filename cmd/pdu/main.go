@@ -110,7 +110,7 @@ func InitializeCmd() *cobra.Command {
 					log.Println("first msg from Adam ", "value.content", string(msg.Value.Content))
 				}
 				log.Println("first msg from Adam ", "reference", msg.Reference)
-				log.Println("first msg from Adam ", "signature", msg.Signature)
+				//log.Println("first msg from Adam ", "signature", msg.Signature)
 			}
 
 			// create msgDaG
@@ -118,7 +118,7 @@ func InitializeCmd() *cobra.Command {
 			if err != nil {
 				log.Println("create msg dag fail, err:", err)
 			} else {
-				log.Println("add msg", msgDAG.GetMsgByID(msg.ID()))
+				//log.Println("add msg", msgDAG.GetMsgByID(msg.ID()))
 			}
 
 			// verify msg
@@ -141,7 +141,7 @@ func InitializeCmd() *cobra.Command {
 					log.Println("first msg from Eve ", "value.content", string(msg2.Value.Content))
 				}
 				log.Println("first msg from Eve ", "reference", msg2.Reference)
-				log.Println("first msg from Eve ", "signature", msg2.Signature)
+				//log.Println("first msg from Eve ", "signature", msg2.Signature)
 			}
 
 			// add msg2
@@ -188,12 +188,12 @@ func InitializeCmd() *cobra.Command {
 			} else {
 				log.Println("first dob msg ", "sender", crypto.Hash2String(msg3.SenderID))
 				if msg3.Value.ContentType == core.TypeText {
-					log.Println("first dob msg ", "value.content", string(msg3.Value.Content))
+					//log.Println("first dob msg ", "value.content", string(msg3.Value.Content))
 				} else if msg3.Value.ContentType == core.TypeDOB {
-					log.Println("first dob msg ", "bod.content", string(msg3.Value.Content))
+					//log.Println("first dob msg ", "bod.content", string(msg3.Value.Content))
 				}
-				log.Println("first dob msg ", "reference", msg3.Reference)
-				log.Println("first dob msg ", "signature", msg3.Signature)
+				//log.Println("first dob msg ", "reference", msg3.Reference)
+				//log.Println("first dob msg ", "signature", msg3.Signature)
 			}
 
 			verifyMsg(userDAG, msg3)
