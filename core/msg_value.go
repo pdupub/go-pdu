@@ -33,9 +33,13 @@ type MsgValue struct {
 }
 
 type DOBMsgContent struct {
-	User User
-	Sig0 []byte
-	Sig1 []byte
+	User    User
+	Parents [2]ParentSig
+}
+
+type ParentSig struct {
+	PID crypto.Hash
+	Sig []byte
 }
 
 func CreateDOBMsgContent(name string, extra string, auth *Auth) (*DOBMsgContent, error) {
@@ -44,7 +48,7 @@ func CreateDOBMsgContent(name string, extra string, auth *Auth) (*DOBMsgContent,
 
 }
 
-func (mv *DOBMsgContent) SignByParent(privKey crypto.PrivateKey, male bool) error {
+func (mv *DOBMsgContent) SignByParent(user *User, privKey crypto.PrivateKey) error {
 
 	jsonByte, err := json.Marshal(mv.User)
 	if err != nil {
@@ -58,10 +62,10 @@ func (mv *DOBMsgContent) SignByParent(privKey crypto.PrivateKey, male bool) erro
 			return err
 		}
 	}
-	if male {
-		mv.Sig1 = signature.Signature
+	if user.Gender() == male {
+		mv.Parents[1] = ParentSig{PID: user.ID(), Sig: signature.Signature}
 	} else {
-		mv.Sig0 = signature.Signature
+		mv.Parents[0] = ParentSig{PID: user.ID(), Sig: signature.Signature}
 	}
 	return nil
 }

@@ -159,8 +159,8 @@ func InitializeCmd() *cobra.Command {
 			if err != nil {
 				log.Println("create bod content fail, err:", err)
 			}
-			content.SignByParent(privKeyAdam, true)
-			content.SignByParent(privKeyEve, false)
+			content.SignByParent(Adam, privKeyAdam)
+			content.SignByParent(Eve, privKeyEve)
 
 			value3.Content, err = json.Marshal(content)
 			log.Println()
@@ -215,14 +215,10 @@ func InitializeCmd() *cobra.Command {
 					log.Println("user to json fail , err:", err)
 				}
 
-				log.Println("length of sig0", len(dobContent.Sig0))
-				log.Println(Eve.Auth.PublicKey)
-
-				log.Println("length of sig1", len(dobContent.Sig1))
-				log.Println(Adam.Auth.PublicKey)
-
-				sigAdam := crypto.Signature{Signature: dobContent.Sig1, PublicKey: Adam.Auth.PublicKey}
-				sigEve := crypto.Signature{Signature: dobContent.Sig0, PublicKey: Eve.Auth.PublicKey}
+				sigAdam := crypto.Signature{Signature: dobContent.Parents[1].Sig,
+					PublicKey: userDAG.GetUserByID(dobContent.Parents[1].PID).Auth.PublicKey}
+				sigEve := crypto.Signature{Signature: dobContent.Parents[0].Sig,
+					PublicKey: userDAG.GetUserByID(dobContent.Parents[0].PID).Auth.PublicKey}
 
 				if res, err := pdu.Verify(jsonBytes, sigAdam); err != nil || res == false {
 					log.Println("verify Adam fail, err", err)
