@@ -249,6 +249,21 @@ func InitializeCmd() *cobra.Command {
 			} else {
 				log.Println("user2 be created, ID :", crypto.Hash2String(newUser2.ID()))
 			}
+
+			err = userDAG.Add(newUser1)
+			if err != nil {
+				log.Println("dag add user1 fail, err:", err)
+			} else {
+				log.Println("dag add user1 success :", crypto.Hash2String(userDAG.GetUserByID(newUser1.ID()).ID()))
+			}
+
+			err = userDAG.Add(newUser2)
+			if err != nil {
+				log.Println("dag add user2 fail, err:", err)
+			} else {
+				log.Println("dag add user2 success :", crypto.Hash2String(userDAG.GetUserByID(newUser2.ID()).ID()))
+			}
+
 			return nil
 		},
 	}

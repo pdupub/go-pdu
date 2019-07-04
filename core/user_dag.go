@@ -17,6 +17,8 @@
 package core
 
 import (
+	"encoding/json"
+	"errors"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/dag"
 )
@@ -24,6 +26,10 @@ import (
 type UserDAG struct {
 	dag *dag.DAG
 }
+
+var (
+	errUserAlreadyExist = errors.New("user already exist")
+)
 
 func NewUserDag(Eve, Adam *User) (*UserDAG, error) {
 
@@ -52,4 +58,24 @@ func (ud *UserDAG) GetUserByID(uid crypto.Hash) *User {
 	} else {
 		return nil
 	}
+}
+
+func (ud *UserDAG) Add(user *User) error {
+	if ud.GetUserByID(user.ID()) != nil {
+		return errUserAlreadyExist
+	}
+	var dobContent DOBMsgContent
+	err := json.Unmarshal(user.DOBMsg.Value.Content, &dobContent)
+	if err != nil {
+		return err
+	}
+	userVertex, err := dag.NewVertex(user.ID(), user, dobContent.Parents[0].PID, dobContent.Parents[1].PID)
+	if err != nil {
+		return err
+	}
+	err = ud.dag.AddVertex(userVertex)
+	if err != nil {
+		return err
+	}
+	return nil
 }
