@@ -40,16 +40,16 @@ func main() {
 		Use:   "pdu",
 		Short: "PDU command line interface",
 	}
-	rootCmd.AddCommand(InitializeCmd())
+	rootCmd.AddCommand(TestCmd())
 	rootCmd.AddCommand(StartCmd())
 
 	rootCmd.Execute()
 }
 
-func InitializeCmd() *cobra.Command {
+func TestCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "init [generation num]",
-		Short: "Initialize the root user",
+		Use:   "test",
+		Short: "Test on pdu",
 		RunE: func(_ *cobra.Command, args []string) error {
 			// create root users
 			retryCnt := 100
