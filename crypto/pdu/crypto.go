@@ -37,7 +37,7 @@ func GenerateKey() (*ecdsa.PrivateKey, error) {
 	return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 }
 
-func GetKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
+func parsePrivKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 	pk := new(ecdsa.PrivateKey)
 	switch priKey.(type) {
 	case *ecdsa.PrivateKey:
@@ -56,7 +56,7 @@ func GetKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 	return pk, nil
 }
 
-func GetPubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
+func parsePubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
 	pk := new(ecdsa.PublicKey)
 	switch pubKey.(type) {
 	case *ecdsa.PublicKey:
@@ -79,7 +79,7 @@ func Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signature, error) {
 	}
 	switch priKey.SigType {
 	case Signature2PublicKey:
-		pk, err := GetKey(priKey.PriKey)
+		pk, err := parsePrivKey(priKey.PriKey)
 		if err != nil {
 			return nil, err
 		}
@@ -96,7 +96,7 @@ func Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signature, error) {
 		var pubKeys []interface{}
 		var signature []byte
 		for _, item := range pks {
-			pk, err := GetKey(item)
+			pk, err := parsePrivKey(item)
 			if err != nil {
 				return nil, err
 			}
@@ -122,7 +122,7 @@ func Verify(hash []byte, sig crypto.Signature) (bool, error) {
 	}
 	switch sig.SigType {
 	case Signature2PublicKey:
-		pk, err := GetPubKey(sig.PubKey)
+		pk, err := parsePubKey(sig.PubKey)
 		if err != nil {
 			return false, err
 		}
@@ -135,7 +135,7 @@ func Verify(hash []byte, sig crypto.Signature) (bool, error) {
 			return false, crypto.ErrSigPubKeyNotMatch
 		}
 		for i, pubkey := range pks {
-			pk, err := GetPubKey(pubkey)
+			pk, err := parsePubKey(pubkey)
 			if err != nil {
 				return false, err
 			}
