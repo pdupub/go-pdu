@@ -167,19 +167,19 @@ func TestCmd() *cobra.Command {
 			} else {
 				log.Info("first dob msg ", "sender", common.Hash2String(msg3.SenderID))
 				if msg3.Value.ContentType == core.TypeText {
-					//log.Println("first dob msg ", "value.content", string(msg3.Value.Content))
+					log.Info("first dob msg ", "value.content", string(msg3.Value.Content))
 				} else if msg3.Value.ContentType == core.TypeDOB {
-					//log.Println("first dob msg ", "bod.content", string(msg3.Value.Content))
+					log.Info("first dob msg ", "bod.content", string(msg3.Value.Content))
 				}
-				//log.Println("first dob msg ", "reference", msg3.Reference)
-				//log.Println("first dob msg ", "signature", msg3.Signature)
+				log.Info("first dob msg ", "reference", msg3.Reference)
+				log.Info("first dob msg ", "signature", msg3.Signature)
 			}
 
 			verifyMsg(userDAG, msg3)
 
 			// marshal and unmarshal the msg
 			msgBytes, err := json.Marshal(msg3)
-			//log.Println(crypto.Bytes2String(msgBytes))
+			//log.Info(common.Bytes2String(msgBytes))
 
 			var msg4 core.Message
 			if err != nil {
@@ -194,7 +194,7 @@ func TestCmd() *cobra.Command {
 				if err != nil {
 					log.Error("marshal fail err:", err)
 				}
-				//log.Println(crypto.Bytes2String(msgBytes))
+				//log.Info(common.Bytes2String(msgBytes))
 			}
 
 			// verify the signature in the content of DOBMsg
