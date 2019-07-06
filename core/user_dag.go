@@ -28,7 +28,7 @@ type UserDAG struct {
 }
 
 var (
-	errUserAlreadyExist = errors.New("user already exist")
+	ErrUserAlreadyExist = errors.New("user already exist")
 )
 
 func NewUserDag(Eve, Adam *User) (*UserDAG, error) {
@@ -62,7 +62,7 @@ func (ud *UserDAG) GetUserByID(uid common.Hash) *User {
 
 func (ud *UserDAG) Add(user *User) error {
 	if ud.GetUserByID(user.ID()) != nil {
-		return errUserAlreadyExist
+		return ErrUserAlreadyExist
 	}
 	var dobContent DOBMsgContent
 	err := json.Unmarshal(user.DOBMsg.Value.Content, &dobContent)

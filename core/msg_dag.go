@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	errMsgAlreadyExist = errors.New("msg already exist")
+	ErrMsgAlreadyExist = errors.New("msg already exist")
 )
 
 type MsgDAG struct {
@@ -52,7 +52,7 @@ func (md *MsgDAG) GetMsgByID(mid common.Hash) *Message {
 
 func (md *MsgDAG) Add(msg *Message) error {
 	if md.GetMsgByID(msg.ID()) != nil {
-		return errMsgAlreadyExist
+		return ErrMsgAlreadyExist
 	}
 	var refs []interface{}
 	for _, r := range msg.Reference {

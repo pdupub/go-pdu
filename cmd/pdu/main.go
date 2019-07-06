@@ -251,10 +251,8 @@ func TestCmd() *cobra.Command {
 				log.Trace("dag add user1 success :", common.Hash2String(userDAG.GetUserByID(newUser1.ID()).ID()))
 			}
 
-			if err := userDAG.Add(newUser2); err != nil {
-				log.Trace("dag add user2 fail, should fail here,  err:", err)
-			} else {
-				log.Error("dag add user2 success, should fail here :", common.Hash2String(userDAG.GetUserByID(newUser2.ID()).ID()))
+			if err := userDAG.Add(newUser2); err != core.ErrUserAlreadyExist {
+				log.Error("dag add user2 fail, err should be %s, but now err : %s", core.ErrUserAlreadyExist, err)
 			}
 
 			if err := msgDAG.Add(msg3); err != nil {
@@ -263,10 +261,8 @@ func TestCmd() *cobra.Command {
 				log.Trace("add msg3 success")
 			}
 
-			if err := msgDAG.Add(&msg4); err != nil {
-				log.Trace("add msg4 fail , should fail here , err", err)
-			} else {
-				log.Error("add msg4 success, should fail here")
+			if err := msgDAG.Add(&msg4); err != core.ErrMsgAlreadyExist {
+				log.Error("add msg4 fail, err should be %s, but now err : %s", core.ErrMsgAlreadyExist, err)
 			}
 
 			return nil
