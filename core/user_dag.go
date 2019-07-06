@@ -47,7 +47,7 @@ func NewUserDag(Eve, Adam *User) (*UserDAG, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	userDAG.SetMaxParentsCount(2)
 	return &UserDAG{dag: userDAG}, nil
 
 }
