@@ -21,20 +21,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/crypto/pdu"
 )
 
 type Message struct {
-	SenderID  crypto.Hash       `json:"senderID"`
+	SenderID  common.Hash       `json:"senderID"`
 	Reference []*MsgReference   `json:"reference"`
 	Value     *MsgValue         `json:"value"`
 	Signature *crypto.Signature `json:"signature"`
 }
 
 type MsgReference struct {
-	SenderID crypto.Hash `json:"senderID"`
-	MsgID    crypto.Hash `json:"msgID"`
+	SenderID common.Hash `json:"senderID"`
+	MsgID    common.Hash `json:"msgID"`
 }
 
 func CreateMsg(user *User, value *MsgValue, privKey *crypto.PrivateKey, refs ...*MsgReference) (*Message, error) {
@@ -79,7 +80,7 @@ func VerifyMsg(msg Message) (bool, error) {
 
 }
 
-func (msg Message) ID() crypto.Hash {
+func (msg Message) ID() common.Hash {
 	hash := sha256.New()
 	hash.Reset()
 	var ref string
@@ -88,13 +89,13 @@ func (msg Message) ID() crypto.Hash {
 	}
 	val := fmt.Sprintf("%v", msg.Value)
 	hash.Write(append(append(msg.SenderID[:], ref...), val...))
-	return crypto.Bytes2Hash(hash.Sum(nil))
+	return common.Bytes2Hash(hash.Sum(nil))
 }
 
 // ParentsID return the parents id
 // Parents are the message referenced by this Message
-func (msg Message) ParentsID() []crypto.Hash {
-	var parentsID []crypto.Hash
+func (msg Message) ParentsID() []common.Hash {
+	var parentsID []common.Hash
 	for _, ref := range msg.Reference {
 		parentsID = append(parentsID, ref.MsgID)
 	}
@@ -102,6 +103,6 @@ func (msg Message) ParentsID() []crypto.Hash {
 }
 
 // always return nil for msg
-func (msg Message) ChildrenID() []crypto.Hash {
+func (msg Message) ChildrenID() []common.Hash {
 	return nil
 }

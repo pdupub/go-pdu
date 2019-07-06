@@ -19,7 +19,7 @@ package core
 import (
 	"encoding/json"
 	"errors"
-	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/dag"
 )
 
@@ -52,7 +52,7 @@ func NewUserDag(Eve, Adam *User) (*UserDAG, error) {
 
 }
 
-func (ud *UserDAG) GetUserByID(uid crypto.Hash) *User {
+func (ud *UserDAG) GetUserByID(uid common.Hash) *User {
 	if v := ud.dag.GetVertex(uid); v != nil {
 		return v.Value().(*User)
 	} else {

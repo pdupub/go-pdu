@@ -18,6 +18,7 @@ package core
 
 import (
 	"encoding/json"
+	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/crypto/pdu"
 )
@@ -38,7 +39,7 @@ type DOBMsgContent struct {
 }
 
 type ParentSig struct {
-	PID crypto.Hash
+	PID common.Hash
 	Sig []byte
 }
 

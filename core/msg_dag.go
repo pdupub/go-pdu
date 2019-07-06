@@ -18,7 +18,7 @@ package core
 
 import (
 	"errors"
-	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/dag"
 )
 
@@ -42,7 +42,7 @@ func NewMsgDag(msg *Message) (*MsgDAG, error) {
 	return &MsgDAG{dag: msgDAG}, nil
 }
 
-func (md *MsgDAG) GetMsgByID(mid crypto.Hash) *Message {
+func (md *MsgDAG) GetMsgByID(mid common.Hash) *Message {
 	if v := md.dag.GetVertex(mid); v != nil {
 		return v.Value().(*Message)
 	} else {

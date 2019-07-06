@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/crypto"
 	"math/big"
 )
@@ -80,7 +81,7 @@ func CreateNewUser(msg *Message) (*User, error) {
 
 // ID return the vertex.id, related to parents and value of the vertex
 // ID cloud use as address of user account
-func (u User) ID() crypto.Hash {
+func (u User) ID() common.Hash {
 	hash := sha256.New()
 	hash.Reset()
 	auth := fmt.Sprintf("%v", u.Auth)
@@ -96,7 +97,7 @@ func (u User) ID() crypto.Hash {
 		dobMsg += fmt.Sprintf("%v%v", u.DOBMsg.Value.Content, u.DOBMsg.Value.ContentType)
 	}
 	hash.Write(append(append(append([]byte(u.Name), u.DOBExtra...), auth...), dobMsg...))
-	return crypto.Bytes2Hash(hash.Sum(nil))
+	return common.Bytes2Hash(hash.Sum(nil))
 }
 
 // Gender return the gender of user, true = male = end of ID is odd
@@ -116,8 +117,8 @@ func (u User) Value() interface{} {
 // ParentsID return the ID of user parents,
 // res[0] should be the female parent (id end by even)
 // res[1] should be the male parent (id end by odd)
-func (u User) ParentsID() [2]crypto.Hash {
-	var parentsID [2]crypto.Hash
+func (u User) ParentsID() [2]common.Hash {
+	var parentsID [2]common.Hash
 	if u.DOBMsg != nil {
 		// get parents from dobMsg
 

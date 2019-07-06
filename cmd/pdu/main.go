@@ -20,6 +20,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
+	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/crypto/pdu"
@@ -64,16 +65,17 @@ func TestCmd() *cobra.Command {
 				}
 				if Adam != nil && Eve != nil {
 
-					log.Println("Adam ID :", crypto.Hash2String(Adam.ID()))
+					log.Println("Adam ID :", common.Hash2String(Adam.ID()))
+
 					log.Println("private key start ", "#########")
 					for _, v := range privKeyAdamGroup {
-						log.Println(crypto.Bytes2String(v.D.Bytes()))
+						log.Println(common.Bytes2String(v.D.Bytes()))
 					}
 					log.Println("private key end ", "#########")
-					log.Println("Eve ID  :", crypto.Hash2String(Eve.ID()))
+					log.Println("Eve ID  :", common.Hash2String(Eve.ID()))
 					log.Println("private key start :", "#########")
 					for _, v := range privKeyEveGroup {
-						log.Println(crypto.Bytes2String(v.D.Bytes()))
+						log.Println(common.Bytes2String(v.D.Bytes()))
 					}
 					log.Println("private key end :", "#########")
 
@@ -92,7 +94,7 @@ func TestCmd() *cobra.Command {
 			// try get Adam
 			newAdam := userDAG.GetUserByID(Adam.ID())
 			if newAdam != nil {
-				log.Println("get Adam from userDAG :", crypto.Hash2String(newAdam.ID()))
+				log.Println("get Adam from userDAG :", common.Hash2String(newAdam.ID()))
 			}
 
 			// create msg
@@ -105,7 +107,7 @@ func TestCmd() *cobra.Command {
 			if err != nil {
 				log.Println("create msg fail , err :", err)
 			} else {
-				log.Println("first msg from Adam ", "sender", crypto.Hash2String(msg.SenderID))
+				log.Println("first msg from Adam ", "sender", common.Hash2String(msg.SenderID))
 				if msg.Value.ContentType == core.TypeText {
 					log.Println("first msg from Adam ", "value.content", string(msg.Value.Content))
 				}
@@ -136,7 +138,7 @@ func TestCmd() *cobra.Command {
 			if err != nil {
 				log.Println("create msg fail , err :", err)
 			} else {
-				log.Println("first msg from Eve ", "sender", crypto.Hash2String(msg2.SenderID))
+				log.Println("first msg from Eve ", "sender", common.Hash2String(msg2.SenderID))
 				if msg2.Value.ContentType == core.TypeText {
 					log.Println("first msg from Eve ", "value.content", string(msg2.Value.Content))
 				}
@@ -186,7 +188,7 @@ func TestCmd() *cobra.Command {
 			if err != nil {
 				log.Println("create msg fail , err :", err)
 			} else {
-				log.Println("first dob msg ", "sender", crypto.Hash2String(msg3.SenderID))
+				log.Println("first dob msg ", "sender", common.Hash2String(msg3.SenderID))
 				if msg3.Value.ContentType == core.TypeText {
 					//log.Println("first dob msg ", "value.content", string(msg3.Value.Content))
 				} else if msg3.Value.ContentType == core.TypeDOB {
@@ -254,25 +256,25 @@ func TestCmd() *cobra.Command {
 			if err != nil {
 				log.Println("create user1 fail , err:", err)
 			} else {
-				log.Println("user1 be created, ID :", crypto.Hash2String(newUser1.ID()))
+				log.Println("user1 be created, ID :", common.Hash2String(newUser1.ID()))
 			}
 			newUser2, err := core.CreateNewUser(&msg4)
 			if err != nil {
 				log.Println("create user2 fail, err:", err)
 			} else {
-				log.Println("user2 be created, ID :", crypto.Hash2String(newUser2.ID()))
+				log.Println("user2 be created, ID :", common.Hash2String(newUser2.ID()))
 			}
 
 			if err := userDAG.Add(newUser1); err != nil {
 				log.Println("dag add user1 fail, err:", err)
 			} else {
-				log.Println("dag add user1 success :", crypto.Hash2String(userDAG.GetUserByID(newUser1.ID()).ID()))
+				log.Println("dag add user1 success :", common.Hash2String(userDAG.GetUserByID(newUser1.ID()).ID()))
 			}
 
 			if err := userDAG.Add(newUser2); err != nil {
 				log.Println("dag add user2 fail, should fail here,  err:", err)
 			} else {
-				log.Println("dag add user2 success, should fail here :", crypto.Hash2String(userDAG.GetUserByID(newUser2.ID()).ID()))
+				log.Println("dag add user2 success, should fail here :", common.Hash2String(userDAG.GetUserByID(newUser2.ID()).ID()))
 			}
 
 			if err := msgDAG.Add(msg3); err != nil {
