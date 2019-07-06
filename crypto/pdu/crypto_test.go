@@ -23,7 +23,7 @@ import (
 
 func TestS2PK(t *testing.T) {
 
-	pk, err := GenerateKey()
+	pk, err := genKey()
 	if err != nil {
 		t.Errorf("generate key pair fail, err : %s", err)
 	}
@@ -94,15 +94,15 @@ func TestS2PK(t *testing.T) {
 
 func TestMS(t *testing.T) {
 
-	pk1, err := GenerateKey()
+	pk1, err := genKey()
 	if err != nil {
 		t.Errorf("generate key pair fail, err : %s", err)
 	}
-	pk2, err := GenerateKey()
+	pk2, err := genKey()
 	if err != nil {
 		t.Errorf("generate key pair fail, err : %s", err)
 	}
-	pk3, err := GenerateKey()
+	pk3, err := genKey()
 	if err != nil {
 		t.Errorf("generate key pair fail, err : %s", err)
 	}

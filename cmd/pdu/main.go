@@ -17,7 +17,6 @@
 package main
 
 import (
-	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"github.com/pdupub/go-pdu/common"
@@ -54,25 +53,19 @@ func TestCmd() *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			// create root users
 			retryCnt := 100
+			var err error
 			var Adam, Eve *core.User
-			var privKeyAdamGroup, privKeyEveGroup []*ecdsa.PrivateKey
+			var privKeyAdam, privKeyEve *crypto.PrivateKey
 			for i := 0; i < retryCnt; i++ {
 				if Adam == nil {
-					privKeyAdamGroup, Adam, _ = createRootUser(true)
+					privKeyAdam, Adam, _ = createRootUser(true)
 				}
 				if Eve == nil {
-					privKeyEveGroup, Eve, _ = createRootUser(false)
+					privKeyEve, Eve, _ = createRootUser(false)
 				}
 				if Adam != nil && Eve != nil {
 					log.Trace("Adam ID :", common.Hash2String(Adam.ID()))
-					for _, v := range privKeyAdamGroup {
-						log.Info(common.Bytes2String(v.D.Bytes()))
-					}
 					log.Trace("Eve ID  :", common.Hash2String(Eve.ID()))
-					for _, v := range privKeyEveGroup {
-						log.Info(common.Bytes2String(v.D.Bytes()))
-					}
-
 					break
 				}
 			}
@@ -92,12 +85,11 @@ func TestCmd() *cobra.Command {
 			}
 
 			// create msg
-			privKeyAdam := buildPrivateKey(privKeyAdamGroup)
 			value := core.MsgValue{
 				ContentType: core.TypeText,
 				Content:     []byte("hello world!"),
 			}
-			msg, err := core.CreateMsg(Adam, &value, &privKeyAdam)
+			msg, err := core.CreateMsg(Adam, &value, privKeyAdam)
 			if err != nil {
 				log.Info("create msg fail , err :", err)
 			} else {
@@ -114,21 +106,19 @@ func TestCmd() *cobra.Command {
 			if err != nil {
 				log.Info("create msg dag fail, err:", err)
 			} else {
-				//log.Info("add msg", msgDAG.GetMsgByID(msg.ID()))
+				log.Trace("msg dag add msg", common.Hash2String(msgDAG.GetMsgByID(msg.ID()).ID()))
 			}
 
 			// verify msg
 			verifyMsg(userDAG, msg)
 
 			// new msg reference first msg
-			// create msg
-			privKeyEve := buildPrivateKey(privKeyEveGroup)
 			value2 := core.MsgValue{
 				ContentType: core.TypeText,
 				Content:     []byte("hey u!"),
 			}
 			ref := core.MsgReference{SenderID: Adam.ID(), MsgID: msg.ID()}
-			msg2, err := core.CreateMsg(Eve, &value2, &privKeyEve, &ref)
+			msg2, err := core.CreateMsg(Eve, &value2, privKeyEve, &ref)
 			if err != nil {
 				log.Error("create msg fail , err :", err)
 			} else {
@@ -137,12 +127,13 @@ func TestCmd() *cobra.Command {
 					log.Info("first msg from Eve ", "value.content", string(msg2.Value.Content))
 				}
 				log.Info("first msg from Eve ", "reference", msg2.Reference)
-				//log.Println("first msg from Eve ", "signature", msg2.Signature)
 			}
 
 			// add msg2
 			if err := msgDAG.Add(msg2); err != nil {
 				log.Error("add msg2 fail, err:", err)
+			} else {
+				log.Trace("msg dag add msg2", common.Hash2String(msgDAG.GetMsgByID(msg2.ID()).ID()))
 			}
 
 			// verify msg
@@ -153,23 +144,15 @@ func TestCmd() *cobra.Command {
 			value3 := core.MsgValue{
 				ContentType: core.TypeDOB,
 			}
-			// test, same with adam
-			var privKeyA2Group []*ecdsa.PrivateKey
-			for i := 0; i < 5; i++ {
-				pk, _ := pdu.GenerateKey()
-				privKeyA2Group = append(privKeyA2Group, pk)
-			}
-			var pubKeyA2Group []interface{}
-			for _, v := range privKeyA2Group {
-				pubKeyA2Group = append(pubKeyA2Group, v.PublicKey)
-			}
-			auth := core.Auth{PublicKey: crypto.PublicKey{Source: pdu.SourceName, SigType: pdu.MultipleSignatures, PubKey: pubKeyA2Group}}
+			_, pubKeyA2, err := pdu.GenKey(pdu.MultipleSignatures, 5)
+
+			auth := core.Auth{PublicKey: *pubKeyA2}
 			content, err := core.CreateDOBMsgContent("A2", "1234", &auth)
 			if err != nil {
 				log.Error("create bod content fail, err:", err)
 			}
-			content.SignByParent(Adam, privKeyAdam)
-			content.SignByParent(Eve, privKeyEve)
+			content.SignByParent(Adam, *privKeyAdam)
+			content.SignByParent(Eve, *privKeyEve)
 
 			value3.Content, err = json.Marshal(content)
 			log.Info()
@@ -178,7 +161,7 @@ func TestCmd() *cobra.Command {
 			}
 
 			ref2 := core.MsgReference{SenderID: Eve.ID(), MsgID: msg2.ID()}
-			msg3, err := core.CreateMsg(Eve, &value3, &privKeyEve, &ref, &ref2)
+			msg3, err := core.CreateMsg(Eve, &value3, privKeyEve, &ref, &ref2)
 			if err != nil {
 				log.Error("create msg fail , err :", err)
 			} else {
@@ -293,20 +276,7 @@ func TestCmd() *cobra.Command {
 	return cmd
 }
 
-func buildPrivateKey(privKeyGroup []*ecdsa.PrivateKey) crypto.PrivateKey {
-	var privKeys []interface{}
-	for _, k := range privKeyGroup {
-		privKeys = append(privKeys, k)
-	}
-	return crypto.PrivateKey{
-		Source:  pdu.SourceName,
-		SigType: pdu.MultipleSignatures,
-		PriKey:  privKeys,
-	}
-}
-
 func verifyMsg(userDAG *core.UserDAG, msg *core.Message) {
-
 	// verify msg
 	sender := userDAG.GetUserByID(msg.SenderID)
 	if sender != nil {
@@ -323,39 +293,27 @@ func verifyMsg(userDAG *core.UserDAG, msg *core.Message) {
 
 }
 
-func createRootUser(male bool) ([]*ecdsa.PrivateKey, *core.User, error) {
+func createRootUser(male bool) (*crypto.PrivateKey, *core.User, error) {
 	keyCnt := 7
 	if !male {
 		keyCnt = 3
 	}
-
-	var privateKeyPool []*ecdsa.PrivateKey
-	for i := 0; i < keyCnt; i++ {
-		pk, err := pdu.GenerateKey()
-		if err != nil {
-			i--
-			continue
-		} else {
-			privateKeyPool = append(privateKeyPool, pk)
-		}
-	}
-
-	var pubKeys []interface{}
-	for _, pk := range privateKeyPool {
-		pubKeys = append(pubKeys, pk.PublicKey)
-	}
-
-	users, err := core.CreateRootUsers(crypto.PublicKey{Source: pdu.SourceName, SigType: pdu.MultipleSignatures, PubKey: pubKeys})
+	privKey, pubKey, err := pdu.GenKey(pdu.MultipleSignatures, keyCnt)
 	if err != nil {
-		return privateKeyPool, nil, err
+		return nil, nil, err
+	}
+
+	users, err := core.CreateRootUsers(*pubKey)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if male && users[1] != nil {
-		return privateKeyPool, users[1], nil
+		return privKey, users[1], nil
 	} else if !male && users[0] != nil {
-		return privateKeyPool, users[0], nil
+		return privKey, users[0], nil
 	}
-	return privateKeyPool, nil, errors.New("create root user fail")
+	return nil, nil, errors.New("create root user fail")
 }
 
 func StartCmd() *cobra.Command {

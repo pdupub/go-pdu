@@ -21,6 +21,7 @@ import "errors"
 var (
 	ErrSourceNotMatch    = errors.New("signature source not match")
 	ErrSigTypeNotSupport = errors.New("signature type not support")
+	ErrGenerateKeyFail   = errors.New("generate key fail")
 	ErrKeyTypeNotSupport = errors.New("key type not support")
 	ErrSigPubKeyNotMatch = errors.New("count of signature and public key not match")
 )
@@ -43,6 +44,7 @@ type PrivateKey struct {
 }
 
 type Engine interface {
+	GenKey(params ...interface{}) (*PrivateKey, *PublicKey, error)
 	Sign([]byte, PrivateKey) (*Signature, error)
 	Verify([]byte, Signature) bool
 }

@@ -33,8 +33,35 @@ const (
 	Signature2PublicKey = "S2PK"
 )
 
-func GenerateKey() (*ecdsa.PrivateKey, error) {
+func genKey() (*ecdsa.PrivateKey, error) {
 	return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+}
+
+func GenKey(sigType string, params ...interface{}) (*crypto.PrivateKey, *crypto.PublicKey, error) {
+	switch sigType {
+	case Signature2PublicKey:
+		if pk, err := genKey(); err != nil {
+			return nil, nil, err
+		} else {
+			return &crypto.PrivateKey{Source: SourceName, SigType: Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: SourceName, SigType: Signature2PublicKey, PubKey: pk.PublicKey}, nil
+		}
+	case MultipleSignatures:
+		if len(params) == 0 {
+			return nil, nil, crypto.ErrGenerateKeyFail
+		}
+		var privKeys, pubKeys []interface{}
+		for i := 0; i < params[0].(int); i++ {
+			if pk, err := genKey(); err != nil {
+				return nil, nil, err
+			} else {
+				privKeys = append(privKeys, pk)
+				pubKeys = append(pubKeys, pk.PublicKey)
+			}
+		}
+		return &crypto.PrivateKey{Source: SourceName, SigType: MultipleSignatures, PriKey: privKeys}, &crypto.PublicKey{Source: SourceName, SigType: MultipleSignatures, PubKey: pubKeys}, nil
+	default:
+		return nil, nil, crypto.ErrSigTypeNotSupport
+	}
 }
 
 func parsePrivKey(priKey interface{}) (*ecdsa.PrivateKey, error) {

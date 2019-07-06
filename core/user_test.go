@@ -17,7 +17,6 @@
 package core
 
 import (
-	"crypto/ecdsa"
 	"encoding/json"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/crypto/pdu"
@@ -31,11 +30,10 @@ const (
 func TestCreateRootUsers(t *testing.T) {
 
 	for i := 0; i < retryCnt; i++ {
-		if pk, err := pdu.GenerateKey(); err != nil {
-			t.Errorf("generate key pair fail, err : %s", err)
+		if _, pubKey, err := pdu.GenKey(pdu.Signature2PublicKey); err != nil {
+			t.Errorf("generate key fail, err :%s", err)
 		} else {
-			pubKey := crypto.PublicKey{Source: pdu.SourceName, SigType: pdu.Signature2PublicKey, PubKey: pk.PublicKey}
-			if users, err := CreateRootUsers(pubKey); err != nil {
+			if users, err := CreateRootUsers(*pubKey); err != nil {
 				t.Errorf("create root users fail, err : %s", err)
 			} else {
 				for _, user := range users {
@@ -51,29 +49,20 @@ func TestCreateRootUsers(t *testing.T) {
 	}
 
 	for i := 0; i < retryCnt; i++ {
-		pk1, err := pdu.GenerateKey()
-		if err != nil {
-			t.Errorf("generate key pair fail, err : %s", err)
-		}
-		pk2, err := pdu.GenerateKey()
-		if err != nil {
-			t.Errorf("generate key pair fail, err : %s", err)
-		}
-		pk3, err := pdu.GenerateKey()
-		if err != nil {
-			t.Errorf("generate key pair fail, err : %s", err)
-		}
-		pubKey := crypto.PublicKey{Source: pdu.SourceName, SigType: pdu.MultipleSignatures, PubKey: append(append(append([]interface{}{}, pk1.PublicKey), pk2.PublicKey), pk3.PublicKey)}
-		if users, err := CreateRootUsers(pubKey); err != nil {
-			t.Errorf("create root users fail, err : %s", err)
+		if _, pubKey, err := pdu.GenKey(pdu.MultipleSignatures, 3); err != nil {
+
 		} else {
-			for _, user := range users {
-				if user != nil && user.ID() != copy(user).ID() {
-					t.Errorf("%s : %s json Encode & Decode fail ", pdu.SourceName, pdu.MultipleSignatures)
+			if users, err := CreateRootUsers(*pubKey); err != nil {
+				t.Errorf("create root users fail, err : %s", err)
+			} else {
+				for _, user := range users {
+					if user != nil && user.ID() != copy(user).ID() {
+						t.Errorf("%s : %s json Encode & Decode fail ", pdu.SourceName, pdu.MultipleSignatures)
+					}
 				}
-			}
-			if users[0] != nil && users[1] != nil {
-				break
+				if users[0] != nil && users[1] != nil {
+					break
+				}
 			}
 		}
 	}
@@ -85,18 +74,13 @@ func TestCreateNewUser(t *testing.T) {
 	value := MsgValue{
 		ContentType: TypeDOB,
 	}
-	// build public key
-	var privKeyA2Group []*ecdsa.PrivateKey
-	for i := 0; i < 5; i++ {
-		pk, _ := pdu.GenerateKey()
-		privKeyA2Group = append(privKeyA2Group, pk)
-	}
-	var pubKeyA2Group []interface{}
-	for _, v := range privKeyA2Group {
-		pubKeyA2Group = append(pubKeyA2Group, v.PublicKey)
+
+	_, pubKey, err := pdu.GenKey(pdu.MultipleSignatures, 5)
+	if err != nil {
+		t.Errorf("generate key fail, err:%s", err)
 	}
 	// build auth for new user
-	auth := Auth{PublicKey: crypto.PublicKey{Source: pdu.SourceName, SigType: pdu.MultipleSignatures, PubKey: pubKeyA2Group}}
+	auth := Auth{PublicKey: *pubKey}
 	// build dob msg content
 	content, err := CreateDOBMsgContent("A2", "1234", &auth)
 	if err != nil {
@@ -139,22 +123,14 @@ func copy(u *User) *User {
 
 func createRootUsers() (*User, crypto.PrivateKey, *User, crypto.PrivateKey) {
 	var Adam, Eve *User
-	var privKeyGroup []*ecdsa.PrivateKey
+	var privKeyRes crypto.PrivateKey
 	for i := 0; i < retryCnt; i++ {
-		pk1, err := pdu.GenerateKey()
+
+		privKey, pubKey, err := pdu.GenKey(pdu.MultipleSignatures, 3)
 		if err != nil {
 			continue
 		}
-		pk2, err := pdu.GenerateKey()
-		if err != nil {
-			continue
-		}
-		pk3, err := pdu.GenerateKey()
-		if err != nil {
-			continue
-		}
-		pubKey := crypto.PublicKey{Source: pdu.SourceName, SigType: pdu.MultipleSignatures, PubKey: append(append(append([]interface{}{}, pk1.PublicKey), pk2.PublicKey), pk3.PublicKey)}
-		if users, err := CreateRootUsers(pubKey); err != nil {
+		if users, err := CreateRootUsers(*pubKey); err != nil {
 			if err != nil {
 				continue
 			}
@@ -162,22 +138,10 @@ func createRootUsers() (*User, crypto.PrivateKey, *User, crypto.PrivateKey) {
 			if users[0] != nil && users[1] != nil {
 				Adam = users[0]
 				Eve = users[1]
-				privKeyGroup = append(append(append(privKeyGroup, pk1), pk2), pk3)
+				privKeyRes = *privKey
 				break
 			}
 		}
 	}
-	return Adam, buildPrivateKey(privKeyGroup), Eve, buildPrivateKey(privKeyGroup)
-}
-
-func buildPrivateKey(privKeyGroup []*ecdsa.PrivateKey) crypto.PrivateKey {
-	var privKeys []interface{}
-	for _, k := range privKeyGroup {
-		privKeys = append(privKeys, k)
-	}
-	return crypto.PrivateKey{
-		Source:  pdu.SourceName,
-		SigType: pdu.MultipleSignatures,
-		PriKey:  privKeys,
-	}
+	return Adam, privKeyRes, Eve, privKeyRes
 }
