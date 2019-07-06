@@ -21,12 +21,12 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/pdupub/go-pdu/common"
+	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/crypto/pdu"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"log"
 	"os"
 )
 
@@ -64,20 +64,14 @@ func TestCmd() *cobra.Command {
 					privKeyEveGroup, Eve, _ = createRootUser(false)
 				}
 				if Adam != nil && Eve != nil {
-
-					log.Println("Adam ID :", common.Hash2String(Adam.ID()))
-
-					log.Println("private key start ", "#########")
+					log.Trace("Adam ID :", common.Hash2String(Adam.ID()))
 					for _, v := range privKeyAdamGroup {
-						log.Println(common.Bytes2String(v.D.Bytes()))
+						log.Info(common.Bytes2String(v.D.Bytes()))
 					}
-					log.Println("private key end ", "#########")
-					log.Println("Eve ID  :", common.Hash2String(Eve.ID()))
-					log.Println("private key start :", "#########")
+					log.Trace("Eve ID  :", common.Hash2String(Eve.ID()))
 					for _, v := range privKeyEveGroup {
-						log.Println(common.Bytes2String(v.D.Bytes()))
+						log.Info(common.Bytes2String(v.D.Bytes()))
 					}
-					log.Println("private key end :", "#########")
 
 					break
 				}
@@ -86,15 +80,15 @@ func TestCmd() *cobra.Command {
 			// add root user into dag
 			userDAG, err := core.NewUserDag(Eve, Adam)
 			if err != nil {
-				log.Println("create new user dag fail, err :", err)
+				log.Error("create new user dag fail, err :", err)
 			} else {
-				log.Println("user dag :", userDAG)
+				log.Info("user dag :", userDAG)
 			}
 
 			// try get Adam
 			newAdam := userDAG.GetUserByID(Adam.ID())
 			if newAdam != nil {
-				log.Println("get Adam from userDAG :", common.Hash2String(newAdam.ID()))
+				log.Trace("get Adam from userDAG :", common.Hash2String(newAdam.ID()))
 			}
 
 			// create msg
@@ -105,22 +99,22 @@ func TestCmd() *cobra.Command {
 			}
 			msg, err := core.CreateMsg(Adam, &value, &privKeyAdam)
 			if err != nil {
-				log.Println("create msg fail , err :", err)
+				log.Info("create msg fail , err :", err)
 			} else {
-				log.Println("first msg from Adam ", "sender", common.Hash2String(msg.SenderID))
+				log.Info("first msg from Adam ", "sender", common.Hash2String(msg.SenderID))
 				if msg.Value.ContentType == core.TypeText {
-					log.Println("first msg from Adam ", "value.content", string(msg.Value.Content))
+					log.Info("first msg from Adam ", "value.content", string(msg.Value.Content))
 				}
-				log.Println("first msg from Adam ", "reference", msg.Reference)
-				//log.Println("first msg from Adam ", "signature", msg.Signature)
+				log.Info("first msg from Adam ", "reference", msg.Reference)
+				//log.Info("first msg from Adam ", "signature", msg.Signature)
 			}
 
 			// create msgDaG
 			msgDAG, err := core.NewMsgDag(msg)
 			if err != nil {
-				log.Println("create msg dag fail, err:", err)
+				log.Info("create msg dag fail, err:", err)
 			} else {
-				//log.Println("add msg", msgDAG.GetMsgByID(msg.ID()))
+				//log.Info("add msg", msgDAG.GetMsgByID(msg.ID()))
 			}
 
 			// verify msg
@@ -136,19 +130,19 @@ func TestCmd() *cobra.Command {
 			ref := core.MsgReference{SenderID: Adam.ID(), MsgID: msg.ID()}
 			msg2, err := core.CreateMsg(Eve, &value2, &privKeyEve, &ref)
 			if err != nil {
-				log.Println("create msg fail , err :", err)
+				log.Error("create msg fail , err :", err)
 			} else {
-				log.Println("first msg from Eve ", "sender", common.Hash2String(msg2.SenderID))
+				log.Info("first msg from Eve ", "sender", common.Hash2String(msg2.SenderID))
 				if msg2.Value.ContentType == core.TypeText {
-					log.Println("first msg from Eve ", "value.content", string(msg2.Value.Content))
+					log.Info("first msg from Eve ", "value.content", string(msg2.Value.Content))
 				}
-				log.Println("first msg from Eve ", "reference", msg2.Reference)
+				log.Info("first msg from Eve ", "reference", msg2.Reference)
 				//log.Println("first msg from Eve ", "signature", msg2.Signature)
 			}
 
 			// add msg2
 			if err := msgDAG.Add(msg2); err != nil {
-				log.Println("add msg2 fail, err:", err)
+				log.Error("add msg2 fail, err:", err)
 			}
 
 			// verify msg
@@ -172,23 +166,23 @@ func TestCmd() *cobra.Command {
 			auth := core.Auth{PublicKey: crypto.PublicKey{Source: pdu.SourceName, SigType: pdu.MultipleSignatures, PubKey: pubKeyA2Group}}
 			content, err := core.CreateDOBMsgContent("A2", "1234", &auth)
 			if err != nil {
-				log.Println("create bod content fail, err:", err)
+				log.Error("create bod content fail, err:", err)
 			}
 			content.SignByParent(Adam, privKeyAdam)
 			content.SignByParent(Eve, privKeyEve)
 
 			value3.Content, err = json.Marshal(content)
-			log.Println()
+			log.Info()
 			if err != nil {
-				log.Println("content marshal fail , err:", err)
+				log.Error("content marshal fail , err:", err)
 			}
 
 			ref2 := core.MsgReference{SenderID: Eve.ID(), MsgID: msg2.ID()}
 			msg3, err := core.CreateMsg(Eve, &value3, &privKeyEve, &ref, &ref2)
 			if err != nil {
-				log.Println("create msg fail , err :", err)
+				log.Error("create msg fail , err :", err)
 			} else {
-				log.Println("first dob msg ", "sender", common.Hash2String(msg3.SenderID))
+				log.Info("first dob msg ", "sender", common.Hash2String(msg3.SenderID))
 				if msg3.Value.ContentType == core.TypeText {
 					//log.Println("first dob msg ", "value.content", string(msg3.Value.Content))
 				} else if msg3.Value.ContentType == core.TypeDOB {
@@ -206,14 +200,17 @@ func TestCmd() *cobra.Command {
 
 			var msg4 core.Message
 			if err != nil {
-				log.Println("marshal fail err :", err)
+				log.Error("marshal fail err :", err)
 			} else {
 				err = json.Unmarshal(msgBytes, &msg4)
 				if err != nil {
-					log.Println("unmarshal fail err:", err)
+					log.Error("unmarshal fail err:", err)
 				}
 				verifyMsg(userDAG, &msg4)
 				msgBytes, err = json.Marshal(msg4)
+				if err != nil {
+					log.Error("marshal fail err:", err)
+				}
 				//log.Println(crypto.Bytes2String(msgBytes))
 			}
 
@@ -222,12 +219,12 @@ func TestCmd() *cobra.Command {
 				var dobContent core.DOBMsgContent
 				err = json.Unmarshal(msg4.Value.Content, &dobContent)
 				if err != nil {
-					log.Println("dob message can not be unmarshl, err:", err)
+					log.Error("dob message can not be unmarshl, err:", err)
 				}
 
 				jsonBytes, err := json.Marshal(dobContent.User)
 				if err != nil {
-					log.Println("user to json fail , err:", err)
+					log.Error("user to json fail , err:", err)
 				}
 
 				sigAdam := crypto.Signature{Signature: dobContent.Parents[1].Sig,
@@ -236,57 +233,57 @@ func TestCmd() *cobra.Command {
 					PublicKey: userDAG.GetUserByID(dobContent.Parents[0].PID).Auth.PublicKey}
 
 				if res, err := pdu.Verify(jsonBytes, sigAdam); err != nil || res == false {
-					log.Println("verify Adam fail, err", err)
+					log.Error("verify Adam fail, err", err)
 				} else {
-					log.Println("verify Adam true")
+					log.Trace("verify Adam true")
 				}
 
 				if res, err := pdu.Verify(jsonBytes, sigEve); err != nil || res == false {
-					log.Println("verify Eve fail, err", err)
+					log.Trace("verify Eve fail, err", err)
 				} else {
-					log.Println("verify Eve true")
+					log.Info("verify Eve true")
 				}
 			} else {
-				log.Println("should be dob msg")
+				log.Error("should be dob msg")
 			}
 
 			// reate new User from dob message
 			// user create from msg3 and msg4 should be same user
 			newUser1, err := core.CreateNewUser(msg3)
 			if err != nil {
-				log.Println("create user1 fail , err:", err)
+				log.Error("create user1 fail , err:", err)
 			} else {
-				log.Println("user1 be created, ID :", common.Hash2String(newUser1.ID()))
+				log.Info("user1 be created, ID :", common.Hash2String(newUser1.ID()))
 			}
 			newUser2, err := core.CreateNewUser(&msg4)
 			if err != nil {
-				log.Println("create user2 fail, err:", err)
+				log.Error("create user2 fail, err:", err)
 			} else {
-				log.Println("user2 be created, ID :", common.Hash2String(newUser2.ID()))
+				log.Info("user2 be created, ID :", common.Hash2String(newUser2.ID()))
 			}
 
 			if err := userDAG.Add(newUser1); err != nil {
-				log.Println("dag add user1 fail, err:", err)
+				log.Error("dag add user1 fail, err:", err)
 			} else {
-				log.Println("dag add user1 success :", common.Hash2String(userDAG.GetUserByID(newUser1.ID()).ID()))
+				log.Trace("dag add user1 success :", common.Hash2String(userDAG.GetUserByID(newUser1.ID()).ID()))
 			}
 
 			if err := userDAG.Add(newUser2); err != nil {
-				log.Println("dag add user2 fail, should fail here,  err:", err)
+				log.Trace("dag add user2 fail, should fail here,  err:", err)
 			} else {
-				log.Println("dag add user2 success, should fail here :", common.Hash2String(userDAG.GetUserByID(newUser2.ID()).ID()))
+				log.Error("dag add user2 success, should fail here :", common.Hash2String(userDAG.GetUserByID(newUser2.ID()).ID()))
 			}
 
 			if err := msgDAG.Add(msg3); err != nil {
-				log.Println("add msg3 fail , err", err)
+				log.Error("add msg3 fail , err", err)
 			} else {
-				log.Println("add msg3 success")
+				log.Trace("add msg3 success")
 			}
 
 			if err := msgDAG.Add(&msg4); err != nil {
-				log.Println("add msg4 fail , should fail here , err", err)
+				log.Trace("add msg4 fail , should fail here , err", err)
 			} else {
-				log.Println("add msg4 success, should fail here")
+				log.Error("add msg4 success, should fail here")
 			}
 
 			return nil
@@ -316,12 +313,12 @@ func verifyMsg(userDAG *core.UserDAG, msg *core.Message) {
 		msg.Signature.PubKey = sender.Auth.PubKey
 		res, err := core.VerifyMsg(*msg)
 		if err != nil {
-			log.Println("verfiy fail, err :", err)
+			log.Error("verfiy fail, err :", err)
 		} else {
-			log.Println("verify result is: ", res)
+			log.Trace("verify result is: ", res)
 		}
 	} else {
-		log.Println("verify fail, err:", errors.New("user not exist in system"))
+		log.Error("verify fail, err:", errors.New("user not exist in system"))
 	}
 
 }
@@ -368,7 +365,7 @@ func StartCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			port := args[0]
-			log.Println("listen on", port)
+			log.Info("listen on", port)
 
 			return nil
 		},
