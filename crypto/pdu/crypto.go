@@ -37,13 +37,6 @@ func GenerateKey() (*ecdsa.PrivateKey, error) {
 	return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 }
 
-type PDUCrypto struct {
-}
-
-func New() *PDUCrypto {
-	return &PDUCrypto{}
-}
-
 func GetKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 	pk := new(ecdsa.PrivateKey)
 	switch priKey.(type) {
