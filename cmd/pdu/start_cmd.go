@@ -28,7 +28,7 @@ func StartCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			port := args[0]
-			log.Info("listen on", port)
+			log.Trace("listen on", port)
 			return nil
 		},
 	}
