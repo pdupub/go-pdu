@@ -17,24 +17,21 @@
 package main
 
 import (
+	"github.com/pdupub/go-pdu/common/log"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"os"
 )
 
-var (
-	DefaultNodeHome = os.ExpandEnv("$HOME/.pdu")
-)
-
-func main() {
-
-	viper.New()
-	rootCmd := &cobra.Command{
-		Use:   "pdu",
-		Short: "PDU command line interface",
+func StartCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "start [port]",
+		Short: "Start PDU Server on ",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			port := args[0]
+			log.Info("listen on", port)
+			return nil
+		},
 	}
-	rootCmd.AddCommand(TestCmd())
-	rootCmd.AddCommand(StartCmd())
 
-	rootCmd.Execute()
+	return cmd
 }
