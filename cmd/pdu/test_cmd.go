@@ -37,7 +37,10 @@ func TestCmd() *cobra.Command {
 		Use:   "test",
 		Short: "Test on pdu",
 		RunE: func(_ *cobra.Command, args []string) error {
-			// create root users
+
+			// Test 1: create root users, Adam and Eve
+			// because the gender of user relate to public key (random),
+			// so createRootUser will repeat until two root user be created.
 			retryCnt := 100
 			var err error
 			var Adam, Eve *core.User
@@ -56,7 +59,8 @@ func TestCmd() *cobra.Command {
 				}
 			}
 
-			// add root user into dag
+			// Test 2: create user dag
+			// user dag created by add two root users
 			userDAG, err := core.NewUserDag(Eve, Adam)
 			if err != nil {
 				log.Error("create new user dag fail, err :", err)
@@ -64,13 +68,14 @@ func TestCmd() *cobra.Command {
 				log.Info("user dag :", userDAG)
 			}
 
-			// try get Adam
+			// Test 3: get Adam by ID
 			newAdam := userDAG.GetUserByID(Adam.ID())
 			if newAdam != nil {
 				log.Trace("get Adam from userDAG :", common.Hash2String(newAdam.ID()))
 			}
 
-			// create msg
+			// Test 4: create txt msg
+			// this msg is signed by Adam
 			value := core.MsgValue{
 				ContentType: core.TypeText,
 				Content:     []byte("hello world!"),
@@ -87,7 +92,8 @@ func TestCmd() *cobra.Command {
 				//log.Info("first msg from Adam ", "signature", msg.Signature)
 			}
 
-			// create msgDaG
+			// Test 5: create msgDaG
+			// add the txt msg from Test 4 as the root msg
 			msgDAG, err := core.NewMsgDag(msg)
 			if err != nil {
 				log.Info("create msg dag fail, err:", err)
@@ -95,9 +101,12 @@ func TestCmd() *cobra.Command {
 				log.Trace("msg dag add msg", common.Hash2String(msgDAG.GetMsgByID(msg.ID()).ID()))
 			}
 
-			// verify msg
+			// Test 6: verify msg
+			// msg contain the Adam is and signature.
+			// Adam's public key can be found from userDAG by Adam ID
 			verifyMsg(userDAG, msg)
 
+			// Test 7: create second txt msg with reference, add into msg dag, verify msg
 			// new msg reference first msg
 			value2 := core.MsgValue{
 				ContentType: core.TypeText,
@@ -125,8 +134,8 @@ func TestCmd() *cobra.Command {
 			// verify msg
 			verifyMsg(userDAG, msg2)
 
+			// Test 8: create dob msg, and verify
 			// new msg reference first & second msg
-			// create bod msg
 			value3 := core.MsgValue{
 				ContentType: core.TypeDOB,
 			}
@@ -163,7 +172,7 @@ func TestCmd() *cobra.Command {
 
 			verifyMsg(userDAG, msg3)
 
-			// marshal and unmarshal the msg
+			// Test 9: json marshal & unmarshal for msg
 			msgBytes, err := json.Marshal(msg3)
 			//log.Info(common.Bytes2String(msgBytes))
 
@@ -216,7 +225,7 @@ func TestCmd() *cobra.Command {
 				log.Error("should be dob msg")
 			}
 
-			// reate new User from dob message
+			// Test 10: create new User from dob message
 			// user create from msg3 and msg4 should be same user
 			newUser1, err := core.CreateNewUser(msg3)
 			if err != nil {
