@@ -41,23 +41,7 @@ func TestCmd() *cobra.Command {
 			// Test 1: create root users, Adam and Eve
 			// because the gender of user relate to public key (random),
 			// so createRootUser will repeat until two root user be created.
-			retryCnt := 100
-			var err error
-			var Adam, Eve *core.User
-			var privKeyAdam, privKeyEve *crypto.PrivateKey
-			for i := 0; i < retryCnt; i++ {
-				if Adam == nil {
-					privKeyAdam, Adam, _ = createRootUser(true)
-				}
-				if Eve == nil {
-					privKeyEve, Eve, _ = createRootUser(false)
-				}
-				if Adam != nil && Eve != nil {
-					log.Trace("Adam ID :", common.Hash2String(Adam.ID()))
-					log.Trace("Eve ID  :", common.Hash2String(Eve.ID()))
-					break
-				}
-			}
+			Adam, Eve, privKeyAdam, privKeyEve, err := createAdamAndEve()
 
 			// Test 2: create user dag
 			// user dag created by add two root users
@@ -282,6 +266,27 @@ func verifyMsg(userDAG *core.UserDAG, msg *core.Message) {
 		log.Error("verify fail, err:", errUserNotExist)
 	}
 
+}
+
+func createAdamAndEve() (*core.User, *core.User, *crypto.PrivateKey, *crypto.PrivateKey, error) {
+	retryCnt := 100
+	var err error
+	var Adam, Eve *core.User
+	var privKeyAdam, privKeyEve *crypto.PrivateKey
+	for i := 0; i < retryCnt; i++ {
+		if Adam == nil {
+			privKeyAdam, Adam, _ = createRootUser(true)
+		}
+		if Eve == nil {
+			privKeyEve, Eve, _ = createRootUser(false)
+		}
+		if Adam != nil && Eve != nil {
+			log.Trace("Adam ID :", common.Hash2String(Adam.ID()))
+			log.Trace("Eve ID  :", common.Hash2String(Eve.ID()))
+			break
+		}
+	}
+	return Adam, Eve, privKeyAdam, privKeyEve, err
 }
 
 func createRootUser(male bool) (*crypto.PrivateKey, *core.User, error) {

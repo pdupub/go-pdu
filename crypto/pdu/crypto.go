@@ -23,8 +23,8 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/common"
+	"github.com/pdupub/go-pdu/crypto"
 )
 
 const (
