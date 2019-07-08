@@ -136,7 +136,7 @@ func TestCmd() *cobra.Command {
 
 			// Test 8: create dob msg, and verify
 			// new msg reference first & second msg
-			value3 := core.MsgValue{
+			valueDob := core.MsgValue{
 				ContentType: core.TypeDOB,
 			}
 			_, pubKeyA2, err := pdu.GenKey(pdu.MultipleSignatures, 5)
@@ -149,43 +149,43 @@ func TestCmd() *cobra.Command {
 			content.SignByParent(Adam, *privKeyAdam)
 			content.SignByParent(Eve, *privKeyEve)
 
-			value3.Content, err = json.Marshal(content)
+			valueDob.Content, err = json.Marshal(content)
 			log.Info()
 			if err != nil {
 				log.Error("content marshal fail , err:", err)
 			}
 
 			ref2 := core.MsgReference{SenderID: Eve.ID(), MsgID: msg2.ID()}
-			msg3, err := core.CreateMsg(Eve, &value3, privKeyEve, &ref, &ref2)
+			msgDob, err := core.CreateMsg(Eve, &valueDob, privKeyEve, &ref, &ref2)
 			if err != nil {
 				log.Error("create msg fail , err :", err)
 			} else {
-				log.Info("first dob msg ", "sender", common.Hash2String(msg3.SenderID))
-				if msg3.Value.ContentType == core.TypeText {
-					log.Info("first dob msg ", "value.content", string(msg3.Value.Content))
-				} else if msg3.Value.ContentType == core.TypeDOB {
-					log.Info("first dob msg ", "bod.content", string(msg3.Value.Content))
+				log.Info("first dob msg ", "sender", common.Hash2String(msgDob.SenderID))
+				if msgDob.Value.ContentType == core.TypeText {
+					log.Info("first dob msg ", "value.content", string(msgDob.Value.Content))
+				} else if msgDob.Value.ContentType == core.TypeDOB {
+					log.Info("first dob msg ", "bod.content", string(msgDob.Value.Content))
 				}
-				log.Info("first dob msg ", "reference", msg3.Reference)
-				log.Info("first dob msg ", "signature", msg3.Signature)
+				log.Info("first dob msg ", "reference", msgDob.Reference)
+				log.Info("first dob msg ", "signature", msgDob.Signature)
 			}
 
-			verifyMsg(userDAG, msg3)
+			verifyMsg(userDAG, msgDob)
 
 			// Test 9: json marshal & unmarshal for msg
-			msgBytes, err := json.Marshal(msg3)
+			msgBytes, err := json.Marshal(msgDob)
 			//log.Info(common.Bytes2String(msgBytes))
 
-			var msg4 core.Message
+			var msgDob2 core.Message
 			if err != nil {
 				log.Error("marshal fail err :", err)
 			} else {
-				err = json.Unmarshal(msgBytes, &msg4)
+				err = json.Unmarshal(msgBytes, &msgDob2)
 				if err != nil {
 					log.Error("unmarshal fail err:", err)
 				}
-				verifyMsg(userDAG, &msg4)
-				msgBytes, err = json.Marshal(msg4)
+				verifyMsg(userDAG, &msgDob2)
+				msgBytes, err = json.Marshal(msgDob2)
 				if err != nil {
 					log.Error("marshal fail err:", err)
 				}
@@ -193,9 +193,9 @@ func TestCmd() *cobra.Command {
 			}
 
 			// verify the signature in the content of DOBMsg
-			if msg4.Value.ContentType == core.TypeDOB {
+			if msgDob2.Value.ContentType == core.TypeDOB {
 				var dobContent core.DOBMsgContent
-				err = json.Unmarshal(msg4.Value.Content, &dobContent)
+				err = json.Unmarshal(msgDob2.Value.Content, &dobContent)
 				if err != nil {
 					log.Error("dob message can not be unmarshl, err:", err)
 				}
@@ -227,13 +227,13 @@ func TestCmd() *cobra.Command {
 
 			// Test 10: create new User from dob message
 			// user create from msg3 and msg4 should be same user
-			newUser1, err := core.CreateNewUser(msg3)
+			newUser1, err := core.CreateNewUser(msgDob)
 			if err != nil {
 				log.Error("create user1 fail , err:", err)
 			} else {
 				log.Info("user1 be created, ID :", common.Hash2String(newUser1.ID()))
 			}
-			newUser2, err := core.CreateNewUser(&msg4)
+			newUser2, err := core.CreateNewUser(&msgDob2)
 			if err != nil {
 				log.Error("create user2 fail, err:", err)
 			} else {
@@ -250,13 +250,13 @@ func TestCmd() *cobra.Command {
 				log.Error("dag add user2 fail, err should be %s, but now err : %s", core.ErrUserAlreadyExist, err)
 			}
 
-			if err := msgDAG.Add(msg3); err != nil {
+			if err := msgDAG.Add(msgDob); err != nil {
 				log.Error("add msg3 fail , err", err)
 			} else {
 				log.Trace("add msg3 success")
 			}
 
-			if err := msgDAG.Add(&msg4); err != core.ErrMsgAlreadyExist {
+			if err := msgDAG.Add(&msgDob2); err != core.ErrMsgAlreadyExist {
 				log.Error("add msg4 fail, err should be %s, but now err : %s", core.ErrMsgAlreadyExist, err)
 			}
 
