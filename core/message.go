@@ -40,10 +40,19 @@ type MsgReference struct {
 
 func CreateMsg(user *User, value *MsgValue, privKey *crypto.PrivateKey, refs ...*MsgReference) (*Message, error) {
 
+	v := &MsgValue{
+		ContentType: value.ContentType,
+		Content:     value.Content,
+	}
+	var rs []*MsgReference
+	for _, r := range refs {
+		rs = append(rs, &MsgReference{SenderID: r.SenderID, MsgID: r.MsgID})
+	}
+
 	msg := &Message{
 		SenderID:  user.ID(),
-		Reference: refs,
-		Value:     value,
+		Reference: rs,
+		Value:     v,
 		Signature: nil,
 	}
 	switch privKey.Source {

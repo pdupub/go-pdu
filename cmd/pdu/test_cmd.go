@@ -19,9 +19,11 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/core"
+	"github.com/pdupub/go-pdu/core/rule"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/crypto/pdu"
 	"github.com/spf13/cobra"
@@ -88,7 +90,7 @@ func TestCmd() *cobra.Command {
 			// Test 6: verify msg
 			// msg contain the Adam is and signature.
 			// Adam's public key can be found from userDAG by Adam ID
-			verifyMsg(userDAG, msg)
+			verifyMsg(userDAG, msg, true)
 
 			// Test 7: create second txt msg with reference, add into msg dag, verify msg
 			// new msg reference first msg
@@ -116,7 +118,29 @@ func TestCmd() *cobra.Command {
 			}
 
 			// verify msg
-			verifyMsg(userDAG, msg2)
+			verifyMsg(userDAG, msg2, true)
+
+			// loop to add msg dag
+			ref = core.MsgReference{SenderID: Eve.ID(), MsgID: msg2.ID()}
+			for i := uint64(0); i < rule.REPRODUCTION_INTERVAL; i++ {
+				v := core.MsgValue{
+					ContentType: core.TypeText,
+					Content:     []byte(fmt.Sprintf("msg:%d", i)),
+				}
+				msgT, err := core.CreateMsg(Eve, &v, privKeyEve, &ref)
+				if err != nil {
+					log.Error("loop :", i, " err:", err)
+				}
+				err = msgDAG.Add(msgT)
+				if err != nil {
+					log.Error("loop :", i, " err:", err)
+				}
+				ref = core.MsgReference{SenderID: Eve.ID(), MsgID: msgT.ID()}
+				if i%1000 == 0 {
+					log.Trace("add ", i, "msgs")
+				}
+				verifyMsg(userDAG, msgT, false)
+			}
 
 			// Test 8: create dob msg, and verify
 			// new msg reference first & second msg
@@ -154,7 +178,7 @@ func TestCmd() *cobra.Command {
 				log.Info("first dob msg ", "signature", msgDob.Signature)
 			}
 
-			verifyMsg(userDAG, msgDob)
+			verifyMsg(userDAG, msgDob, true)
 
 			// Test 9: json marshal & unmarshal for msg
 			msgBytes, err := json.Marshal(msgDob)
@@ -168,7 +192,7 @@ func TestCmd() *cobra.Command {
 				if err != nil {
 					log.Error("unmarshal fail err:", err)
 				}
-				verifyMsg(userDAG, &msgDob2)
+				verifyMsg(userDAG, &msgDob2, true)
 				msgBytes, err = json.Marshal(msgDob2)
 				if err != nil {
 					log.Error("marshal fail err:", err)
@@ -251,7 +275,7 @@ func TestCmd() *cobra.Command {
 	return cmd
 }
 
-func verifyMsg(userDAG *core.UserDAG, msg *core.Message) {
+func verifyMsg(userDAG *core.UserDAG, msg *core.Message, show bool) {
 	// verify msg
 	sender := userDAG.GetUserByID(msg.SenderID)
 	if sender != nil {
@@ -259,7 +283,7 @@ func verifyMsg(userDAG *core.UserDAG, msg *core.Message) {
 		res, err := core.VerifyMsg(*msg)
 		if err != nil {
 			log.Error("verfiy fail, err :", err)
-		} else {
+		} else if show {
 			log.Trace("verify result is: ", res)
 		}
 	} else {
