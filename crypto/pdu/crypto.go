@@ -24,6 +24,7 @@ import (
 	"math/big"
 
 	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/common"
 )
 
 const (
@@ -114,9 +115,12 @@ func Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signature, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		rb := common.Bytes2Hash(r.Bytes())
+		sb := common.Bytes2Hash(s.Bytes())
 		return &crypto.Signature{
 			PublicKey: crypto.PublicKey{Source: SourceName, SigType: priKey.SigType, PubKey: pk.PublicKey},
-			Signature: append(r.Bytes(), s.Bytes()...),
+			Signature: append(rb[:], sb[:]...),
 		}, nil
 	case MultipleSignatures:
 		pks := priKey.PriKey.([]interface{})
@@ -131,7 +135,9 @@ func Sign(hash []byte, priKey crypto.PrivateKey) (*crypto.Signature, error) {
 			if err != nil {
 				return nil, err
 			}
-			signature = append(signature, append(r.Bytes(), s.Bytes()...)...)
+			rb := common.Bytes2Hash(r.Bytes())
+			sb := common.Bytes2Hash(s.Bytes())
+			signature = append(signature, append(rb[:], sb[:]...)...)
 			pubKeys = append(pubKeys, pk.PublicKey)
 		}
 		return &crypto.Signature{
