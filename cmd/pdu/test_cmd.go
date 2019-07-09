@@ -121,13 +121,13 @@ func TestCmd() *cobra.Command {
 			verifyMsg(userDAG, msg2, true)
 
 			// loop to add msg dag
-			ref = core.MsgReference{SenderID: Eve.ID(), MsgID: msg2.ID()}
+			ref = core.MsgReference{SenderID: Adam.ID(), MsgID: msg.ID()}
 			for i := uint64(0); i < rule.REPRODUCTION_INTERVAL; i++ {
 				v := core.MsgValue{
 					ContentType: core.TypeText,
 					Content:     []byte(fmt.Sprintf("msg:%d", i)),
 				}
-				msgT, err := core.CreateMsg(Eve, &v, privKeyEve, &ref)
+				msgT, err := core.CreateMsg(Adam, &v, privKeyAdam, &ref)
 				if err != nil {
 					log.Error("loop :", i, " err:", err)
 				}
@@ -135,12 +135,15 @@ func TestCmd() *cobra.Command {
 				if err != nil {
 					log.Error("loop :", i, " err:", err)
 				}
-				ref = core.MsgReference{SenderID: Eve.ID(), MsgID: msgT.ID()}
+				ref = core.MsgReference{SenderID: Adam.ID(), MsgID: msgT.ID()}
 				if i%1000 == 0 {
 					log.Trace("add ", i, "msgs")
 				}
 				verifyMsg(userDAG, msgT, false)
 			}
+
+			maxSeq := msgDAG.GetMaxSeq(Adam.ID())
+			log.Trace("max seq for time proof :", maxSeq)
 
 			// Test 8: create dob msg, and verify
 			// new msg reference first & second msg

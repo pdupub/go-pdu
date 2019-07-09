@@ -27,14 +27,13 @@ var (
 )
 
 type TimeProof struct {
-	userID common.Hash
 	maxSeq uint64
 	dag    *dag.DAG
 }
 
 type MsgDAG struct {
-	dag *dag.DAG
-	tps []*TimeProof
+	dag   *dag.DAG
+	tpMap map[common.Hash]*TimeProof
 }
 
 func NewMsgDag(msg *Message) (*MsgDAG, error) {
@@ -55,8 +54,10 @@ func NewMsgDag(msg *Message) (*MsgDAG, error) {
 	if err != nil {
 		return nil, err
 	}
-	tp := &TimeProof{userID: msg.SenderID, maxSeq: timeVertex.Value().(uint64), dag: timeDag}
-	return &MsgDAG{dag: msgDAG, tps: []*TimeProof{tp}}, nil
+	tp := &TimeProof{maxSeq: timeVertex.Value().(uint64), dag: timeDag}
+	tpMap := make(map[common.Hash]*TimeProof)
+	tpMap[msg.SenderID] = tp
+	return &MsgDAG{dag: msgDAG, tpMap: tpMap}, nil
 }
 
 func (md *MsgDAG) GetMsgByID(mid common.Hash) *Message {
@@ -85,29 +86,34 @@ func (md *MsgDAG) Add(msg *Message) error {
 		return err
 	}
 
-	for i, tp := range md.tps {
-		if tp.userID == msg.SenderID {
-			var currentSeq uint64 = 1
-			for _, r := range msg.Reference {
-				if r.SenderID == tp.userID {
-					if currentSeq <= tp.dag.GetVertex(r.MsgID).Value().(uint64) {
-						currentSeq += 1
-					}
+	if tp, ok := md.tpMap[msg.SenderID]; ok {
+		var currentSeq uint64 = 1
+		for _, r := range msg.Reference {
+			if r.SenderID == msg.SenderID {
+				refSeq := tp.dag.GetVertex(r.MsgID).Value().(uint64)
+				if currentSeq <= refSeq {
+					currentSeq = refSeq + 1
 				}
 			}
-			timeVertex, err := dag.NewVertex(msg.ID(), currentSeq)
-			if err != nil {
-				return err
-			}
+		}
+		timeVertex, err := dag.NewVertex(msg.ID(), currentSeq)
+		if err != nil {
+			return err
+		}
 
-			if err := tp.dag.AddVertex(timeVertex); err != nil {
-				return err
-			} else if currentSeq > tp.maxSeq {
-				md.tps[i].maxSeq = currentSeq
-			}
-			break
+		if err := tp.dag.AddVertex(timeVertex); err != nil {
+			return err
+		} else if currentSeq > tp.maxSeq {
+			tp.maxSeq = currentSeq
 		}
 	}
-
 	return nil
+}
+
+func (md *MsgDAG) GetMaxSeq(userID common.Hash) uint64 {
+	if tp, ok := md.tpMap[userID]; ok {
+		return tp.maxSeq
+	} else {
+		return 0
+	}
 }
