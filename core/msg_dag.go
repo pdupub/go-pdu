@@ -26,8 +26,15 @@ var (
 	ErrMsgAlreadyExist = errors.New("msg already exist")
 )
 
+type TimeProof struct {
+	userID common.Hash
+	maxSeq uint64
+	dag    *dag.DAG
+}
+
 type MsgDAG struct {
 	dag *dag.DAG
+	tps []*TimeProof
 }
 
 func NewMsgDag(msg *Message) (*MsgDAG, error) {
@@ -39,7 +46,17 @@ func NewMsgDag(msg *Message) (*MsgDAG, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &MsgDAG{dag: msgDAG}, nil
+	// use this msg as time
+	timeVertex, err := dag.NewVertex(msg.ID(), uint64(1))
+	if err != nil {
+		return nil, err
+	}
+	timeDag, err := dag.NewDAG(timeVertex)
+	if err != nil {
+		return nil, err
+	}
+	tp := &TimeProof{userID: msg.SenderID, maxSeq: timeVertex.Value().(uint64), dag: timeDag}
+	return &MsgDAG{dag: msgDAG, tps: []*TimeProof{tp}}, nil
 }
 
 func (md *MsgDAG) GetMsgByID(mid common.Hash) *Message {
@@ -67,5 +84,30 @@ func (md *MsgDAG) Add(msg *Message) error {
 	if err != nil {
 		return err
 	}
+
+	for i, tp := range md.tps {
+		if tp.userID == msg.SenderID {
+			var currentSeq uint64 = 1
+			for _, r := range msg.Reference {
+				if r.SenderID == tp.userID {
+					if currentSeq <= tp.dag.GetVertex(r.MsgID).Value().(uint64) {
+						currentSeq += 1
+					}
+				}
+			}
+			timeVertex, err := dag.NewVertex(msg.ID(), currentSeq)
+			if err != nil {
+				return err
+			}
+
+			if err := tp.dag.AddVertex(timeVertex); err != nil {
+				return err
+			} else if currentSeq > tp.maxSeq {
+				md.tps[i].maxSeq = currentSeq
+			}
+			break
+		}
+	}
+
 	return nil
 }
