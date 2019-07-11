@@ -24,6 +24,8 @@ import (
 
 var (
 	ErrMsgAlreadyExist = errors.New("msg already exist")
+	ErrMsgNotFound     = errors.New("msg not found")
+	ErrTPAlreadyExist  = errors.New("time proof already exist")
 )
 
 type TimeProof struct {
@@ -33,6 +35,7 @@ type TimeProof struct {
 
 type MsgDAG struct {
 	dag   *dag.DAG
+	ids   []common.Hash
 	tpMap map[common.Hash]*TimeProof
 }
 
@@ -45,19 +48,43 @@ func NewMsgDag(msg *Message) (*MsgDAG, error) {
 	if err != nil {
 		return nil, err
 	}
-	// use this msg as time
-	timeVertex, err := dag.NewVertex(msg.ID(), uint64(1))
+
+	ids := []common.Hash{msg.ID()}
+
+	tp, err := createTimeProof(msg)
 	if err != nil {
 		return nil, err
 	}
-	timeDag, err := dag.NewDAG(timeVertex)
-	if err != nil {
-		return nil, err
+
+	return &MsgDAG{dag: msgDAG, ids: ids, tpMap: map[common.Hash]*TimeProof{msg.SenderID: tp}}, nil
+}
+
+func (md *MsgDAG) AddTimeProof(msg *Message) error {
+	if md.GetMsgByID(msg.ID()) == nil {
+		return ErrMsgNotFound
 	}
-	tp := &TimeProof{maxSeq: timeVertex.Value().(uint64), dag: timeDag}
-	tpMap := make(map[common.Hash]*TimeProof)
-	tpMap[msg.SenderID] = tp
-	return &MsgDAG{dag: msgDAG, tpMap: tpMap}, nil
+	if _, ok := md.tpMap[msg.SenderID]; ok {
+		return ErrTPAlreadyExist
+	}
+
+	initialize := true
+	for _, id := range md.ids {
+		if msgTP := md.GetMsgByID(id); msgTP != nil && msgTP.SenderID == msg.SenderID {
+			if initialize {
+				tp, err := createTimeProof(msgTP)
+				if err != nil {
+					return err
+				}
+				md.tpMap[msg.SenderID] = tp
+				initialize = false
+			} else {
+				if err := md.updateTimeProof(msgTP); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (md *MsgDAG) GetMsgByID(mid common.Hash) *Message {
@@ -86,6 +113,28 @@ func (md *MsgDAG) Add(msg *Message) error {
 		return err
 	}
 
+	md.ids = append(md.ids, msg.ID())
+
+	err = md.updateTimeProof(msg)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createTimeProof(msg *Message) (*TimeProof, error) {
+	timeVertex, err := dag.NewVertex(msg.ID(), uint64(1))
+	if err != nil {
+		return nil, err
+	}
+	timeDag, err := dag.NewDAG(timeVertex)
+	if err != nil {
+		return nil, err
+	}
+	return &TimeProof{maxSeq: timeVertex.Value().(uint64), dag: timeDag}, nil
+}
+
+func (md *MsgDAG) updateTimeProof(msg *Message) error {
 	if tp, ok := md.tpMap[msg.SenderID]; ok {
 		var currentSeq uint64 = 1
 		for _, r := range msg.Reference {

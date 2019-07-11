@@ -271,6 +271,35 @@ func TestCmd() *cobra.Command {
 				log.Error("add msg4 fail, err should be %s, but now err : %s", core.ErrMsgAlreadyExist, err)
 			}
 
+			maxSeq = msgDAG.GetMaxSeq(Eve.ID())
+			log.Trace("max seq for Eve time proof, should be 0 :", maxSeq)
+
+			ref = core.MsgReference{SenderID: Eve.ID(), MsgID: msg2.ID()}
+			for i := uint64(0); i < 150; i++ {
+				v := core.MsgValue{
+					ContentType: core.TypeText,
+					Content:     []byte(fmt.Sprintf("msg:%d", i)),
+				}
+				msgT, err := core.CreateMsg(Eve, &v, privKeyEve, &ref)
+				if err != nil {
+					log.Error("loop :", i, " err:", err)
+				}
+				err = msgDAG.Add(msgT)
+				if err != nil {
+					log.Error("loop :", i, " err:", err)
+				}
+				ref = core.MsgReference{SenderID: Eve.ID(), MsgID: msgT.ID()}
+				verifyMsg(userDAG, msgT, false)
+			}
+
+			err = msgDAG.AddTimeProof(msg2)
+			if err != nil {
+				log.Error("add time proof fail, err :", err)
+			} else {
+				maxSeq = msgDAG.GetMaxSeq(Eve.ID())
+				log.Trace("max seq for Eve time proof, should be larger than 0 :", maxSeq)
+			}
+
 			return nil
 		},
 	}
