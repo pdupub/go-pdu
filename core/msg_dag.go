@@ -115,6 +115,25 @@ func (md *MsgDAG) AddTimeProof(msg *Message) error {
 			}
 		}
 	}
+
+	md.userMap[msg.SenderID] = md.createUserMap(msg.SenderID)
+
+	return nil
+}
+
+//
+func (md *MsgDAG) createUserMap(userID common.Hash) *UserDAG {
+	// todo : the new UserDAG should contain all parent users
+	// todo : in all userDag which this userID is valid
+	// todo : need deep copy
+	return nil
+}
+
+// GetUserDAG return userDAG by time proof userID
+func (md *MsgDAG) GetUserDAG(userID common.Hash) *UserDAG {
+	if userDag, ok := md.userMap[userID]; ok {
+		return userDag
+	}
 	return nil
 }
 
@@ -132,18 +151,18 @@ func (md *MsgDAG) GetMsgByID(mid common.Hash) *Message {
 // add new msg into MsgDAG, and update time proof if
 // msg.SenderID is belong to time proof
 func (md *MsgDAG) Add(msg *Message) error {
+	// check
 	if md.GetMsgByID(msg.ID()) != nil {
 		return ErrMsgAlreadyExist
 	}
-
 	if !md.CheckUserValid(msg.SenderID) {
 		return ErrMsgFromInvalidUser
 	}
+	// update dag
 	var refs []interface{}
 	for _, r := range msg.Reference {
 		refs = append(refs, r.MsgID)
 	}
-
 	msgVertex, err := dag.NewVertex(msg.ID(), msg, refs...)
 	if err != nil {
 		return err
@@ -152,11 +171,38 @@ func (md *MsgDAG) Add(msg *Message) error {
 	if err != nil {
 		return err
 	}
-
+	// ids
 	md.ids = append(md.ids, msg.ID())
+	// update tp
 	err = md.updateTimeProof(msg)
 	if err != nil {
 		return err
+	}
+	// process the msg
+	err = md.processMsg(msg)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (md *MsgDAG) processMsg(msg *Message) error {
+	switch msg.Value.ContentType {
+	case TypeText:
+		return nil
+	case TypeDOB:
+		user, err := CreateNewUser(msg)
+		if err != nil {
+			return err
+		}
+		// todo :check the valid time proof for parents in each timeproof
+		// user may not can be add to all userMap
+		for _, v := range md.userMap {
+			err = v.Add(user)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

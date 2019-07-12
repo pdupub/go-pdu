@@ -47,17 +47,11 @@ func TestCmd() *cobra.Command {
 
 			// Test 2: create user dag
 			// user dag created by add two root users
-			userDAG, err := core.NewUserDag(Eve, Adam)
+			userDAG0, err := core.NewUserDag(Eve, Adam)
 			if err != nil {
 				log.Error("create new user dag fail, err :", err)
 			} else {
-				log.Info("user dag :", userDAG)
-			}
-
-			// Test 3: get Adam by ID
-			newAdam := userDAG.GetUserByID(Adam.ID())
-			if newAdam != nil {
-				log.Trace("get Adam from userDAG :", common.Hash2String(newAdam.ID()))
+				log.Info("user dag :", userDAG0)
 			}
 
 			// Test 4: create txt msg
@@ -80,17 +74,24 @@ func TestCmd() *cobra.Command {
 
 			// Test 5: create msgDaG
 			// add the txt msg from Test 4 as the root msg
-			msgDAG, err := core.NewMsgDag(userDAG, msg)
+			msgDAG, err := core.NewMsgDag(userDAG0, msg)
 			if err != nil {
 				log.Info("create msg dag fail, err:", err)
 			} else {
 				log.Trace("msg dag add msg", common.Hash2String(msgDAG.GetMsgByID(msg.ID()).ID()))
 			}
 
+			ud := msgDAG.GetUserDAG(Adam.ID())
+			if ud == nil {
+				log.Error("user dag is not exist")
+			} else if newAdam := ud.GetUserByID(Adam.ID()); newAdam != nil {
+				log.Trace("get Adam from userDAG :", common.Hash2String(newAdam.ID()))
+			}
+
 			// Test 6: verify msg
 			// msg contain the Adam is and signature.
 			// Adam's public key can be found from userDAG by Adam ID
-			verifyMsg(userDAG, msg, true)
+			verifyMsg(msgDAG.GetUserDAG(Adam.ID()), msg, true)
 
 			// Test 7: create second txt msg with reference, add into msg dag, verify msg
 			// new msg reference first msg
@@ -118,7 +119,7 @@ func TestCmd() *cobra.Command {
 			}
 
 			// verify msg
-			verifyMsg(userDAG, msg2, true)
+			verifyMsg(msgDAG.GetUserDAG(Adam.ID()), msg2, true)
 
 			// loop to add msg dag
 			ref = core.MsgReference{SenderID: Adam.ID(), MsgID: msg.ID()}
@@ -139,7 +140,7 @@ func TestCmd() *cobra.Command {
 				if i%(rule.REPRODUCTION_INTERVAL>>3) == 0 {
 					log.Trace("add ", i, "msgs")
 				}
-				verifyMsg(userDAG, msgT, false)
+				verifyMsg(msgDAG.GetUserDAG(Adam.ID()), msgT, false)
 			}
 
 			maxSeq := msgDAG.GetMaxSeq(Adam.ID())
@@ -181,7 +182,7 @@ func TestCmd() *cobra.Command {
 				log.Info("first dob msg ", "signature", msgDob.Signature)
 			}
 
-			verifyMsg(userDAG, msgDob, true)
+			verifyMsg(msgDAG.GetUserDAG(Adam.ID()), msgDob, true)
 
 			// Test 9: json marshal & unmarshal for msg
 			msgBytes, err := json.Marshal(msgDob)
@@ -195,7 +196,7 @@ func TestCmd() *cobra.Command {
 				if err != nil {
 					log.Error("unmarshal fail err:", err)
 				}
-				verifyMsg(userDAG, &msgDob2, true)
+				verifyMsg(msgDAG.GetUserDAG(Adam.ID()), &msgDob2, true)
 				msgBytes, err = json.Marshal(msgDob2)
 				if err != nil {
 					log.Error("marshal fail err:", err)
@@ -217,9 +218,9 @@ func TestCmd() *cobra.Command {
 				}
 
 				sigAdam := crypto.Signature{Signature: dobContent.Parents[1].Sig,
-					PublicKey: userDAG.GetUserByID(dobContent.Parents[1].PID).Auth.PublicKey}
+					PublicKey: msgDAG.GetUserDAG(Adam.ID()).GetUserByID(dobContent.Parents[1].PID).Auth.PublicKey}
 				sigEve := crypto.Signature{Signature: dobContent.Parents[0].Sig,
-					PublicKey: userDAG.GetUserByID(dobContent.Parents[0].PID).Auth.PublicKey}
+					PublicKey: msgDAG.GetUserDAG(Adam.ID()).GetUserByID(dobContent.Parents[0].PID).Auth.PublicKey}
 
 				if res, err := pdu.Verify(jsonBytes, sigAdam); err != nil || res == false {
 					log.Error("verify Adam fail, err", err)
@@ -238,28 +239,6 @@ func TestCmd() *cobra.Command {
 
 			// Test 10: create new User from dob message
 			// user create from msg3 and msg4 should be same user
-			newUser1, err := core.CreateNewUser(msgDob)
-			if err != nil {
-				log.Error("create user1 fail , err:", err)
-			} else {
-				log.Info("user1 be created, ID :", common.Hash2String(newUser1.ID()))
-			}
-			newUser2, err := core.CreateNewUser(&msgDob2)
-			if err != nil {
-				log.Error("create user2 fail, err:", err)
-			} else {
-				log.Info("user2 be created, ID :", common.Hash2String(newUser2.ID()))
-			}
-
-			if err := userDAG.Add(newUser1); err != nil {
-				log.Error("dag add user1 fail, err:", err)
-			} else {
-				log.Trace("dag add user1 success :", common.Hash2String(userDAG.GetUserByID(newUser1.ID()).ID()))
-			}
-
-			if err := userDAG.Add(newUser2); err != core.ErrUserAlreadyExist {
-				log.Error("dag add user2 fail, err should be %s, but now err : %s", core.ErrUserAlreadyExist, err)
-			}
 
 			if err := msgDAG.Add(msgDob); err != nil {
 				log.Error("add msg3 fail , err", err)
@@ -289,7 +268,7 @@ func TestCmd() *cobra.Command {
 					log.Error("loop :", i, " err:", err)
 				}
 				ref = core.MsgReference{SenderID: Eve.ID(), MsgID: msgT.ID()}
-				verifyMsg(userDAG, msgT, false)
+				verifyMsg(msgDAG.GetUserDAG(Adam.ID()), msgT, false)
 			}
 
 			err = msgDAG.AddTimeProof(msg2)
