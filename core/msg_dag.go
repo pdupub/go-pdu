@@ -35,10 +35,10 @@ type TimeProof struct {
 }
 
 type MsgDAG struct {
-	msgD    *dag.DAG
-	ids     []common.Hash
-	tpMap   map[common.Hash]*TimeProof
-	userMap map[common.Hash]*Group
+	msgD *dag.DAG
+	ids  []common.Hash
+	tpD  map[common.Hash]*TimeProof
+	ugD  map[common.Hash]*Group
 }
 
 // NewMsgDag create MsgDAG
@@ -66,15 +66,15 @@ func NewMsgDag(userDAG *Group, msg *Message) (*MsgDAG, error) {
 	}
 
 	msgDAG := MsgDAG{msgD: msgD,
-		ids:     ids,
-		tpMap:   map[common.Hash]*TimeProof{msg.SenderID: tp},
-		userMap: map[common.Hash]*Group{msg.SenderID: userDAG}}
+		ids: ids,
+		tpD: map[common.Hash]*TimeProof{msg.SenderID: tp},
+		ugD: map[common.Hash]*Group{msg.SenderID: userDAG}}
 	return &msgDAG, nil
 }
 
 // CheckUserValid check if the user valid in this MsgDAG
 func (md *MsgDAG) CheckUserValid(userID common.Hash) bool {
-	for k, v := range md.userMap {
+	for k, v := range md.ugD {
 		if k == userID {
 			return true
 		}
@@ -91,7 +91,7 @@ func (md *MsgDAG) AddTimeProof(msg *Message) error {
 	if md.GetMsgByID(msg.ID()) == nil {
 		return ErrMsgNotFound
 	}
-	if _, ok := md.tpMap[msg.SenderID]; ok {
+	if _, ok := md.tpD[msg.SenderID]; ok {
 		return ErrTPAlreadyExist
 	}
 	if !md.CheckUserValid(msg.SenderID) {
@@ -106,7 +106,7 @@ func (md *MsgDAG) AddTimeProof(msg *Message) error {
 				if err != nil {
 					return err
 				}
-				md.tpMap[msg.SenderID] = tp
+				md.tpD[msg.SenderID] = tp
 				initialize = false
 			} else {
 				if err := md.updateTimeProof(msgTP); err != nil {
@@ -116,7 +116,7 @@ func (md *MsgDAG) AddTimeProof(msg *Message) error {
 		}
 	}
 
-	md.userMap[msg.SenderID] = md.createUserMap(msg.SenderID)
+	md.ugD[msg.SenderID] = md.createUserMap(msg.SenderID)
 
 	return nil
 }
@@ -131,7 +131,7 @@ func (md *MsgDAG) createUserMap(userID common.Hash) *Group {
 
 // GetUserDAG return userDAG by time proof userID
 func (md *MsgDAG) GetUserDAG(userID common.Hash) *Group {
-	if userDag, ok := md.userMap[userID]; ok {
+	if userDag, ok := md.ugD[userID]; ok {
 		return userDag
 	}
 	return nil
@@ -197,7 +197,7 @@ func (md *MsgDAG) processMsg(msg *Message) error {
 		}
 		// todo :check the valid time proof for parents in each timeproof
 		// user may not can be add to all userMap
-		for _, v := range md.userMap {
+		for _, v := range md.ugD {
 			err = v.Add(user)
 			if err != nil {
 				return err
@@ -220,7 +220,7 @@ func createTimeProof(msg *Message) (*TimeProof, error) {
 }
 
 func (md *MsgDAG) updateTimeProof(msg *Message) error {
-	if tp, ok := md.tpMap[msg.SenderID]; ok {
+	if tp, ok := md.tpD[msg.SenderID]; ok {
 		var currentSeq uint64 = 1
 		for _, r := range msg.Reference {
 			if r.SenderID == msg.SenderID {
@@ -247,7 +247,7 @@ func (md *MsgDAG) updateTimeProof(msg *Message) error {
 // GetMaxSeq will return the max time proof sequence for
 // time proof by the userID
 func (md *MsgDAG) GetMaxSeq(userID common.Hash) uint64 {
-	if tp, ok := md.tpMap[userID]; ok {
+	if tp, ok := md.tpD[userID]; ok {
 		return tp.maxSeq
 	} else {
 		return 0
