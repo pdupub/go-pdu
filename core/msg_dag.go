@@ -35,17 +35,18 @@ type TimeProof struct {
 }
 
 type MsgDAG struct {
-	msgD *dag.DAG
-	ids  []common.Hash
-	tpD  *dag.DAG //map[common.Hash]*TimeProof
-	ugD  map[common.Hash]*Group
+	msgD   *dag.DAG
+	msgIds []common.Hash
+	tpD    *dag.DAG // map[common.Hash]*TimeProof
+	tpIds  []common.Hash
+	ugD    *dag.DAG // map[common.Hash]*Group
 }
 
 // NewMsgDag create MsgDAG
 // the msg will also be used to create time proof as msg.SenderID
-func NewMsgDag(userDAG *Group, msg *Message) (*MsgDAG, error) {
+func NewMsgDag(group *Group, msg *Message) (*MsgDAG, error) {
 	// check msg sender from valid user
-	if nil == userDAG.GetUserByID(msg.SenderID) {
+	if nil == group.GetUserByID(msg.SenderID) {
 		return nil, ErrMsgFromInvalidUser
 	}
 	// build msg dag
@@ -58,7 +59,7 @@ func NewMsgDag(userDAG *Group, msg *Message) (*MsgDAG, error) {
 		return nil, err
 	}
 	// init ids
-	ids := []common.Hash{msg.ID()}
+	msgIds := []common.Hash{msg.ID()}
 	// build time proof
 	tp, err := createTimeProof(msg)
 	if err != nil {
@@ -72,21 +73,32 @@ func NewMsgDag(userDAG *Group, msg *Message) (*MsgDAG, error) {
 	if err != nil {
 		return nil, err
 	}
+	tpIds := []common.Hash{msg.SenderID}
+	// build user group
+	ugVertex, err := dag.NewVertex(msg.SenderID, group)
+	if err != nil {
+		return nil, err
+	}
+	ugD, err := dag.NewDAG(ugVertex)
+	if err != nil {
+		return nil, err
+	}
 
 	msgDAG := MsgDAG{msgD: msgD,
-		ids: ids,
-		tpD: tpD,
-		ugD: map[common.Hash]*Group{msg.SenderID: userDAG}}
+		msgIds: msgIds,
+		tpD:    tpD,
+		tpIds:  tpIds,
+		ugD:    ugD}
 	return &msgDAG, nil
 }
 
 // CheckUserValid check if the user valid in this MsgDAG
 func (md *MsgDAG) CheckUserValid(userID common.Hash) bool {
-	for k, v := range md.ugD {
+	for _, k := range md.tpIds {
 		if k == userID {
 			return true
 		}
-		if nil != v.GetUserByID(userID) {
+		if nil != md.ugD.GetVertex(k).Value().(*Group).GetUserByID(userID) {
 			return true
 		}
 	}
@@ -107,7 +119,7 @@ func (md *MsgDAG) AddTimeProof(msg *Message) error {
 	}
 
 	initialize := true
-	for _, id := range md.ids {
+	for _, id := range md.msgIds {
 		if msgTP := md.GetMsgByID(id); msgTP != nil && msgTP.SenderID == msg.SenderID {
 			if initialize {
 				tp, err := createTimeProof(msgTP)
@@ -132,13 +144,18 @@ func (md *MsgDAG) AddTimeProof(msg *Message) error {
 		}
 	}
 
-	md.ugD[msg.SenderID] = md.createUserMap(msg.SenderID)
-
+	group := md.createUserGroup(msg.SenderID)
+	// todo: NewVertex should add references.
+	ugVertex, err := dag.NewVertex(msg.SenderID, group)
+	if err != nil {
+		return err
+	}
+	md.ugD.AddVertex(ugVertex)
 	return nil
 }
 
 //
-func (md *MsgDAG) createUserMap(userID common.Hash) *Group {
+func (md *MsgDAG) createUserGroup(userID common.Hash) *Group {
 	// todo : the new UserDAG should contain all parent users
 	// todo : in all userDag which this userID is valid
 	// todo : need deep copy
@@ -147,8 +164,8 @@ func (md *MsgDAG) createUserMap(userID common.Hash) *Group {
 
 // GetUserDAG return userDAG by time proof userID
 func (md *MsgDAG) GetUserDAG(userID common.Hash) *Group {
-	if userDag, ok := md.ugD[userID]; ok {
-		return userDag
+	if v := md.ugD.GetVertex(userID); v != nil {
+		return v.Value().(*Group)
 	}
 	return nil
 }
@@ -188,7 +205,7 @@ func (md *MsgDAG) Add(msg *Message) error {
 		return err
 	}
 	// ids
-	md.ids = append(md.ids, msg.ID())
+	md.msgIds = append(md.msgIds, msg.ID())
 	// update tp
 	err = md.updateTimeProof(msg)
 	if err != nil {
@@ -213,8 +230,9 @@ func (md *MsgDAG) processMsg(msg *Message) error {
 		}
 		// todo :check the valid time proof for parents in each timeproof
 		// user may not can be add to all userMap
-		for _, v := range md.ugD {
-			err = v.Add(user)
+		//for _, v := range md.ugD {
+		for _, k := range md.tpIds {
+			err = md.ugD.GetVertex(k).Value().(*Group).Add(user)
 			if err != nil {
 				return err
 			}
