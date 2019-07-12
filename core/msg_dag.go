@@ -37,7 +37,7 @@ type TimeProof struct {
 type MsgDAG struct {
 	msgD *dag.DAG
 	ids  []common.Hash
-	tpD  map[common.Hash]*TimeProof
+	tpD  *dag.DAG //map[common.Hash]*TimeProof
 	ugD  map[common.Hash]*Group
 }
 
@@ -64,10 +64,18 @@ func NewMsgDag(userDAG *Group, msg *Message) (*MsgDAG, error) {
 	if err != nil {
 		return nil, err
 	}
+	tpVertex, err := dag.NewVertex(msg.SenderID, tp)
+	if err != nil {
+		return nil, err
+	}
+	tpD, err := dag.NewDAG(tpVertex)
+	if err != nil {
+		return nil, err
+	}
 
 	msgDAG := MsgDAG{msgD: msgD,
 		ids: ids,
-		tpD: map[common.Hash]*TimeProof{msg.SenderID: tp},
+		tpD: tpD,
 		ugD: map[common.Hash]*Group{msg.SenderID: userDAG}}
 	return &msgDAG, nil
 }
@@ -91,7 +99,7 @@ func (md *MsgDAG) AddTimeProof(msg *Message) error {
 	if md.GetMsgByID(msg.ID()) == nil {
 		return ErrMsgNotFound
 	}
-	if _, ok := md.tpD[msg.SenderID]; ok {
+	if nil != md.tpD.GetVertex(msg.SenderID) {
 		return ErrTPAlreadyExist
 	}
 	if !md.CheckUserValid(msg.SenderID) {
@@ -106,7 +114,15 @@ func (md *MsgDAG) AddTimeProof(msg *Message) error {
 				if err != nil {
 					return err
 				}
-				md.tpD[msg.SenderID] = tp
+				// todo : tpVertex should add parents
+				// todo : parent contain all current tpVertex which this msg is valid
+				tpVertex, err := dag.NewVertex(msg.SenderID, tp)
+				if err != nil {
+					return err
+				}
+				if err = md.tpD.AddVertex(tpVertex); err != nil {
+					return err
+				}
 				initialize = false
 			} else {
 				if err := md.updateTimeProof(msgTP); err != nil {
@@ -220,7 +236,9 @@ func createTimeProof(msg *Message) (*TimeProof, error) {
 }
 
 func (md *MsgDAG) updateTimeProof(msg *Message) error {
-	if tp, ok := md.tpD[msg.SenderID]; ok {
+	if vertex := md.tpD.GetVertex(msg.SenderID); vertex != nil {
+
+		tp := vertex.Value().(*TimeProof)
 		var currentSeq uint64 = 1
 		for _, r := range msg.Reference {
 			if r.SenderID == msg.SenderID {
@@ -247,8 +265,8 @@ func (md *MsgDAG) updateTimeProof(msg *Message) error {
 // GetMaxSeq will return the max time proof sequence for
 // time proof by the userID
 func (md *MsgDAG) GetMaxSeq(userID common.Hash) uint64 {
-	if tp, ok := md.tpD[userID]; ok {
-		return tp.maxSeq
+	if vertex := md.tpD.GetVertex(userID); vertex != nil {
+		return vertex.Value().(*TimeProof).maxSeq
 	} else {
 		return 0
 	}
