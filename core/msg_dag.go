@@ -35,11 +35,11 @@ type TimeProof struct {
 }
 
 type MsgDAG struct {
-	msgD   *dag.DAG
-	msgIds []common.Hash
-	tpD    *dag.DAG // map[common.Hash]*TimeProof
-	tpIds  []common.Hash
-	ugD    *dag.DAG // map[common.Hash]*Group
+	msgD   *dag.DAG      `json:"messageDAG"`
+	msgIds []common.Hash `json:"messageIDs"`
+	tpD    *dag.DAG      `json:"timeProofDAG"`
+	uKeys  []common.Hash `json:"universeKeys"`
+	ugD    *dag.DAG      `json:"userGroupDAG"`
 }
 
 // NewMsgDag create MsgDAG
@@ -73,7 +73,7 @@ func NewMsgDag(group *Group, msg *Message) (*MsgDAG, error) {
 	if err != nil {
 		return nil, err
 	}
-	tpIds := []common.Hash{msg.SenderID}
+	uKeys := []common.Hash{msg.SenderID}
 	// build user group
 	ugVertex, err := dag.NewVertex(msg.SenderID, group)
 	if err != nil {
@@ -87,14 +87,14 @@ func NewMsgDag(group *Group, msg *Message) (*MsgDAG, error) {
 	msgDAG := MsgDAG{msgD: msgD,
 		msgIds: msgIds,
 		tpD:    tpD,
-		tpIds:  tpIds,
+		uKeys:  uKeys,
 		ugD:    ugD}
 	return &msgDAG, nil
 }
 
 // CheckUserValid check if the user valid in this MsgDAG
 func (md *MsgDAG) CheckUserValid(userID common.Hash) bool {
-	for _, k := range md.tpIds {
+	for _, k := range md.uKeys {
 		if k == userID {
 			return true
 		}
@@ -231,7 +231,7 @@ func (md *MsgDAG) processMsg(msg *Message) error {
 		// todo :check the valid time proof for parents in each timeproof
 		// user may not can be add to all userMap
 		//for _, v := range md.ugD {
-		for _, k := range md.tpIds {
+		for _, k := range md.uKeys {
 			err = md.ugD.GetVertex(k).Value().(*Group).Add(user)
 			if err != nil {
 				return err
