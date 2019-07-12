@@ -37,8 +37,8 @@ type TimeProof struct {
 type MsgDAG struct {
 	msgD   *dag.DAG      `json:"messageDAG"`
 	msgIds []common.Hash `json:"messageIDs"`
-	tpD    *dag.DAG      `json:"timeProofDAG"`
 	uKeys  []common.Hash `json:"universeKeys"`
+	tpD    *dag.DAG      `json:"timeProofDAG"`
 	ugD    *dag.DAG      `json:"userGroupDAG"`
 }
 
@@ -93,6 +93,7 @@ func NewMsgDag(group *Group, msg *Message) (*MsgDAG, error) {
 }
 
 // CheckUserValid check if the user valid in this MsgDAG
+// the msg.SenderID must valid in at least one tpDAG
 func (md *MsgDAG) CheckUserValid(userID common.Hash) bool {
 	for _, k := range md.uKeys {
 		if k == userID {
@@ -105,9 +106,19 @@ func (md *MsgDAG) CheckUserValid(userID common.Hash) bool {
 	return false
 }
 
+func (md *MsgDAG) findValidUniverse(senderID common.Hash) []interface{} {
+	var ugs []interface{}
+	for _, k := range md.uKeys {
+		if v := md.ugD.GetVertex(k); v != nil && v.Value().(*Group).GetUserByID(senderID) != nil {
+			ugs = append(ugs, k)
+		}
+	}
+	return ugs
+}
+
 // AddTimeProof will get all messages save in MsgDAG with same msg.SenderID
 // and build the time proof by those messages
-func (md *MsgDAG) AddTimeProof(msg *Message) error {
+func (md *MsgDAG) AddUniverse(msg *Message) error {
 	if md.GetMsgByID(msg.ID()) == nil {
 		return ErrMsgNotFound
 	}
@@ -117,7 +128,7 @@ func (md *MsgDAG) AddTimeProof(msg *Message) error {
 	if !md.CheckUserValid(msg.SenderID) {
 		return ErrMsgFromInvalidUser
 	}
-
+	// update time proof
 	initialize := true
 	for _, id := range md.msgIds {
 		if msgTP := md.GetMsgByID(id); msgTP != nil && msgTP.SenderID == msg.SenderID {
@@ -126,9 +137,7 @@ func (md *MsgDAG) AddTimeProof(msg *Message) error {
 				if err != nil {
 					return err
 				}
-				// todo : tpVertex should add parents
-				// todo : parent contain all current tpVertex which this msg is valid
-				tpVertex, err := dag.NewVertex(msg.SenderID, tp)
+				tpVertex, err := dag.NewVertex(msg.SenderID, tp, md.findValidUniverse(msg.SenderID)...)
 				if err != nil {
 					return err
 				}
@@ -143,14 +152,15 @@ func (md *MsgDAG) AddTimeProof(msg *Message) error {
 			}
 		}
 	}
-
+	// update user group
 	group := md.createUserGroup(msg.SenderID)
-	// todo: NewVertex should add references.
-	ugVertex, err := dag.NewVertex(msg.SenderID, group)
+	ugVertex, err := dag.NewVertex(msg.SenderID, group, md.findValidUniverse(msg.SenderID)...)
 	if err != nil {
 		return err
 	}
 	md.ugD.AddVertex(ugVertex)
+	// update uKeys
+	md.uKeys = append(md.uKeys, msg.SenderID)
 	return nil
 }
 

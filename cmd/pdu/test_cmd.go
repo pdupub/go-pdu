@@ -176,10 +176,10 @@ func TestCmd() *cobra.Command {
 				if msgDob.Value.ContentType == core.TypeText {
 					log.Info("first dob msg ", "value.content", string(msgDob.Value.Content))
 				} else if msgDob.Value.ContentType == core.TypeDOB {
-					log.Info("first dob msg ", "bod.content", string(msgDob.Value.Content))
+					log.Info("first dob msg ", "bod.content", string(msgDob.Value.Content)[:60]+"...")
 				}
-				log.Info("first dob msg ", "reference", msgDob.Reference)
-				log.Info("first dob msg ", "signature", msgDob.Signature)
+				//log.Info("first dob msg ", "reference", msgDob.Reference)
+				//log.Info("first dob msg ", "signature", msgDob.Signature)
 			}
 
 			verifyMsg(msgDAG.GetUserDAG(Adam.ID()), msgDob, true)
@@ -271,7 +271,7 @@ func TestCmd() *cobra.Command {
 				verifyMsg(msgDAG.GetUserDAG(Adam.ID()), msgT, false)
 			}
 
-			err = msgDAG.AddTimeProof(msg2)
+			err = msgDAG.AddUniverse(msg2)
 			if err != nil {
 				log.Error("add time proof fail, err :", err)
 			} else {
