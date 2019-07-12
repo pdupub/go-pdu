@@ -39,6 +39,8 @@ type MsgDAG struct {
 	tpMap map[common.Hash]*TimeProof
 }
 
+// NewMsgDag create MsgDAG without check validation of msg.SenderID
+// the msg will also be used to create time proof.
 func NewMsgDag(msg *Message) (*MsgDAG, error) {
 	msgVertex, err := dag.NewVertex(msg.ID(), msg)
 	if err != nil {
@@ -59,6 +61,8 @@ func NewMsgDag(msg *Message) (*MsgDAG, error) {
 	return &MsgDAG{dag: msgDAG, ids: ids, tpMap: map[common.Hash]*TimeProof{msg.SenderID: tp}}, nil
 }
 
+// AddTimeProof will get all messages save in MsgDAG with same msg.SenderID
+// and build the time proof by those messages
 func (md *MsgDAG) AddTimeProof(msg *Message) error {
 	if md.GetMsgByID(msg.ID()) == nil {
 		return ErrMsgNotFound
@@ -87,6 +91,8 @@ func (md *MsgDAG) AddTimeProof(msg *Message) error {
 	return nil
 }
 
+// GetMsgByID will return the msg by msg.ID()
+// nil will be return if msg not exist
 func (md *MsgDAG) GetMsgByID(mid common.Hash) *Message {
 	if v := md.dag.GetVertex(mid); v != nil {
 		return v.Value().(*Message)
@@ -95,10 +101,15 @@ func (md *MsgDAG) GetMsgByID(mid common.Hash) *Message {
 	}
 }
 
+// Add will check if the msg from valid user,
+// add new msg into MsgDAG, and update time proof if
+// msg.SenderID is belong to time proof
 func (md *MsgDAG) Add(msg *Message) error {
 	if md.GetMsgByID(msg.ID()) != nil {
 		return ErrMsgAlreadyExist
 	}
+	// todo :check the validation of user
+
 	var refs []interface{}
 	for _, r := range msg.Reference {
 		refs = append(refs, r.MsgID)
@@ -114,7 +125,6 @@ func (md *MsgDAG) Add(msg *Message) error {
 	}
 
 	md.ids = append(md.ids, msg.ID())
-
 	err = md.updateTimeProof(msg)
 	if err != nil {
 		return err
@@ -159,6 +169,8 @@ func (md *MsgDAG) updateTimeProof(msg *Message) error {
 	return nil
 }
 
+// GetMaxSeq will return the max time proof sequence for
+// time proof by the userID
 func (md *MsgDAG) GetMaxSeq(userID common.Hash) uint64 {
 	if tp, ok := md.tpMap[userID]; ok {
 		return tp.maxSeq
