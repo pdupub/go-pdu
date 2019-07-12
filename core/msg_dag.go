@@ -35,7 +35,7 @@ type TimeProof struct {
 }
 
 type MsgDAG struct {
-	dag     *dag.DAG
+	msgD    *dag.DAG
 	ids     []common.Hash
 	tpMap   map[common.Hash]*TimeProof
 	userMap map[common.Hash]*UserDAG
@@ -53,7 +53,7 @@ func NewMsgDag(userDAG *UserDAG, msg *Message) (*MsgDAG, error) {
 	if err != nil {
 		return nil, err
 	}
-	dag, err := dag.NewDAG(msgVertex)
+	msgD, err := dag.NewDAG(msgVertex)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func NewMsgDag(userDAG *UserDAG, msg *Message) (*MsgDAG, error) {
 		return nil, err
 	}
 
-	msgDAG := MsgDAG{dag: dag,
+	msgDAG := MsgDAG{msgD: msgD,
 		ids:     ids,
 		tpMap:   map[common.Hash]*TimeProof{msg.SenderID: tp},
 		userMap: map[common.Hash]*UserDAG{msg.SenderID: userDAG}}
@@ -140,7 +140,7 @@ func (md *MsgDAG) GetUserDAG(userID common.Hash) *UserDAG {
 // GetMsgByID will return the msg by msg.ID()
 // nil will be return if msg not exist
 func (md *MsgDAG) GetMsgByID(mid common.Hash) *Message {
-	if v := md.dag.GetVertex(mid); v != nil {
+	if v := md.msgD.GetVertex(mid); v != nil {
 		return v.Value().(*Message)
 	} else {
 		return nil
@@ -167,7 +167,7 @@ func (md *MsgDAG) Add(msg *Message) error {
 	if err != nil {
 		return err
 	}
-	err = md.dag.AddVertex(msgVertex)
+	err = md.msgD.AddVertex(msgVertex)
 	if err != nil {
 		return err
 	}
