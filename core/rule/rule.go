@@ -22,15 +22,15 @@ const (
 	// The reference of that msg must contain at least one msg from the time proof account, which used
 	// in DOBMsg when create this account. And the reference must choose from the msg from used as reference
 	// dob message to next 2^16 messages from the same time proof account.
-	MORTAL_LIFETIME uint64 = 1 << 16
+	MORTAL_LIFETIME uint64 = 1 << 12 // 16
 
 	// Valid time interval for reproduction
 	// The interval is 1/4 of life time, so any account can participate in reproduction for three times.
 	// Each reproduction need two account to cosign, so the max reproduce rate for mortal is 1.5
-	REPRODUCTION_INTERVAL uint64 = 1 << 14
+	REPRODUCTION_INTERVAL = MORTAL_LIFETIME >> 2
 
 	// Valid life time for 0 generation account (root accounts Adam & Eve)
-	MAX_LIFTTIME uint64 = 1 << 32
+	MAX_LIFTTIME = MORTAL_LIFETIME << 16
 
 	// The life time of account will reduce except the mortal.
 	// life_time_of_child = sum(life_time_of_parent) / 2

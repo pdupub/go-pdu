@@ -136,7 +136,7 @@ func TestCmd() *cobra.Command {
 					log.Error("loop :", i, " err:", err)
 				}
 				ref = core.MsgReference{SenderID: Adam.ID(), MsgID: msgT.ID()}
-				if i%1000 == 0 {
+				if i%(rule.REPRODUCTION_INTERVAL>>3) == 0 {
 					log.Trace("add ", i, "msgs")
 				}
 				verifyMsg(userDAG, msgT, false)
