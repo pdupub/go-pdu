@@ -38,12 +38,12 @@ type MsgDAG struct {
 	msgD    *dag.DAG
 	ids     []common.Hash
 	tpMap   map[common.Hash]*TimeProof
-	userMap map[common.Hash]*UserDAG
+	userMap map[common.Hash]*Group
 }
 
 // NewMsgDag create MsgDAG
 // the msg will also be used to create time proof as msg.SenderID
-func NewMsgDag(userDAG *UserDAG, msg *Message) (*MsgDAG, error) {
+func NewMsgDag(userDAG *Group, msg *Message) (*MsgDAG, error) {
 	// check msg sender from valid user
 	if nil == userDAG.GetUserByID(msg.SenderID) {
 		return nil, ErrMsgFromInvalidUser
@@ -68,7 +68,7 @@ func NewMsgDag(userDAG *UserDAG, msg *Message) (*MsgDAG, error) {
 	msgDAG := MsgDAG{msgD: msgD,
 		ids:     ids,
 		tpMap:   map[common.Hash]*TimeProof{msg.SenderID: tp},
-		userMap: map[common.Hash]*UserDAG{msg.SenderID: userDAG}}
+		userMap: map[common.Hash]*Group{msg.SenderID: userDAG}}
 	return &msgDAG, nil
 }
 
@@ -122,7 +122,7 @@ func (md *MsgDAG) AddTimeProof(msg *Message) error {
 }
 
 //
-func (md *MsgDAG) createUserMap(userID common.Hash) *UserDAG {
+func (md *MsgDAG) createUserMap(userID common.Hash) *Group {
 	// todo : the new UserDAG should contain all parent users
 	// todo : in all userDag which this userID is valid
 	// todo : need deep copy
@@ -130,7 +130,7 @@ func (md *MsgDAG) createUserMap(userID common.Hash) *UserDAG {
 }
 
 // GetUserDAG return userDAG by time proof userID
-func (md *MsgDAG) GetUserDAG(userID common.Hash) *UserDAG {
+func (md *MsgDAG) GetUserDAG(userID common.Hash) *Group {
 	if userDag, ok := md.userMap[userID]; ok {
 		return userDag
 	}

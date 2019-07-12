@@ -23,7 +23,7 @@ import (
 	"github.com/pdupub/go-pdu/dag"
 )
 
-type UserDAG struct {
+type Group struct {
 	dag *dag.DAG
 }
 
@@ -31,7 +31,7 @@ var (
 	ErrUserAlreadyExist = errors.New("user already exist")
 )
 
-func NewUserDag(Eve, Adam *User) (*UserDAG, error) {
+func NewUserDag(Eve, Adam *User) (*Group, error) {
 
 	EveVertex, err := dag.NewVertex(Eve.ID(), Eve)
 	if err != nil {
@@ -48,11 +48,11 @@ func NewUserDag(Eve, Adam *User) (*UserDAG, error) {
 		return nil, err
 	}
 	userDAG.SetMaxParentsCount(2)
-	return &UserDAG{dag: userDAG}, nil
+	return &Group{dag: userDAG}, nil
 
 }
 
-func (ud *UserDAG) GetUserByID(uid common.Hash) *User {
+func (ud *Group) GetUserByID(uid common.Hash) *User {
 	if v := ud.dag.GetVertex(uid); v != nil {
 		return v.Value().(*User)
 	} else {
@@ -60,7 +60,7 @@ func (ud *UserDAG) GetUserByID(uid common.Hash) *User {
 	}
 }
 
-func (ud *UserDAG) Add(user *User) error {
+func (ud *Group) Add(user *User) error {
 	if ud.GetUserByID(user.ID()) != nil {
 		return ErrUserAlreadyExist
 	}

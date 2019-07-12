@@ -286,7 +286,7 @@ func TestCmd() *cobra.Command {
 	return cmd
 }
 
-func verifyMsg(userDAG *core.UserDAG, msg *core.Message, show bool) {
+func verifyMsg(userDAG *core.Group, msg *core.Message, show bool) {
 	// verify msg
 	sender := userDAG.GetUserByID(msg.SenderID)
 	if sender != nil {
