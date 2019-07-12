@@ -23,9 +23,10 @@ import (
 )
 
 var (
-	ErrMsgAlreadyExist = errors.New("msg already exist")
-	ErrMsgNotFound     = errors.New("msg not found")
-	ErrTPAlreadyExist  = errors.New("time proof already exist")
+	ErrMsgFromInvalidUser = errors.New("msg from invalid user")
+	ErrMsgAlreadyExist    = errors.New("msg already exist")
+	ErrMsgNotFound        = errors.New("msg not found")
+	ErrTPAlreadyExist     = errors.New("time proof already exist")
 )
 
 type TimeProof struct {
@@ -34,31 +35,54 @@ type TimeProof struct {
 }
 
 type MsgDAG struct {
-	dag   *dag.DAG
-	ids   []common.Hash
-	tpMap map[common.Hash]*TimeProof
+	dag     *dag.DAG
+	ids     []common.Hash
+	tpMap   map[common.Hash]*TimeProof
+	userMap map[common.Hash]*UserDAG
 }
 
-// NewMsgDag create MsgDAG without check validation of msg.SenderID
-// the msg will also be used to create time proof.
-func NewMsgDag(msg *Message) (*MsgDAG, error) {
+// NewMsgDag create MsgDAG
+// the msg will also be used to create time proof as msg.SenderID
+func NewMsgDag(userDAG *UserDAG, msg *Message) (*MsgDAG, error) {
+	// check msg sender from valid user
+	if nil == userDAG.GetUserByID(msg.SenderID) {
+		return nil, ErrMsgFromInvalidUser
+	}
+	// build msg dag
 	msgVertex, err := dag.NewVertex(msg.ID(), msg)
 	if err != nil {
 		return nil, err
 	}
-	msgDAG, err := dag.NewDAG(msgVertex)
+	dag, err := dag.NewDAG(msgVertex)
 	if err != nil {
 		return nil, err
 	}
-
+	// init ids
 	ids := []common.Hash{msg.ID()}
-
+	// build time proof
 	tp, err := createTimeProof(msg)
 	if err != nil {
 		return nil, err
 	}
 
-	return &MsgDAG{dag: msgDAG, ids: ids, tpMap: map[common.Hash]*TimeProof{msg.SenderID: tp}}, nil
+	msgDAG := MsgDAG{dag: dag,
+		ids:     ids,
+		tpMap:   map[common.Hash]*TimeProof{msg.SenderID: tp},
+		userMap: map[common.Hash]*UserDAG{msg.SenderID: userDAG}}
+	return &msgDAG, nil
+}
+
+// CheckUserValid check if the user valid in this MsgDAG
+func (md *MsgDAG) CheckUserValid(userID common.Hash) bool {
+	for k, v := range md.userMap {
+		if k == userID {
+			return true
+		}
+		if nil != v.GetUserByID(userID) {
+			return true
+		}
+	}
+	return false
 }
 
 // AddTimeProof will get all messages save in MsgDAG with same msg.SenderID
@@ -69,6 +93,9 @@ func (md *MsgDAG) AddTimeProof(msg *Message) error {
 	}
 	if _, ok := md.tpMap[msg.SenderID]; ok {
 		return ErrTPAlreadyExist
+	}
+	if !md.CheckUserValid(msg.SenderID) {
+		return ErrMsgFromInvalidUser
 	}
 
 	initialize := true
@@ -108,8 +135,10 @@ func (md *MsgDAG) Add(msg *Message) error {
 	if md.GetMsgByID(msg.ID()) != nil {
 		return ErrMsgAlreadyExist
 	}
-	// todo :check the validation of user
 
+	if !md.CheckUserValid(msg.SenderID) {
+		return ErrMsgFromInvalidUser
+	}
 	var refs []interface{}
 	for _, r := range msg.Reference {
 		refs = append(refs, r.MsgID)

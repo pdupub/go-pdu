@@ -80,7 +80,7 @@ func TestCmd() *cobra.Command {
 
 			// Test 5: create msgDaG
 			// add the txt msg from Test 4 as the root msg
-			msgDAG, err := core.NewMsgDag(msg)
+			msgDAG, err := core.NewMsgDag(userDAG, msg)
 			if err != nil {
 				log.Info("create msg dag fail, err:", err)
 			} else {
