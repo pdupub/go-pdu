@@ -35,9 +35,10 @@ type TimeProof struct {
 }
 
 type Universe struct {
-	msgD *dag.DAG `json:"messageDAG"`
-	utD  *dag.DAG `json:"universeTimeDAG"`
-	ugD  *dag.DAG `json:"universeGroupDAG"`
+	msgD  *dag.DAG `json:"messageDAG"`       // contain all messages valid in any universe (time proof)
+	userD *dag.DAG `json:"userDAG"`          // contain all users valid in any universe (time proof)
+	utD   *dag.DAG `json:"universeTimeDAG"`  // contain all time proof
+	ugD   *dag.DAG `json:"universeGroupDAG"` // contain all user group
 }
 
 // NewUniverse create Universe
