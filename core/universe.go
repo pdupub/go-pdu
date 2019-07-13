@@ -36,8 +36,8 @@ type TimeProof struct {
 
 type Universe struct {
 	msgD *dag.DAG `json:"messageDAG"`
-	tpD  *dag.DAG `json:"timeProofDAG"`
-	ugD  *dag.DAG `json:"userGroupDAG"`
+	utD  *dag.DAG `json:"universeTimeDAG"`
+	ugD  *dag.DAG `json:"universeGroupDAG"`
 }
 
 // NewUniverse create Universe
@@ -65,7 +65,7 @@ func NewUniverse(group *Group, msg *Message) (*Universe, error) {
 	if err != nil {
 		return nil, err
 	}
-	tpD, err := dag.NewDAG(tpVertex)
+	utD, err := dag.NewDAG(tpVertex)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func NewUniverse(group *Group, msg *Message) (*Universe, error) {
 	}
 
 	Universe := Universe{msgD: msgD,
-		tpD: tpD,
+		utD: utD,
 		ugD: ugD}
 	return &Universe, nil
 }
@@ -115,7 +115,7 @@ func (md *Universe) AddUniverse(msg *Message) error {
 	if md.GetMsgByID(msg.ID()) == nil {
 		return ErrMsgNotFound
 	}
-	if nil != md.tpD.GetVertex(msg.SenderID) {
+	if nil != md.utD.GetVertex(msg.SenderID) {
 		return ErrTPAlreadyExist
 	}
 	if !md.CheckUserValid(msg.SenderID) {
@@ -134,7 +134,7 @@ func (md *Universe) AddUniverse(msg *Message) error {
 				if err != nil {
 					return err
 				}
-				if err = md.tpD.AddVertex(tpVertex); err != nil {
+				if err = md.utD.AddVertex(tpVertex); err != nil {
 					return err
 				}
 				initialize = false
@@ -253,7 +253,7 @@ func createTimeProof(msg *Message) (*TimeProof, error) {
 }
 
 func (md *Universe) updateTimeProof(msg *Message) error {
-	if vertex := md.tpD.GetVertex(msg.SenderID); vertex != nil {
+	if vertex := md.utD.GetVertex(msg.SenderID); vertex != nil {
 
 		tp := vertex.Value().(*TimeProof)
 		var currentSeq uint64 = 1
@@ -282,7 +282,7 @@ func (md *Universe) updateTimeProof(msg *Message) error {
 // GetMaxSeq will return the max time proof sequence for
 // time proof by the userID
 func (md *Universe) GetMaxSeq(userID common.Hash) uint64 {
-	if vertex := md.tpD.GetVertex(userID); vertex != nil {
+	if vertex := md.utD.GetVertex(userID); vertex != nil {
 		return vertex.Value().(*TimeProof).maxSeq
 	} else {
 		return 0
