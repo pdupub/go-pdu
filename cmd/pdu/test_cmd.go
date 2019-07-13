@@ -81,7 +81,7 @@ func TestCmd() *cobra.Command {
 				log.Trace("msg dag add msg", common.Hash2String(universe.GetMsgByID(msg.ID()).ID()))
 			}
 
-			ud := universe.GetUserDAG(Adam.ID())
+			ud := universe.GetUserDAG()
 			if ud == nil {
 				log.Error("user dag is not exist")
 			} else if newAdam := ud.GetUserByID(Adam.ID()); newAdam != nil {
@@ -91,7 +91,7 @@ func TestCmd() *cobra.Command {
 			// Test 6: verify msg
 			// msg contain the Adam is and signature.
 			// Adam's public key can be found from userDAG by Adam ID
-			verifyMsg(universe.GetUserDAG(Adam.ID()), msg, true)
+			verifyMsg(universe.GetUserDAG(), msg, true)
 
 			// Test 7: create second txt msg with reference, add into msg dag, verify msg
 			// new msg reference first msg
@@ -119,7 +119,7 @@ func TestCmd() *cobra.Command {
 			}
 
 			// verify msg
-			verifyMsg(universe.GetUserDAG(Adam.ID()), msg2, true)
+			verifyMsg(universe.GetUserDAG(), msg2, true)
 
 			// loop to add msg dag
 			ref = core.MsgReference{SenderID: Adam.ID(), MsgID: msg.ID()}
@@ -140,7 +140,7 @@ func TestCmd() *cobra.Command {
 				if i%(rule.REPRODUCTION_INTERVAL>>3) == 0 {
 					log.Trace("add ", i, "msgs")
 				}
-				verifyMsg(universe.GetUserDAG(Adam.ID()), msgT, false)
+				verifyMsg(universe.GetUserDAG(), msgT, false)
 			}
 
 			maxSeq := universe.GetMaxSeq(Adam.ID())
@@ -182,7 +182,7 @@ func TestCmd() *cobra.Command {
 				//log.Info("first dob msg ", "signature", msgDob.Signature)
 			}
 
-			verifyMsg(universe.GetUserDAG(Adam.ID()), msgDob, true)
+			verifyMsg(universe.GetUserDAG(), msgDob, true)
 
 			// Test 9: json marshal & unmarshal for msg
 			msgBytes, err := json.Marshal(msgDob)
@@ -196,7 +196,7 @@ func TestCmd() *cobra.Command {
 				if err != nil {
 					log.Error("unmarshal fail err:", err)
 				}
-				verifyMsg(universe.GetUserDAG(Adam.ID()), &msgDob2, true)
+				verifyMsg(universe.GetUserDAG(), &msgDob2, true)
 				msgBytes, err = json.Marshal(msgDob2)
 				if err != nil {
 					log.Error("marshal fail err:", err)
@@ -218,9 +218,9 @@ func TestCmd() *cobra.Command {
 				}
 
 				sigAdam := crypto.Signature{Signature: dobContent.Parents[1].Sig,
-					PublicKey: universe.GetUserDAG(Adam.ID()).GetUserByID(dobContent.Parents[1].PID).Auth.PublicKey}
+					PublicKey: universe.GetUserDAG().GetUserByID(dobContent.Parents[1].PID).Auth.PublicKey}
 				sigEve := crypto.Signature{Signature: dobContent.Parents[0].Sig,
-					PublicKey: universe.GetUserDAG(Adam.ID()).GetUserByID(dobContent.Parents[0].PID).Auth.PublicKey}
+					PublicKey: universe.GetUserDAG().GetUserByID(dobContent.Parents[0].PID).Auth.PublicKey}
 
 				if res, err := pdu.Verify(jsonBytes, sigAdam); err != nil || res == false {
 					log.Error("verify Adam fail, err", err)
@@ -245,7 +245,6 @@ func TestCmd() *cobra.Command {
 			} else {
 				log.Trace("add msg3 success")
 			}
-
 			if err := universe.Add(&msgDob2); err != core.ErrMsgAlreadyExist {
 				log.Error("add msg4 fail, err should be %s, but now err : %s", core.ErrMsgAlreadyExist, err)
 			}
@@ -268,7 +267,7 @@ func TestCmd() *cobra.Command {
 					log.Error("loop :", i, " err:", err)
 				}
 				ref = core.MsgReference{SenderID: Eve.ID(), MsgID: msgT.ID()}
-				verifyMsg(universe.GetUserDAG(Adam.ID()), msgT, false)
+				verifyMsg(universe.GetUserDAG(), msgT, false)
 			}
 
 			err = universe.AddUniverse(msg2)
