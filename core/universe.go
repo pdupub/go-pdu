@@ -35,10 +35,9 @@ type TimeProof struct {
 }
 
 type Universe struct {
-	msgD  *dag.DAG      `json:"messageDAG"`
-	uKeys []common.Hash `json:"universeKeys"`
-	tpD   *dag.DAG      `json:"timeProofDAG"`
-	ugD   *dag.DAG      `json:"userGroupDAG"`
+	msgD *dag.DAG `json:"messageDAG"`
+	tpD  *dag.DAG `json:"timeProofDAG"`
+	ugD  *dag.DAG `json:"userGroupDAG"`
 }
 
 // NewUniverse create Universe
@@ -70,7 +69,6 @@ func NewUniverse(group *Group, msg *Message) (*Universe, error) {
 	if err != nil {
 		return nil, err
 	}
-	uKeys := []common.Hash{msg.SenderID}
 	// build user group
 	ugVertex, err := dag.NewVertex(msg.SenderID, group)
 	if err != nil {
@@ -82,16 +80,15 @@ func NewUniverse(group *Group, msg *Message) (*Universe, error) {
 	}
 
 	Universe := Universe{msgD: msgD,
-		tpD:   tpD,
-		uKeys: uKeys,
-		ugD:   ugD}
+		tpD: tpD,
+		ugD: ugD}
 	return &Universe, nil
 }
 
 // CheckUserValid check if the user valid in this Universe
 // the msg.SenderID must valid in at least one tpDAG
 func (md *Universe) CheckUserValid(userID common.Hash) bool {
-	for _, k := range md.uKeys {
+	for _, k := range md.ugD.GetIDs() {
 		if k == userID {
 			return true
 		}
@@ -104,7 +101,7 @@ func (md *Universe) CheckUserValid(userID common.Hash) bool {
 
 func (md *Universe) findValidUniverse(senderID common.Hash) []interface{} {
 	var ugs []interface{}
-	for _, k := range md.uKeys {
+	for _, k := range md.ugD.GetIDs() {
 		if v := md.ugD.GetVertex(k); v != nil && v.Value().(*Group).GetUserByID(senderID) != nil {
 			ugs = append(ugs, k)
 		}
@@ -155,8 +152,6 @@ func (md *Universe) AddUniverse(msg *Message) error {
 		return err
 	}
 	md.ugD.AddVertex(ugVertex)
-	// update uKeys
-	md.uKeys = append(md.uKeys, msg.SenderID)
 	return nil
 }
 
@@ -235,7 +230,7 @@ func (md *Universe) processMsg(msg *Message) error {
 		// todo :check the valid time proof for parents in each timeproof
 		// user may not can be add to all userMap
 		//for _, v := range md.ugD {
-		for _, k := range md.uKeys {
+		for _, k := range md.ugD.GetIDs() {
 			err = md.ugD.GetVertex(k).Value().(*Group).Add(user)
 			if err != nil {
 				return err
