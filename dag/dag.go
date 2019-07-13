@@ -45,16 +45,19 @@ type DAG struct {
 	mu              sync.Mutex
 	maxParentsCount int // 0 = unlimited
 	store           map[interface{}]*Vertex
+	ids				[]interface{}
 }
 
 // NewDAG
 func NewDAG(rootVertex ...*Vertex) (*DAG, error) {
 	dag := &DAG{
 		store: make(map[interface{}]*Vertex),
+		ids:[]interface{}{},
 	}
 	for _, vertex := range rootVertex {
 		if len(vertex.Parents()) == 0 {
 			dag.store[vertex.ID()] = vertex
+			dag.ids = append(dag.ids, vertex.ID())
 		} else {
 			return nil, errRootVertexParentsExist
 		}
@@ -100,6 +103,7 @@ func (d *DAG) AddVertex(vertex *Vertex) error {
 	}
 	// add vertex into store
 	d.store[vertex.ID()] = vertex
+	d.ids = append(d.ids, vertex.ID())
 	// update the parent vertex children
 	for _, pid := range vertex.Parents() {
 		d.store[pid].AddChild(vertex.ID())
@@ -125,7 +129,17 @@ func (d *DAG) DelVertex(id interface{}) error {
 		}
 	}
 	delete(d.store, id)
+	for i:=0;i<len(d.ids);i++{
+		if d.ids[i] == id {
+			d.ids = append(d.ids[:i],d.ids[i+1:]...)
+			break
+		}
+	}
 	return nil
+}
+
+func (d DAG) GetIDs() []interface{} {
+	return d.ids
 }
 
 func (d DAG) String() string {
