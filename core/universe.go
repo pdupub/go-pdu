@@ -35,11 +35,10 @@ type TimeProof struct {
 }
 
 type Universe struct {
-	msgD   *dag.DAG      `json:"messageDAG"`
-	msgIds []common.Hash `json:"messageIDs"`
-	uKeys  []common.Hash `json:"universeKeys"`
-	tpD    *dag.DAG      `json:"timeProofDAG"`
-	ugD    *dag.DAG      `json:"userGroupDAG"`
+	msgD  *dag.DAG      `json:"messageDAG"`
+	uKeys []common.Hash `json:"universeKeys"`
+	tpD   *dag.DAG      `json:"timeProofDAG"`
+	ugD   *dag.DAG      `json:"userGroupDAG"`
 }
 
 // NewUniverse create Universe
@@ -58,8 +57,6 @@ func NewUniverse(group *Group, msg *Message) (*Universe, error) {
 	if err != nil {
 		return nil, err
 	}
-	// init ids
-	msgIds := []common.Hash{msg.ID()}
 	// build time proof
 	tp, err := createTimeProof(msg)
 	if err != nil {
@@ -85,10 +82,9 @@ func NewUniverse(group *Group, msg *Message) (*Universe, error) {
 	}
 
 	Universe := Universe{msgD: msgD,
-		msgIds: msgIds,
-		tpD:    tpD,
-		uKeys:  uKeys,
-		ugD:    ugD}
+		tpD:   tpD,
+		uKeys: uKeys,
+		ugD:   ugD}
 	return &Universe, nil
 }
 
@@ -130,7 +126,7 @@ func (md *Universe) AddUniverse(msg *Message) error {
 	}
 	// update time proof
 	initialize := true
-	for _, id := range md.msgIds {
+	for _, id := range md.msgD.GetIDs() {
 		if msgTP := md.GetMsgByID(id); msgTP != nil && msgTP.SenderID == msg.SenderID {
 			if initialize {
 				tp, err := createTimeProof(msgTP)
@@ -182,7 +178,7 @@ func (md *Universe) GetUserDAG(userID common.Hash) *Group {
 
 // GetMsgByID will return the msg by msg.ID()
 // nil will be return if msg not exist
-func (md *Universe) GetMsgByID(mid common.Hash) *Message {
+func (md *Universe) GetMsgByID(mid interface{}) *Message {
 	if v := md.msgD.GetVertex(mid); v != nil {
 		return v.Value().(*Message)
 	} else {
@@ -214,8 +210,6 @@ func (md *Universe) Add(msg *Message) error {
 	if err != nil {
 		return err
 	}
-	// ids
-	md.msgIds = append(md.msgIds, msg.ID())
 	// update tp
 	err = md.updateTimeProof(msg)
 	if err != nil {
