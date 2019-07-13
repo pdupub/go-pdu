@@ -29,11 +29,17 @@ var (
 	ErrTPAlreadyExist     = errors.New("time proof already exist")
 )
 
+// TimeProof
 type TimeProof struct {
 	maxSeq uint64
 	dag    *dag.DAG
 }
 
+// Universe
+// Vertex of utD is time proof, ID of Vertex is the ID of user which msg set as the time proof,
+// Reference of Vertex is source which this time proof split from
+// Vertex of ugD is group, ID of Vertex is the ID of time proof which this group valid,
+// Reference of Vertex is same with time proof reference
 type Universe struct {
 	msgD  *dag.DAG `json:"messageDAG"`       // contain all messages valid in any universe (time proof)
 	userD *dag.DAG `json:"userDAG"`          // contain all users valid in any universe (time proof)
