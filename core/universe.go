@@ -24,23 +24,29 @@ import (
 )
 
 var (
-	ErrMsgFromInvalidUser = errors.New("msg from invalid user")
-	ErrMsgAlreadyExist    = errors.New("msg already exist")
-	ErrMsgNotFound        = errors.New("msg not found")
-	ErrTPAlreadyExist     = errors.New("time proof already exist")
-	ErrUserAlreadyExist   = errors.New("user already exist")
+	ErrMsgUserNotExist  = errors.New("user not exist")
+	ErrMsgAlreadyExist  = errors.New("msg already exist")
+	ErrMsgNotFound      = errors.New("msg not found")
+	ErrTPAlreadyExist   = errors.New("time proof already exist")
+	ErrUserAlreadyExist = errors.New("user already exist")
+	ErrNotSupportYet    = errors.New("not error, just not support ye")
 )
 
 const (
 	UserStatusNormal = iota
 )
 
-// UserState contain the information can be modified by local user
-// such as local user want to block some user
-type UserState struct {
-	publicState int //
+// UserState contain the information except pass by DOBMsg
+// the state related to nature rule is start by nature
+// the other state start by local
+type UserInfo struct {
+	natureState   int    //
+	localNickname string //
 }
 
+// SpaceTime contain time proof of this space time and the user info who is born in this space time
+// not only the user born in this space time is valid in this space time, also born in direct/indirect
+// reference of this space time will be valid in this space time
 type SpaceTime struct {
 	maxTimeSequence uint64
 	timeProofD      *dag.DAG // msg.id  : time sequence
@@ -48,30 +54,25 @@ type SpaceTime struct {
 }
 
 // Universe
-// Vertex of utD is time proof, ID of Vertex is the ID of user which msg set as the time proof,
-// Reference of Vertex is source which this time proof split from
-// Vertex of ugD is group, ID of Vertex is the ID of time proof which this group valid,
-// Reference of Vertex is same with time proof reference
 type Universe struct {
 	msgD  *dag.DAG `json:"messageDAG"`   // contain all messages valid in any universe (time proof)
 	userD *dag.DAG `json:"userDAG"`      // contain all users valid in any universe (time proof)
-	stD   *dag.DAG `json:"spaceTimeDAG"` // contain all space time
+	stD   *dag.DAG `json:"spaceTimeDAG"` // contain all space time, which is the origin thought of PDU
 }
 
-// NewUniverse create Universe
-// the msg will also be used to create time proof as msg.SenderID
+// NewUniverse create Universe from two user with diff gender
 func NewUniverse(Eve, Adam *User) (*Universe, error) {
-	// check msg sender from valid user
+	if Eve.Gender() == Adam.Gender() {
+		return nil, ErrNotSupportYet
+	}
 	EveVertex, err := dag.NewVertex(Eve.ID(), Eve)
 	if err != nil {
 		return nil, err
 	}
-
 	AdamVertex, err := dag.NewVertex(Adam.ID(), Adam)
 	if err != nil {
 		return nil, err
 	}
-
 	userD, err := dag.NewDAG(EveVertex, AdamVertex)
 	if err != nil {
 		return nil, err
@@ -80,15 +81,15 @@ func NewUniverse(Eve, Adam *User) (*Universe, error) {
 	return &Universe{userD: userD}, nil
 }
 
-// CheckUserValid check if the user valid in this Universe
-// the msg.SenderID must valid in at least one tpDAG
-func (u *Universe) CheckUserValid(userID common.Hash) bool {
+// CheckUserExist check if the user valid in this Universe
+func (u *Universe) CheckUserExist(userID common.Hash) bool {
 	if nil != u.GetUserByID(userID) {
 		return true
 	}
 	return false
 }
 
+// GetUserByID return the user from userD, not userInfo by space time
 func (u *Universe) GetUserByID(uid common.Hash) *User {
 	if v := u.userD.GetVertex(uid); v != nil {
 		return v.Value().(*User)
@@ -97,7 +98,9 @@ func (u *Universe) GetUserByID(uid common.Hash) *User {
 	}
 }
 
-func (u *Universe) AddUser(user *User) error {
+// addUser user to u.userD
+// update info of u.stD need other func
+func (u *Universe) addUser(user *User) error {
 	if u.GetUserByID(user.ID()) != nil {
 		return ErrUserAlreadyExist
 	}
@@ -117,19 +120,14 @@ func (u *Universe) AddUser(user *User) error {
 	return nil
 }
 
-// findValidUniverse return
-func (u *Universe) findValidUniverse(senderID common.Hash) []interface{} {
+// findValidSpaceTime is used when create new space time
+func (u *Universe) findValidSpaceTime(senderID common.Hash) []interface{} {
 	var ugs []interface{}
-	for _, k := range u.stD.GetIDs() {
-		if v := u.stD.GetVertex(k); v != nil {
-			ugs = append(ugs, k)
-		}
-	}
+	// todo: find valid space time for reference
 	return ugs
 }
 
-// AddTimeProof will get all messages save in Universe with same msg.SenderID
-// and build the time proof by those messages
+// AddSpaceTime will get all messages save in Universe with same msg.SenderID
 func (u *Universe) AddSpaceTime(msg *Message) error {
 	if u.GetMsgByID(msg.ID()) == nil {
 		return ErrMsgNotFound
@@ -137,8 +135,8 @@ func (u *Universe) AddSpaceTime(msg *Message) error {
 	if nil != u.stD.GetVertex(msg.SenderID) {
 		return ErrTPAlreadyExist
 	}
-	if !u.CheckUserValid(msg.SenderID) {
-		return ErrMsgFromInvalidUser
+	if !u.CheckUserExist(msg.SenderID) {
+		return ErrMsgUserNotExist
 	}
 	// update time proof
 	initialize := true
@@ -149,7 +147,7 @@ func (u *Universe) AddSpaceTime(msg *Message) error {
 				if err != nil {
 					return err
 				}
-				tpVertex, err := dag.NewVertex(msg.SenderID, tp, u.findValidUniverse(msg.SenderID)...)
+				tpVertex, err := dag.NewVertex(msg.SenderID, tp, u.findValidSpaceTime(msg.SenderID)...)
 				if err != nil {
 					return err
 				}
@@ -177,7 +175,7 @@ func (u *Universe) GetMsgByID(mid interface{}) *Message {
 	}
 }
 
-// Add will check if the msg from valid user,
+// AddMsg will check if the msg from valid user,
 // add new msg into Universe, and update time proof if
 // msg.SenderID is belong to time proof
 func (u *Universe) AddMsg(msg *Message) error {
@@ -213,8 +211,8 @@ func (u *Universe) AddMsg(msg *Message) error {
 		if u.GetMsgByID(msg.ID()) != nil {
 			return ErrMsgAlreadyExist
 		}
-		if !u.CheckUserValid(msg.SenderID) {
-			return ErrMsgFromInvalidUser
+		if !u.CheckUserExist(msg.SenderID) {
+			return ErrMsgUserNotExist
 		}
 		// update dag
 		var refs []interface{}
@@ -252,9 +250,10 @@ func (u *Universe) processMsg(msg *Message) error {
 		if err != nil {
 			return err
 		}
-		// todo :check the valid time proof for parents in each timeproof
+		// todo :check the valid time proof for parents in each space time
+		// todo :is depend on the reference of dob msg and the validation of both parents
 		// user may not can be add to all userMap
-		err = u.AddUser(user)
+		err = u.addUser(user)
 		if err != nil {
 			return err
 		}
@@ -284,7 +283,7 @@ func createSpaceTime(msg *Message, users ...*User) (*SpaceTime, error) {
 		return nil, err
 	}
 	for _, user := range users {
-		userStateVertex, err := dag.NewVertex(user.ID(), UserState{publicState: UserStatusNormal})
+		userStateVertex, err := dag.NewVertex(user.ID(), UserInfo{natureState: UserStatusNormal})
 		if err != nil {
 			return nil, err
 		}
