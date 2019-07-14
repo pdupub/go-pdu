@@ -45,14 +45,14 @@ type DAG struct {
 	mu              sync.Mutex
 	maxParentsCount int // 0 = unlimited
 	store           map[interface{}]*Vertex
-	ids				[]interface{}
+	ids             []interface{}
 }
 
 // NewDAG
 func NewDAG(rootVertex ...*Vertex) (*DAG, error) {
 	dag := &DAG{
 		store: make(map[interface{}]*Vertex),
-		ids:[]interface{}{},
+		ids:   []interface{}{},
 	}
 	for _, vertex := range rootVertex {
 		if len(vertex.Parents()) == 0 {
@@ -129,9 +129,9 @@ func (d *DAG) DelVertex(id interface{}) error {
 		}
 	}
 	delete(d.store, id)
-	for i:=0;i<len(d.ids);i++{
+	for i := 0; i < len(d.ids); i++ {
 		if d.ids[i] == id {
-			d.ids = append(d.ids[:i],d.ids[i+1:]...)
+			d.ids = append(d.ids[:i], d.ids[i+1:]...)
 			break
 		}
 	}

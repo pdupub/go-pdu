@@ -28,9 +28,17 @@ func TestDAG(t *testing.T) {
 		t.Errorf("create DAG fail , err : %s", err)
 	}
 
+	if len(dag.GetIDs()) != 2 {
+		t.Errorf("id number not match, should be %d, dag getIDs is %d", 2, dag.GetIDs())
+	}
+
 	v3, _ := NewVertex("id-3", "hello you", v1, v2)
 	if err := dag.AddVertex(v3); err != nil {
 		t.Errorf("add vertex fail, err : %s", err)
+	}
+
+	if len(dag.GetIDs()) != 3 {
+		t.Errorf("id number not match, should be %d, dag getIDs is %d", 3, dag.GetIDs())
 	}
 
 	v3_, _ := NewVertex("id-3", "hello", "id-1", "id-2")
@@ -46,6 +54,10 @@ func TestDAG(t *testing.T) {
 	v5, _ := NewVertex("id-5", "hello", "id-0", "id-1")
 	if err := dag.AddVertex(v5); err != errVertexParentNotExist {
 		t.Errorf("add vertex should not be success, becasuse not all parents exist")
+	}
+
+	if len(dag.GetIDs()) != 3 {
+		t.Errorf("id number not match, should be %d, dag getIDs is %d", 3, dag.GetIDs())
 	}
 
 	v6, _ := NewVertex("id-4", "hello", "id-1", "id-3")
