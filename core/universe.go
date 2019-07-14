@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	ErrMsgUserNotExist  = errors.New("user not exist")
+	ErrUserNotExist     = errors.New("user not exist")
 	ErrMsgAlreadyExist  = errors.New("msg already exist")
 	ErrMsgNotFound      = errors.New("msg not found")
 	ErrTPAlreadyExist   = errors.New("time proof already exist")
@@ -136,7 +136,7 @@ func (u *Universe) AddSpaceTime(msg *Message) error {
 		return ErrTPAlreadyExist
 	}
 	if !u.CheckUserExist(msg.SenderID) {
-		return ErrMsgUserNotExist
+		return ErrUserNotExist
 	}
 	// update time proof
 	initialize := true
@@ -179,6 +179,9 @@ func (u *Universe) GetMsgByID(mid interface{}) *Message {
 // add new msg into Universe, and update time proof if
 // msg.SenderID is belong to time proof
 func (u *Universe) AddMsg(msg *Message) error {
+	if !u.CheckUserExist(msg.SenderID) {
+		return ErrUserNotExist
+	}
 	if u.msgD == nil {
 		// build msg dag
 		msgVertex, err := dag.NewVertex(msg.ID(), msg)
@@ -210,9 +213,6 @@ func (u *Universe) AddMsg(msg *Message) error {
 		// check
 		if u.GetMsgByID(msg.ID()) != nil {
 			return ErrMsgAlreadyExist
-		}
-		if !u.CheckUserExist(msg.SenderID) {
-			return ErrMsgUserNotExist
 		}
 		// update dag
 		var refs []interface{}
