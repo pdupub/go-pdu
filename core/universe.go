@@ -17,6 +17,7 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/dag"
@@ -27,13 +28,8 @@ var (
 	ErrMsgAlreadyExist    = errors.New("msg already exist")
 	ErrMsgNotFound        = errors.New("msg not found")
 	ErrTPAlreadyExist     = errors.New("time proof already exist")
+	ErrUserAlreadyExist   = errors.New("user already exist")
 )
-
-// UniverseGroup
-// value of vertex contain in dag is user status
-type UniverseGroup struct {
-	dag *dag.DAG
-}
 
 const (
 	UserStatusNormal = iota
@@ -57,19 +53,31 @@ type SpaceTime struct {
 // Vertex of ugD is group, ID of Vertex is the ID of time proof which this group valid,
 // Reference of Vertex is same with time proof reference
 type Universe struct {
-	msgD  *dag.DAG `json:"messageDAG"`       // contain all messages valid in any universe (time proof)
-	group *Group   `json:"group"`            // contain all users valid in any universe (time proof)
-	stD   *dag.DAG `json:"spaceTimeDAG"`     // contain all space time
-	ugD   *dag.DAG `json:"universeGroupDAG"` // contain all user group
+	msgD  *dag.DAG `json:"messageDAG"`   // contain all messages valid in any universe (time proof)
+	userD *dag.DAG `json:"userDAG"`      // contain all users valid in any universe (time proof)
+	stD   *dag.DAG `json:"spaceTimeDAG"` // contain all space time
 }
 
 // NewUniverse create Universe
 // the msg will also be used to create time proof as msg.SenderID
-func NewUniverse(group *Group, msg *Message) (*Universe, error) {
+func NewUniverse(Eve, Adam *User, msg *Message) (*Universe, error) {
 	// check msg sender from valid user
-	if nil == group.GetUserByID(msg.SenderID) {
-		return nil, ErrMsgFromInvalidUser
+	EveVertex, err := dag.NewVertex(Eve.ID(), Eve)
+	if err != nil {
+		return nil, err
 	}
+
+	AdamVertex, err := dag.NewVertex(Adam.ID(), Adam)
+	if err != nil {
+		return nil, err
+	}
+
+	userD, err := dag.NewDAG(EveVertex, AdamVertex)
+	if err != nil {
+		return nil, err
+	}
+	userD.SetMaxParentsCount(2)
+
 	// build msg dag
 	msgVertex, err := dag.NewVertex(msg.ID(), msg)
 	if err != nil {
@@ -92,39 +100,56 @@ func NewUniverse(group *Group, msg *Message) (*Universe, error) {
 	if err != nil {
 		return nil, err
 	}
-	// build user group
-	ug, err := createUniverseGroup(group, msg)
-	ugVertex, err := dag.NewVertex(msg.SenderID, ug)
-	if err != nil {
-		return nil, err
-	}
-	ugD, err := dag.NewDAG(ugVertex)
-	if err != nil {
-		return nil, err
-	}
 
 	Universe := Universe{
 		msgD:  msgD,
-		group: group,
-		stD:   stD,
-		ugD:   ugD}
+		userD: userD,
+		stD:   stD}
 	return &Universe, nil
 }
 
 // CheckUserValid check if the user valid in this Universe
 // the msg.SenderID must valid in at least one tpDAG
-func (md *Universe) CheckUserValid(userID common.Hash) bool {
-	if nil != md.group.GetUserByID(userID) {
+func (u *Universe) CheckUserValid(userID common.Hash) bool {
+	if nil != u.GetUserByID(userID) {
 		return true
 	}
 	return false
 }
 
+func (u *Universe) GetUserByID(uid common.Hash) *User {
+	if v := u.userD.GetVertex(uid); v != nil {
+		return v.Value().(*User)
+	} else {
+		return nil
+	}
+}
+
+func (u *Universe) AddUser(user *User) error {
+	if u.GetUserByID(user.ID()) != nil {
+		return ErrUserAlreadyExist
+	}
+	var dobContent DOBMsgContent
+	err := json.Unmarshal(user.DOBMsg.Value.Content, &dobContent)
+	if err != nil {
+		return err
+	}
+	userVertex, err := dag.NewVertex(user.ID(), user, dobContent.Parents[0].PID, dobContent.Parents[1].PID)
+	if err != nil {
+		return err
+	}
+	err = u.userD.AddVertex(userVertex)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // findValidUniverse return
-func (md *Universe) findValidUniverse(senderID common.Hash) []interface{} {
+func (u *Universe) findValidUniverse(senderID common.Hash) []interface{} {
 	var ugs []interface{}
-	for _, k := range md.ugD.GetIDs() {
-		if v := md.ugD.GetVertex(k); v != nil {
+	for _, k := range u.stD.GetIDs() {
+		if v := u.stD.GetVertex(k); v != nil {
 			ugs = append(ugs, k)
 		}
 	}
@@ -133,67 +158,47 @@ func (md *Universe) findValidUniverse(senderID common.Hash) []interface{} {
 
 // AddTimeProof will get all messages save in Universe with same msg.SenderID
 // and build the time proof by those messages
-func (md *Universe) AddSpaceTime(msg *Message) error {
-	if md.GetMsgByID(msg.ID()) == nil {
+func (u *Universe) AddSpaceTime(msg *Message) error {
+	if u.GetMsgByID(msg.ID()) == nil {
 		return ErrMsgNotFound
 	}
-	if nil != md.stD.GetVertex(msg.SenderID) {
+	if nil != u.stD.GetVertex(msg.SenderID) {
 		return ErrTPAlreadyExist
 	}
-	if !md.CheckUserValid(msg.SenderID) {
+	if !u.CheckUserValid(msg.SenderID) {
 		return ErrMsgFromInvalidUser
 	}
 	// update time proof
 	initialize := true
-	for _, id := range md.msgD.GetIDs() {
-		if msgTP := md.GetMsgByID(id); msgTP != nil && msgTP.SenderID == msg.SenderID {
+	for _, id := range u.msgD.GetIDs() {
+		if msgTP := u.GetMsgByID(id); msgTP != nil && msgTP.SenderID == msg.SenderID {
 			if initialize {
 				tp, err := createSpaceTime(msgTP)
 				if err != nil {
 					return err
 				}
-				tpVertex, err := dag.NewVertex(msg.SenderID, tp, md.findValidUniverse(msg.SenderID)...)
+				tpVertex, err := dag.NewVertex(msg.SenderID, tp, u.findValidUniverse(msg.SenderID)...)
 				if err != nil {
 					return err
 				}
-				if err = md.stD.AddVertex(tpVertex); err != nil {
+				if err = u.stD.AddVertex(tpVertex); err != nil {
 					return err
 				}
 				initialize = false
 			} else {
-				if err := md.updateTimeProof(msgTP); err != nil {
+				if err := u.updateTimeProof(msgTP); err != nil {
 					return err
 				}
 			}
 		}
 	}
-	// update user group
-	group := md.createUniverseGroup(msg.SenderID)
-	ugVertex, err := dag.NewVertex(msg.SenderID, group, md.findValidUniverse(msg.SenderID)...)
-	if err != nil {
-		return err
-	}
-	md.ugD.AddVertex(ugVertex)
 	return nil
-}
-
-//
-func (md *Universe) createUniverseGroup(userID common.Hash) *UniverseGroup {
-	// todo : the new UserDAG should contain all parent users
-	// todo : in all userDag which this userID is valid
-	// todo : need deep copy
-	return nil
-}
-
-// GetUserDAG return userDAG by time proof userID
-func (md *Universe) GetUserDAG() *Group {
-	return md.group
 }
 
 // GetMsgByID will return the msg by msg.ID()
 // nil will be return if msg not exist
-func (md *Universe) GetMsgByID(mid interface{}) *Message {
-	if v := md.msgD.GetVertex(mid); v != nil {
+func (u *Universe) GetMsgByID(mid interface{}) *Message {
+	if v := u.msgD.GetVertex(mid); v != nil {
 		return v.Value().(*Message)
 	} else {
 		return nil
@@ -203,12 +208,12 @@ func (md *Universe) GetMsgByID(mid interface{}) *Message {
 // Add will check if the msg from valid user,
 // add new msg into Universe, and update time proof if
 // msg.SenderID is belong to time proof
-func (md *Universe) Add(msg *Message) error {
+func (u *Universe) AddMsg(msg *Message) error {
 	// check
-	if md.GetMsgByID(msg.ID()) != nil {
+	if u.GetMsgByID(msg.ID()) != nil {
 		return ErrMsgAlreadyExist
 	}
-	if !md.CheckUserValid(msg.SenderID) {
+	if !u.CheckUserValid(msg.SenderID) {
 		return ErrMsgFromInvalidUser
 	}
 	// update dag
@@ -220,24 +225,24 @@ func (md *Universe) Add(msg *Message) error {
 	if err != nil {
 		return err
 	}
-	err = md.msgD.AddVertex(msgVertex)
+	err = u.msgD.AddVertex(msgVertex)
 	if err != nil {
 		return err
 	}
 	// update tp
-	err = md.updateTimeProof(msg)
+	err = u.updateTimeProof(msg)
 	if err != nil {
 		return err
 	}
 	// process the msg
-	err = md.processMsg(msg)
+	err = u.processMsg(msg)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (md *Universe) processMsg(msg *Message) error {
+func (u *Universe) processMsg(msg *Message) error {
 	switch msg.Value.ContentType {
 	case TypeText:
 		return nil
@@ -248,7 +253,7 @@ func (md *Universe) processMsg(msg *Message) error {
 		}
 		// todo :check the valid time proof for parents in each timeproof
 		// user may not can be add to all userMap
-		err = md.group.Add(user)
+		err = u.AddUser(user)
 		if err != nil {
 			return err
 		}
@@ -288,49 +293,8 @@ func createSpaceTime(msg *Message, users ...*User) (*SpaceTime, error) {
 	return &SpaceTime{maxTimeSequence: timeVertex.Value().(uint64), timeProofD: timeProofDag, userStateD: userStateD}, nil
 }
 
-func createUniverseGroup(group *Group, msg *Message) (*UniverseGroup, error) {
-	var ugDag *dag.DAG
-	if group != nil {
-		for i, k := range group.dag.GetIDs() {
-			ugV, err := dag.NewVertex(k, UserStatusNormal)
-			if err != nil {
-				return nil, err
-			}
-			if i == 0 {
-				ugDag, err = dag.NewDAG(ugV)
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				err = ugDag.AddVertex(ugV)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-	}
-	if msg != nil {
-		ugV, err := dag.NewVertex(msg.SenderID, UserStatusNormal)
-		if err != nil {
-			return nil, err
-		}
-		if ugDag == nil {
-			ugDag, err = dag.NewDAG(ugV)
-			if err != nil {
-				return nil, err
-			}
-		} else if ugDag.GetVertex(msg.SenderID) == nil {
-			err = ugDag.AddVertex(ugV)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	return &UniverseGroup{dag: ugDag}, nil
-}
-
-func (md *Universe) updateTimeProof(msg *Message) error {
-	if vertex := md.stD.GetVertex(msg.SenderID); vertex != nil {
+func (u *Universe) updateTimeProof(msg *Message) error {
+	if vertex := u.stD.GetVertex(msg.SenderID); vertex != nil {
 
 		tp := vertex.Value().(*SpaceTime)
 		var currentSeq uint64 = 1
@@ -358,8 +322,8 @@ func (md *Universe) updateTimeProof(msg *Message) error {
 
 // GetMaxSeq will return the max time proof sequence for
 // time proof by the userID
-func (md *Universe) GetMaxSeq(userID common.Hash) uint64 {
-	if vertex := md.stD.GetVertex(userID); vertex != nil {
+func (u *Universe) GetMaxSeq(userID common.Hash) uint64 {
+	if vertex := u.stD.GetVertex(userID); vertex != nil {
 		return vertex.Value().(*SpaceTime).maxTimeSequence
 	} else {
 		return 0
