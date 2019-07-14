@@ -270,7 +270,7 @@ func TestCmd() *cobra.Command {
 				verifyMsg(universe.GetUserDAG(), msgT, false)
 			}
 
-			err = universe.AddUniverse(msg2)
+			err = universe.AddSpaceTime(msg2)
 			if err != nil {
 				log.Error("add time proof fail, err :", err)
 			} else {
