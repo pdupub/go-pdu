@@ -38,7 +38,11 @@ func genKey() (*ecdsa.PrivateKey, error) {
 	return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 }
 
-func GenKey(sigType string, params ...interface{}) (*crypto.PrivateKey, *crypto.PublicKey, error) {
+func GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.PublicKey, error) {
+	if len(params) == 0 {
+		return nil, nil, crypto.ErrSigTypeNotSupport
+	}
+	sigType := params[0].(string)
 	switch sigType {
 	case Signature2PublicKey:
 		if pk, err := genKey(); err != nil {
@@ -47,11 +51,11 @@ func GenKey(sigType string, params ...interface{}) (*crypto.PrivateKey, *crypto.
 			return &crypto.PrivateKey{Source: SourceName, SigType: Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: SourceName, SigType: Signature2PublicKey, PubKey: pk.PublicKey}, nil
 		}
 	case MultipleSignatures:
-		if len(params) == 0 {
+		if len(params) == 1 {
 			return nil, nil, crypto.ErrGenerateKeyFail
 		}
 		var privKeys, pubKeys []interface{}
-		for i := 0; i < params[0].(int); i++ {
+		for i := 0; i < params[1].(int); i++ {
 			if pk, err := genKey(); err != nil {
 				return nil, nil, err
 			} else {

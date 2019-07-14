@@ -15,3 +15,43 @@
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
 package core
+
+import (
+	"crypto/ecdsa"
+	"encoding/json"
+	"github.com/pdupub/go-pdu/crypto/pdu"
+	"testing"
+)
+
+func TestAuth_MarshalJSON(t *testing.T) {
+
+	_, pubKey, err := pdu.GenKey(pdu.Signature2PublicKey)
+	if err != nil {
+		t.Errorf("pdu genereate key fail, err: %s", err)
+	}
+	auth := Auth{
+		*pubKey,
+	}
+
+	authBytes, err := json.Marshal(auth)
+	if err != nil {
+		t.Errorf("auth marshal fail, err: %s", err)
+	}
+
+	var targetAuth Auth
+	err = json.Unmarshal(authBytes, &targetAuth)
+	if err != nil {
+		t.Errorf("auth unmarshal fail, err: %s", err)
+	}
+
+	if pubKey.Source != targetAuth.PublicKey.Source || pubKey.SigType != targetAuth.PublicKey.SigType {
+		t.Errorf("pubkey info mismatch")
+	}
+
+	pubKey1 := pubKey.PubKey.(ecdsa.PublicKey)
+	pubKey2 := targetAuth.PubKey.(ecdsa.PublicKey)
+	if pubKey1.X.Cmp(pubKey2.X) != 0 || pubKey1.Y.Cmp(pubKey2.Y) != 0 {
+		t.Errorf("public key mismatch")
+	}
+
+}
