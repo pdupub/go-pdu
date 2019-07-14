@@ -44,6 +44,10 @@ func TestCmd() *cobra.Command {
 			// because the gender of user relate to public key (random),
 			// so createRootUser will repeat until two root user be created.
 			Adam, Eve, privKeyAdam, privKeyEve, err := createAdamAndEve()
+			universe, err := core.NewUniverse(Eve, Adam)
+			if err != nil {
+				log.Info("create msg dag fail, err:", err)
+			}
 
 			// Test 4: create txt msg
 			// this msg is signed by Adam
@@ -65,9 +69,10 @@ func TestCmd() *cobra.Command {
 
 			// Test 5: create msgDaG
 			// add the txt msg from Test 4 as the root msg
-			universe, err := core.NewUniverse(Eve, Adam, msg)
+
+			err = universe.AddMsg(msg)
 			if err != nil {
-				log.Info("create msg dag fail, err:", err)
+				log.Error("add msg fail , err :", err)
 			} else {
 				log.Trace("msg dag add msg", common.Hash2String(universe.GetMsgByID(msg.ID()).ID()))
 			}

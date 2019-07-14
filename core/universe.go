@@ -60,7 +60,7 @@ type Universe struct {
 
 // NewUniverse create Universe
 // the msg will also be used to create time proof as msg.SenderID
-func NewUniverse(Eve, Adam *User, msg *Message) (*Universe, error) {
+func NewUniverse(Eve, Adam *User) (*Universe, error) {
 	// check msg sender from valid user
 	EveVertex, err := dag.NewVertex(Eve.ID(), Eve)
 	if err != nil {
@@ -77,35 +77,7 @@ func NewUniverse(Eve, Adam *User, msg *Message) (*Universe, error) {
 		return nil, err
 	}
 	userD.SetMaxParentsCount(2)
-
-	// build msg dag
-	msgVertex, err := dag.NewVertex(msg.ID(), msg)
-	if err != nil {
-		return nil, err
-	}
-	msgD, err := dag.NewDAG(msgVertex)
-	if err != nil {
-		return nil, err
-	}
-	// build time proof
-	st, err := createSpaceTime(msg)
-	if err != nil {
-		return nil, err
-	}
-	stVertex, err := dag.NewVertex(msg.SenderID, st)
-	if err != nil {
-		return nil, err
-	}
-	stD, err := dag.NewDAG(stVertex)
-	if err != nil {
-		return nil, err
-	}
-
-	Universe := Universe{
-		msgD:  msgD,
-		userD: userD,
-		stD:   stD}
-	return &Universe, nil
+	return &Universe{userD: userD}, nil
 }
 
 // CheckUserValid check if the user valid in this Universe
@@ -209,35 +181,64 @@ func (u *Universe) GetMsgByID(mid interface{}) *Message {
 // add new msg into Universe, and update time proof if
 // msg.SenderID is belong to time proof
 func (u *Universe) AddMsg(msg *Message) error {
-	// check
-	if u.GetMsgByID(msg.ID()) != nil {
-		return ErrMsgAlreadyExist
-	}
-	if !u.CheckUserValid(msg.SenderID) {
-		return ErrMsgFromInvalidUser
-	}
-	// update dag
-	var refs []interface{}
-	for _, r := range msg.Reference {
-		refs = append(refs, r.MsgID)
-	}
-	msgVertex, err := dag.NewVertex(msg.ID(), msg, refs...)
-	if err != nil {
-		return err
-	}
-	err = u.msgD.AddVertex(msgVertex)
-	if err != nil {
-		return err
-	}
-	// update tp
-	err = u.updateTimeProof(msg)
-	if err != nil {
-		return err
-	}
-	// process the msg
-	err = u.processMsg(msg)
-	if err != nil {
-		return err
+	if u.msgD == nil {
+		// build msg dag
+		msgVertex, err := dag.NewVertex(msg.ID(), msg)
+		if err != nil {
+			return err
+		}
+		msgD, err := dag.NewDAG(msgVertex)
+		if err != nil {
+			return err
+		}
+		u.msgD = msgD
+		// build time proof
+		st, err := createSpaceTime(msg)
+		if err != nil {
+			return err
+		}
+		stVertex, err := dag.NewVertex(msg.SenderID, st)
+		if err != nil {
+			return err
+		}
+		stD, err := dag.NewDAG(stVertex)
+		if err != nil {
+			return err
+		}
+		u.stD = stD
+
+	} else {
+
+		// check
+		if u.GetMsgByID(msg.ID()) != nil {
+			return ErrMsgAlreadyExist
+		}
+		if !u.CheckUserValid(msg.SenderID) {
+			return ErrMsgFromInvalidUser
+		}
+		// update dag
+		var refs []interface{}
+		for _, r := range msg.Reference {
+			refs = append(refs, r.MsgID)
+		}
+		msgVertex, err := dag.NewVertex(msg.ID(), msg, refs...)
+		if err != nil {
+			return err
+		}
+		err = u.msgD.AddVertex(msgVertex)
+		if err != nil {
+			return err
+		}
+		// update tp
+		err = u.updateTimeProof(msg)
+		if err != nil {
+			return err
+		}
+		// process the msg
+		err = u.processMsg(msg)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
