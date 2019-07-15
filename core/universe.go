@@ -25,13 +25,14 @@ import (
 )
 
 var (
-	ErrUserNotExist     = errors.New("user not exist")
-	ErrMsgAlreadyExist  = errors.New("msg already exist")
-	ErrMsgNotFound      = errors.New("msg not found")
-	ErrTPAlreadyExist   = errors.New("time proof already exist")
-	ErrUserAlreadyExist = errors.New("user already exist")
-	ErrNotSupportYet    = errors.New("not error, just not support ye")
-	ErrNewUserAddFail   = errors.New("new user add fail")
+	ErrUserNotExist       = errors.New("user not exist")
+	ErrMsgAlreadyExist    = errors.New("msg already exist")
+	ErrMsgNotFound        = errors.New("msg not found")
+	ErrTPAlreadyExist     = errors.New("time proof already exist")
+	ErrUserAlreadyExist   = errors.New("user already exist")
+	ErrNotSupportYet      = errors.New("not error, just not support ye")
+	ErrNewUserAddFail     = errors.New("new user add fail")
+	ErrReferenceNotUnique = errors.New("reference not unique")
 )
 
 const (
@@ -243,6 +244,9 @@ func (u *Universe) createSpaceTime(msg *Message) (*SpaceTime, error) {
 	timeVertex, err := dag.NewVertex(msg.ID(), uint64(1))
 	if err != nil {
 		return nil, err
+	}
+	if len(msg.Reference) > 1 {
+		return nil, ErrReferenceNotUnique
 	}
 	timeProofDag, err := dag.NewDAG(timeVertex)
 	if err != nil {
