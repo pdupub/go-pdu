@@ -22,8 +22,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/pdupub/go-pdu/common"
+	"github.com/pdupub/go-pdu/core/rule"
 	"github.com/pdupub/go-pdu/crypto"
 	"math/big"
+	"strconv"
 )
 
 const (
@@ -40,6 +42,7 @@ type User struct {
 	DOBExtra string   `json:"extra"`
 	Auth     *Auth    `json:"auth"`
 	DOBMsg   *Message `json:"dobMsg"`
+	LifeTime uint64   `json:"lifeTime"`
 }
 
 var (
@@ -50,11 +53,11 @@ var (
 // One Male user and one female user,
 func CreateRootUsers(key crypto.PublicKey) ([2]*User, error) {
 	rootUsers := [2]*User{nil, nil}
-	rootFUser := User{Name: rootFName, DOBExtra: rootFDOBExtra, Auth: &Auth{key}, DOBMsg: nil}
+	rootFUser := User{Name: rootFName, DOBExtra: rootFDOBExtra, Auth: &Auth{key}, DOBMsg: nil, LifeTime: rule.MAX_LIFTTIME}
 	if rootFUser.Gender() == female {
 		rootUsers[0] = &rootFUser
 	}
-	rootMUser := User{Name: rootMName, DOBExtra: rootMDOBExtra, Auth: &Auth{key}, DOBMsg: nil}
+	rootMUser := User{Name: rootMName, DOBExtra: rootMDOBExtra, Auth: &Auth{key}, DOBMsg: nil, LifeTime: rule.MAX_LIFTTIME}
 	if rootMUser.Gender() == male {
 		rootUsers[1] = &rootMUser
 	}
@@ -66,7 +69,7 @@ func CreateRootUsers(key crypto.PublicKey) ([2]*User, error) {
 // Both parents must be in the local use dag.
 // Both parents fit the nature rules.
 // The BOD struct signed by both parents.
-func CreateNewUser(msg *Message) (*User, error) {
+func CreateNewUser(universe *Universe, msg *Message) (*User, error) {
 	if msg.Value.ContentType != TypeDOB {
 		return nil, errContentTypeNotDOB
 	}
@@ -76,6 +79,26 @@ func CreateNewUser(msg *Message) (*User, error) {
 	}
 	newUser := dobContent.User
 	newUser.DOBMsg = msg
+	// calculate the life time of new user
+	p0 := universe.userD.GetVertex(dobContent.Parents[0].PID)
+	if p0 == nil {
+		return nil, ErrUserNotExist
+	}
+	maxParentLifeTime := p0.Value().(*User).LifeTime
+
+	p1 := universe.userD.GetVertex(dobContent.Parents[1].PID)
+	if p1 == nil {
+		return nil, ErrUserNotExist
+	}
+	if maxParentLifeTime < p1.Value().(*User).LifeTime {
+		maxParentLifeTime = p1.Value().(*User).LifeTime
+	}
+	if maxParentLifeTime == rule.MORTAL_LIFETIME {
+		newUser.LifeTime = rule.MORTAL_LIFETIME
+	} else {
+		newUser.LifeTime = maxParentLifeTime / rule.LIFETIME_REDUCE_RATE
+	}
+
 	return &newUser, nil
 }
 
@@ -85,6 +108,7 @@ func (u User) ID() common.Hash {
 	hash := sha256.New()
 	hash.Reset()
 	auth := fmt.Sprintf("%v", u.Auth)
+	lifeTime := fmt.Sprintf("%v", u.LifeTime)
 	var dobMsg string
 	// todo : add init DOBMsg to rootUser
 	// todo : so this condition can be deleted
@@ -96,7 +120,7 @@ func (u User) ID() common.Hash {
 		dobMsg += fmt.Sprintf("%v%v%v", u.DOBMsg.Signature.Signature, u.DOBMsg.Signature.Source, u.DOBMsg.Signature.SigType)
 		dobMsg += fmt.Sprintf("%v%v", u.DOBMsg.Value.Content, u.DOBMsg.Value.ContentType)
 	}
-	hash.Write(append(append(append([]byte(u.Name), u.DOBExtra...), auth...), dobMsg...))
+	hash.Write(append(append(append(append([]byte(u.Name), u.DOBExtra...), auth...), dobMsg...), lifeTime...))
 	return common.Bytes2Hash(hash.Sum(nil))
 }
 
@@ -121,7 +145,12 @@ func (u User) ParentsID() [2]common.Hash {
 	var parentsID [2]common.Hash
 	if u.DOBMsg != nil {
 		// get parents from dobMsg
-
+		var dobContent DOBMsgContent
+		if err := json.Unmarshal(u.DOBMsg.Value.Content, &dobContent); err != nil {
+			return parentsID
+		}
+		parentsID[0] = dobContent.Parents[0].PID
+		parentsID[1] = dobContent.Parents[1].PID
 	}
 	return parentsID
 }
@@ -134,6 +163,10 @@ func (u *User) UnmarshalJSON(input []byte) error {
 	} else {
 		u.Name = userMap["name"].(string)
 		u.DOBExtra = userMap["dobExtra"].(string)
+		u.LifeTime, err = strconv.ParseUint(userMap["lifeTime"].(string), 0, 64)
+		if err != nil {
+			return err
+		}
 		json.Unmarshal([]byte(userMap["dobMsg"].(string)), &u.DOBMsg)
 		json.Unmarshal([]byte(userMap["auth"].(string)), &u.Auth)
 	}
@@ -144,6 +177,7 @@ func (u *User) MarshalJSON() ([]byte, error) {
 	userMap := make(map[string]interface{})
 	userMap["name"] = u.Name
 	userMap["dobExtra"] = u.DOBExtra
+	userMap["lifeTime"] = fmt.Sprintf("%v", u.LifeTime)
 
 	if auth, err := json.Marshal(&u.Auth); err != nil {
 		return []byte{}, err

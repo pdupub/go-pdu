@@ -33,7 +33,7 @@ const (
 	MAX_LIFTTIME = MORTAL_LIFETIME << 16
 
 	// The life time of account will reduce except the mortal.
-	// life_time_of_child = sum(life_time_of_parent) / 2
+	// life_time_of_child = max(life_time_of_parent) / LIFETIME_REDUCE_RATE
 	// if life_time_of_child < MORTAL_LIFETIME then life_time_of_child = MORTAL_LIFETIME
 	LIFETIME_REDUCE_RATE = 2
 )

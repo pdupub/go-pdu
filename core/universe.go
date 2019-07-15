@@ -330,7 +330,7 @@ func (u *Universe) findValidSpaceTime(senderID common.Hash) []interface{} {
 // addUser user to u.userD
 // update info of u.stD need other func
 func (u *Universe) addUserByMsg(msg *Message) error {
-	user, err := CreateNewUser(msg)
+	user, err := CreateNewUser(u, msg)
 	if err != nil {
 		return err
 	}

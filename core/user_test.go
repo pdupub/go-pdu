@@ -97,8 +97,10 @@ func TestCreateNewUser(t *testing.T) {
 	if err != nil {
 		t.Errorf("create msg fail, err :%s", err)
 	}
+
+	universe, err := NewUniverse(Eve, Adam)
 	// create new user by dob msg
-	newUser, err := CreateNewUser(dobMsg)
+	newUser, err := CreateNewUser(universe, dobMsg)
 	if err != nil {
 		t.Errorf("create new user fail, err:%s", err)
 	} else {
