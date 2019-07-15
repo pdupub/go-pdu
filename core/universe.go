@@ -315,9 +315,16 @@ func (u *Universe) updateTimeProof(msg *Message) error {
 
 // findValidSpaceTime is used when create new space time
 func (u *Universe) findValidSpaceTime(senderID common.Hash) []interface{} {
-	var ugs []interface{}
-	// todo: find valid space time for reference
-	return ugs
+	var validSpaceTimeIDs []interface{}
+	if u.stD != nil {
+		for _, id := range u.stD.GetIDs() {
+			st := u.stD.GetVertex(id).Value().(*SpaceTime)
+			if st.userStateD.GetVertex(senderID) != nil {
+				validSpaceTimeIDs = append(validSpaceTimeIDs, id)
+			}
+		}
+	}
+	return validSpaceTimeIDs
 }
 
 // addUser user to u.userD
