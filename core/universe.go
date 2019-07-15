@@ -361,8 +361,7 @@ func (u *Universe) addUserByMsg(msg *Message) error {
 					continue
 				}
 
-				if msgSeq-p0.Value().(*UserInfo).natureLastCosign > rule.REPRODUCTION_INTERVAL &&
-					msgSeq-p1.Value().(*UserInfo).natureLastCosign > rule.REPRODUCTION_INTERVAL {
+				if msgSeq-p0.Value().(*UserInfo).natureLastCosign > rule.REPRODUCTION_INTERVAL && msgSeq-p1.Value().(*UserInfo).natureLastCosign > rule.REPRODUCTION_INTERVAL {
 					// update nature last cosign number as msgSeq
 					p0.Value().(*UserInfo).natureLastCosign = msgSeq
 					p1.Value().(*UserInfo).natureLastCosign = msgSeq
