@@ -81,100 +81,6 @@ func NewUniverse(Eve, Adam *User) (*Universe, error) {
 	return &Universe{userD: userD}, nil
 }
 
-// CheckUserExist check if the user valid in this Universe
-func (u *Universe) CheckUserExist(userID common.Hash) bool {
-	if nil != u.GetUserByID(userID) {
-		return true
-	}
-	return false
-}
-
-// GetUserByID return the user from userD, not userInfo by space time
-func (u *Universe) GetUserByID(uid common.Hash) *User {
-	if v := u.userD.GetVertex(uid); v != nil {
-		return v.Value().(*User)
-	} else {
-		return nil
-	}
-}
-
-// addUser user to u.userD
-// update info of u.stD need other func
-func (u *Universe) addUser(user *User) error {
-	if u.GetUserByID(user.ID()) != nil {
-		return ErrUserAlreadyExist
-	}
-	var dobContent DOBMsgContent
-	err := json.Unmarshal(user.DOBMsg.Value.Content, &dobContent)
-	if err != nil {
-		return err
-	}
-	userVertex, err := dag.NewVertex(user.ID(), user, dobContent.Parents[0].PID, dobContent.Parents[1].PID)
-	if err != nil {
-		return err
-	}
-	err = u.userD.AddVertex(userVertex)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// findValidSpaceTime is used when create new space time
-func (u *Universe) findValidSpaceTime(senderID common.Hash) []interface{} {
-	var ugs []interface{}
-	// todo: find valid space time for reference
-	return ugs
-}
-
-// AddSpaceTime will get all messages save in Universe with same msg.SenderID
-func (u *Universe) AddSpaceTime(msg *Message) error {
-	if u.GetMsgByID(msg.ID()) == nil {
-		return ErrMsgNotFound
-	}
-	if nil != u.stD.GetVertex(msg.SenderID) {
-		return ErrTPAlreadyExist
-	}
-	if !u.CheckUserExist(msg.SenderID) {
-		return ErrUserNotExist
-	}
-	// update time proof
-	initialize := true
-	for _, id := range u.msgD.GetIDs() {
-		if msgTP := u.GetMsgByID(id); msgTP != nil && msgTP.SenderID == msg.SenderID {
-			if initialize {
-				tp, err := createSpaceTime(msgTP)
-				if err != nil {
-					return err
-				}
-				tpVertex, err := dag.NewVertex(msg.SenderID, tp, u.findValidSpaceTime(msg.SenderID)...)
-				if err != nil {
-					return err
-				}
-				if err = u.stD.AddVertex(tpVertex); err != nil {
-					return err
-				}
-				initialize = false
-			} else {
-				if err := u.updateTimeProof(msgTP); err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
-}
-
-// GetMsgByID will return the msg by msg.ID()
-// nil will be return if msg not exist
-func (u *Universe) GetMsgByID(mid interface{}) *Message {
-	if v := u.msgD.GetVertex(mid); v != nil {
-		return v.Value().(*Message)
-	} else {
-		return nil
-	}
-}
-
 // AddMsg will check if the msg from valid user,
 // add new msg into Universe, and update time proof if
 // msg.SenderID is belong to time proof
@@ -183,31 +89,12 @@ func (u *Universe) AddMsg(msg *Message) error {
 		return ErrUserNotExist
 	}
 	if u.msgD == nil {
-		// build msg dag
-		msgVertex, err := dag.NewVertex(msg.ID(), msg)
-		if err != nil {
+		if err := u.initializeMsgD(msg); err != nil {
 			return err
 		}
-		msgD, err := dag.NewDAG(msgVertex)
-		if err != nil {
+		if err := u.AddSpaceTime(msg); err != nil {
 			return err
 		}
-		u.msgD = msgD
-		// build time proof
-		st, err := createSpaceTime(msg)
-		if err != nil {
-			return err
-		}
-		stVertex, err := dag.NewVertex(msg.SenderID, st)
-		if err != nil {
-			return err
-		}
-		stD, err := dag.NewDAG(stVertex)
-		if err != nil {
-			return err
-		}
-		u.stD = stD
-
 	} else {
 
 		// check
@@ -238,6 +125,103 @@ func (u *Universe) AddMsg(msg *Message) error {
 			return err
 		}
 	}
+	return nil
+}
+
+// AddSpaceTime will get all messages save in Universe with same msg.SenderID
+func (u *Universe) AddSpaceTime(msg *Message) error {
+	if u.GetMsgByID(msg.ID()) == nil {
+		return ErrMsgNotFound
+	}
+	if u.stD != nil && nil != u.stD.GetVertex(msg.SenderID) {
+		return ErrTPAlreadyExist
+	}
+	if !u.CheckUserExist(msg.SenderID) {
+		return ErrUserNotExist
+	}
+	// update time proof
+	initialize := true
+	for _, id := range u.msgD.GetIDs() {
+		if msgSpaceTime := u.GetMsgByID(id); msgSpaceTime != nil && msgSpaceTime.SenderID == msg.SenderID {
+			if initialize {
+				st, err := createSpaceTime(msgSpaceTime)
+				if err != nil {
+					return err
+				}
+				stVertex, err := dag.NewVertex(msg.SenderID, st, u.findValidSpaceTime(msg.SenderID)...)
+				if err != nil {
+					return err
+				}
+				if u.stD == nil {
+					stD, err := dag.NewDAG(stVertex)
+					if err != nil {
+						return err
+					}
+					u.stD = stD
+				} else {
+					if err = u.stD.AddVertex(stVertex); err != nil {
+						return err
+					}
+				}
+				initialize = false
+			} else {
+				if err := u.updateTimeProof(msgSpaceTime); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// CheckUserExist check if the user valid in this Universe
+func (u Universe) CheckUserExist(userID common.Hash) bool {
+	if nil != u.GetUserByID(userID) {
+		return true
+	}
+	return false
+}
+
+// GetUserByID return the user from userD, not userInfo by space time
+func (u Universe) GetUserByID(uid common.Hash) *User {
+	if v := u.userD.GetVertex(uid); v != nil {
+		return v.Value().(*User)
+	} else {
+		return nil
+	}
+}
+
+// GetMaxSeq will return the max time proof sequence for
+// time proof by the userID
+func (u Universe) GetMaxSeq(userID common.Hash) uint64 {
+	if vertex := u.stD.GetVertex(userID); vertex != nil {
+		return vertex.Value().(*SpaceTime).maxTimeSequence
+	} else {
+		return 0
+	}
+}
+
+// GetMsgByID will return the msg by msg.ID()
+// nil will be return if msg not exist
+func (u Universe) GetMsgByID(mid interface{}) *Message {
+	if v := u.msgD.GetVertex(mid); v != nil {
+		return v.Value().(*Message)
+	} else {
+		return nil
+	}
+}
+
+func (u *Universe) initializeMsgD(msg *Message) error {
+	// build msg dag
+	msgVertex, err := dag.NewVertex(msg.ID(), msg)
+	if err != nil {
+		return err
+	}
+	msgD, err := dag.NewDAG(msgVertex)
+	if err != nil {
+		return err
+	}
+	u.msgD = msgD
 	return nil
 }
 
@@ -320,12 +304,31 @@ func (u *Universe) updateTimeProof(msg *Message) error {
 	return nil
 }
 
-// GetMaxSeq will return the max time proof sequence for
-// time proof by the userID
-func (u *Universe) GetMaxSeq(userID common.Hash) uint64 {
-	if vertex := u.stD.GetVertex(userID); vertex != nil {
-		return vertex.Value().(*SpaceTime).maxTimeSequence
-	} else {
-		return 0
+// findValidSpaceTime is used when create new space time
+func (u *Universe) findValidSpaceTime(senderID common.Hash) []interface{} {
+	var ugs []interface{}
+	// todo: find valid space time for reference
+	return ugs
+}
+
+// addUser user to u.userD
+// update info of u.stD need other func
+func (u *Universe) addUser(user *User) error {
+	if u.GetUserByID(user.ID()) != nil {
+		return ErrUserAlreadyExist
 	}
+	var dobContent DOBMsgContent
+	err := json.Unmarshal(user.DOBMsg.Value.Content, &dobContent)
+	if err != nil {
+		return err
+	}
+	userVertex, err := dag.NewVertex(user.ID(), user, dobContent.Parents[0].PID, dobContent.Parents[1].PID)
+	if err != nil {
+		return err
+	}
+	err = u.userD.AddVertex(userVertex)
+	if err != nil {
+		return err
+	}
+	return nil
 }
