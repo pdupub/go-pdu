@@ -230,14 +230,7 @@ func (u *Universe) processMsg(msg *Message) error {
 	case TypeText:
 		return nil
 	case TypeDOB:
-		user, err := CreateNewUser(msg)
-		if err != nil {
-			return err
-		}
-		// todo :check the valid time proof for parents in each space time
-		// todo :is depend on the reference of dob msg and the validation of both parents
-		// user may not can be add to all userMap
-		err = u.addUser(user)
+		err := u.addUserByMsg(msg)
 		if err != nil {
 			return err
 		}
@@ -316,12 +309,21 @@ func (u *Universe) findValidSpaceTime(senderID common.Hash) []interface{} {
 
 // addUser user to u.userD
 // update info of u.stD need other func
-func (u *Universe) addUser(user *User) error {
+func (u *Universe) addUserByMsg(msg *Message) error {
+
+	user, err := CreateNewUser(msg)
+	if err != nil {
+		return err
+	}
+	// todo :check the valid time proof for parents in each space time
+	// todo :is depend on the reference of dob msg and the validation of both parents
+	// user may not can be add to all userMap
+
 	if u.GetUserByID(user.ID()) != nil {
 		return ErrUserAlreadyExist
 	}
 	var dobContent DOBMsgContent
-	err := json.Unmarshal(user.DOBMsg.Value.Content, &dobContent)
+	err = json.Unmarshal(user.DOBMsg.Value.Content, &dobContent)
 	if err != nil {
 		return err
 	}
