@@ -25,14 +25,15 @@ import (
 )
 
 var (
-	ErrUserNotExist       = errors.New("user not exist")
-	ErrMsgAlreadyExist    = errors.New("msg already exist")
-	ErrMsgNotFound        = errors.New("msg not found")
-	ErrTPAlreadyExist     = errors.New("time proof already exist")
-	ErrUserAlreadyExist   = errors.New("user already exist")
-	ErrNotSupportYet      = errors.New("not error, just not support ye")
-	ErrNewUserAddFail     = errors.New("new user add fail")
-	ErrReferenceNotUnique = errors.New("reference not unique")
+	ErrUserNotExist        = errors.New("user not exist")
+	ErrMsgAlreadyExist     = errors.New("msg already exist")
+	ErrMsgNotFound         = errors.New("msg not found")
+	ErrTPAlreadyExist      = errors.New("time proof already exist")
+	ErrUserAlreadyExist    = errors.New("user already exist")
+	ErrNotSupportYet       = errors.New("not error, just not support ye")
+	ErrNewUserAddFail      = errors.New("new user add fail")
+	ErrReferenceNotUnique  = errors.New("reference not unique")
+	ErrCreateSpaceTimeFail = errors.New("create space time fail")
 )
 
 const (
@@ -45,6 +46,8 @@ const (
 type UserInfo struct {
 	natureState      int    // validation state depend on nature rule
 	natureLastCosign uint64 // last DOB cosign
+	natureLifeMaxSeq uint64 // max time sequence this use can use as reference in this space time
+	natureDOBSeq     uint64 // sequence of dob in this space time
 	localNickname    string
 }
 
@@ -141,16 +144,28 @@ func (u *Universe) AddSpaceTime(msg *Message) error {
 	if !u.CheckUserExist(msg.SenderID) {
 		return ErrUserNotExist
 	}
+	if len(msg.Reference) > 1 {
+		return ErrReferenceNotUnique
+	}
 	// update time proof
 	initialize := true
+	startRecord := false
 	for _, id := range u.msgD.GetIDs() {
-		if msgSpaceTime := u.GetMsgByID(id); msgSpaceTime != nil && msgSpaceTime.SenderID == msg.SenderID {
+		if id == msg.ID() {
+			startRecord = true
+		}
+		if msgSpaceTime := u.GetMsgByID(id); msgSpaceTime != nil && msgSpaceTime.SenderID == msg.SenderID && startRecord {
 			if initialize {
 				st, err := u.createSpaceTime(msgSpaceTime)
 				if err != nil {
 					return err
 				}
-				stVertex, err := dag.NewVertex(msg.SenderID, st, u.findValidSpaceTime(msg.SenderID)...)
+				var stVertex *dag.Vertex
+				if len(msg.Reference) > 0 {
+					stVertex, err = dag.NewVertex(msg.SenderID, st, msg.Reference[0].SenderID)
+				} else {
+					stVertex, err = dag.NewVertex(msg.SenderID, st)
+				}
 				if err != nil {
 					return err
 				}
@@ -245,9 +260,6 @@ func (u *Universe) createSpaceTime(msg *Message) (*SpaceTime, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(msg.Reference) > 1 {
-		return nil, ErrReferenceNotUnique
-	}
 	timeProofDag, err := dag.NewDAG(timeVertex)
 	if err != nil {
 		return nil, err
@@ -258,28 +270,28 @@ func (u *Universe) createSpaceTime(msg *Message) (*SpaceTime, error) {
 	}
 
 	if nil != u.stD {
-		//
-		for _, k := range u.stD.GetIDs() {
-			stV := u.stD.GetVertex(k)
-			usD := stV.Value().(*SpaceTime).userStateD
-			if nil != usD.GetVertex(msg.SenderID) {
-				// msg.SenderID is valid in this space time
-				for _, userID := range usD.GetIDs() {
-					if nil == userStateD.GetVertex(userID) {
-						userStateVertex, err := dag.NewVertex(userID, &UserInfo{natureState: UserStatusNormal, natureLastCosign: 0}, usD.GetVertex(userID).Parents()...)
-						if err != nil {
-							return nil, err
-						}
-						userStateD.AddVertex(userStateVertex)
-					}
+		if len(msg.Reference) != 1 {
+			return nil, ErrReferenceNotUnique
+		}
+		if stVertex := u.stD.GetVertex(msg.Reference[0].SenderID); stVertex == nil {
+			return nil, ErrCreateSpaceTimeFail
+		} else {
+			st := stVertex.Value().(*SpaceTime)
+			refSeq := st.timeProofD.GetVertex(msg.Reference[0].MsgID).Value().(uint64)
+			for _, k := range st.userStateD.GetIDs() {
+				lifeMaxSeq := st.userStateD.GetVertex(k).Value().(*UserInfo).natureLifeMaxSeq - refSeq
+				userStateVertex, err := dag.NewVertex(k, &UserInfo{natureState: UserStatusNormal, natureLastCosign: 0, natureLifeMaxSeq: lifeMaxSeq, natureDOBSeq: 0}, u.userD.GetVertex(k).Parents()...)
+				if err != nil {
+					return nil, err
 				}
+				userStateD.AddVertex(userStateVertex)
 			}
 		}
 	} else {
 		// create the userState for the first space time
 		for _, k := range u.userD.GetIDs() {
 			if nil == userStateD.GetVertex(k) {
-				userStateVertex, err := dag.NewVertex(k, &UserInfo{natureState: UserStatusNormal, natureLastCosign: 0}, u.userD.GetVertex(k).Parents()...)
+				userStateVertex, err := dag.NewVertex(k, &UserInfo{natureState: UserStatusNormal, natureLastCosign: 0, natureLifeMaxSeq: rule.MAX_LIFTTIME, natureDOBSeq: 0}, u.userD.GetVertex(k).Parents()...)
 				if err != nil {
 					return nil, err
 				}
@@ -292,14 +304,16 @@ func (u *Universe) createSpaceTime(msg *Message) (*SpaceTime, error) {
 
 func (u *Universe) updateTimeProof(msg *Message) error {
 	if vertex := u.stD.GetVertex(msg.SenderID); vertex != nil {
-
 		st := vertex.Value().(*SpaceTime)
 		var currentSeq uint64 = 1
 		for _, r := range msg.Reference {
 			if r.SenderID == msg.SenderID {
-				refSeq := st.timeProofD.GetVertex(r.MsgID).Value().(uint64)
-				if currentSeq <= refSeq {
-					currentSeq = refSeq + 1
+				refVertex := st.timeProofD.GetVertex(r.MsgID)
+				if refVertex != nil {
+					refSeq := refVertex.Value().(uint64)
+					if currentSeq <= refSeq {
+						currentSeq = refSeq + 1
+					}
 				}
 			}
 		}
@@ -315,20 +329,6 @@ func (u *Universe) updateTimeProof(msg *Message) error {
 		}
 	}
 	return nil
-}
-
-// findValidSpaceTime is used when create new space time
-func (u *Universe) findValidSpaceTime(senderID common.Hash) []interface{} {
-	var validSpaceTimeIDs []interface{}
-	if u.stD != nil {
-		for _, id := range u.stD.GetIDs() {
-			st := u.stD.GetVertex(id).Value().(*SpaceTime)
-			if st.userStateD.GetVertex(senderID) != nil {
-				validSpaceTimeIDs = append(validSpaceTimeIDs, id)
-			}
-		}
-	}
-	return validSpaceTimeIDs
 }
 
 // addUser user to u.userD
@@ -364,15 +364,17 @@ func (u *Universe) addUserByMsg(msg *Message) error {
 				if p1 == nil {
 					continue
 				}
-
-				if msgSeq-p0.Value().(*UserInfo).natureLastCosign > rule.REPRODUCTION_INTERVAL && msgSeq-p1.Value().(*UserInfo).natureLastCosign > rule.REPRODUCTION_INTERVAL {
+				// todo : parents life time should still be valid
+				// todo : parent.natureDOBSeq + parent.natureLifeMaxSeq > msgSeq
+				if msgSeq-p0.Value().(*UserInfo).natureLastCosign > rule.REPRODUCTION_INTERVAL &&
+					msgSeq-p1.Value().(*UserInfo).natureLastCosign > rule.REPRODUCTION_INTERVAL {
 					// update nature last cosign number as msgSeq
 					p0.Value().(*UserInfo).natureLastCosign = msgSeq
 					p1.Value().(*UserInfo).natureLastCosign = msgSeq
 					// append validST
 					validST = append(validST, ref.SenderID)
 					// add user in this st
-					userVertex, err := dag.NewVertex(user.ID(), &UserInfo{natureState: UserStatusNormal, natureLastCosign: 0}, p0, p1)
+					userVertex, err := dag.NewVertex(user.ID(), &UserInfo{natureState: UserStatusNormal, natureLastCosign: msgSeq, natureLifeMaxSeq: user.LifeTime, natureDOBSeq: msgSeq}, p0, p1)
 					if err != nil {
 						return err
 					}
