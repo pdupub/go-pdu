@@ -21,6 +21,7 @@ import (
 	"errors"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/dag"
+	"math/big"
 )
 
 var (
@@ -40,13 +41,12 @@ const (
 // the state related to nature rule is start by nature
 // the other state start by local
 type UserInfo struct {
-	natureState   int    //
-	localNickname string //
+	natureState      int      // validation state depend on nature rule
+	natureLastCosign *big.Int // last DOB cosign
+	localNickname    string
 }
 
-// SpaceTime contain time proof of this space time and the user info who is born in this space time
-// not only the user born in this space time is valid in this space time, also born in direct/indirect
-// reference of this space time will be valid in this space time
+// SpaceTime contain time proof of this space time and the user info who is valid in this space time
 type SpaceTime struct {
 	maxTimeSequence uint64
 	timeProofD      *dag.DAG // msg.id  : time sequence
@@ -144,7 +144,7 @@ func (u *Universe) AddSpaceTime(msg *Message) error {
 	for _, id := range u.msgD.GetIDs() {
 		if msgSpaceTime := u.GetMsgByID(id); msgSpaceTime != nil && msgSpaceTime.SenderID == msg.SenderID {
 			if initialize {
-				st, err := createSpaceTime(msgSpaceTime)
+				st, err := u.createSpaceTime(msgSpaceTime)
 				if err != nil {
 					return err
 				}
@@ -241,19 +241,11 @@ func (u *Universe) processMsg(msg *Message) error {
 		if err != nil {
 			return err
 		}
-		//for _, v := range md.ugD {
-		/*
-			for _, k := range md.ugD.GetIDs() {
-				err = md.ugD.GetVertex(k).Value().(*Group).Add(user)
-				if err != nil {
-					return err
-				}
-			}*/
 	}
 	return nil
 }
 
-func createSpaceTime(msg *Message, users ...*User) (*SpaceTime, error) {
+func (u *Universe) createSpaceTime(msg *Message) (*SpaceTime, error) {
 	timeVertex, err := dag.NewVertex(msg.ID(), uint64(1))
 	if err != nil {
 		return nil, err
@@ -266,14 +258,25 @@ func createSpaceTime(msg *Message, users ...*User) (*SpaceTime, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, user := range users {
-		userStateVertex, err := dag.NewVertex(user.ID(), UserInfo{natureState: UserStatusNormal})
-		if err != nil {
-			return nil, err
-		}
-		userStateD.AddVertex(userStateVertex)
-	}
 
+	if nil != u.stD {
+		for _, k := range u.stD.GetIDs() {
+			stV := u.stD.GetVertex(k)
+			usD := stV.Value().(*SpaceTime).userStateD
+			if nil != usD.GetVertex(msg.SenderID) {
+				// msg.SenderID is valid in this space time
+				for _, userID := range usD.GetIDs() {
+					if nil == userStateD.GetVertex(userID) {
+						userStateVertex, err := dag.NewVertex(userID, UserInfo{natureState: UserStatusNormal, natureLastCosign: big.NewInt(0)}, usD.GetVertex(userID).Parents()...)
+						if err != nil {
+							return nil, err
+						}
+						userStateD.AddVertex(userStateVertex)
+					}
+				}
+			}
+		}
+	}
 	return &SpaceTime{maxTimeSequence: timeVertex.Value().(uint64), timeProofD: timeProofDag, userStateD: userStateD}, nil
 }
 
