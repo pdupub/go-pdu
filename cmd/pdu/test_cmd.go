@@ -361,26 +361,19 @@ func TestCmd() *cobra.Command {
 				log.Error("add user dob msg fail, err:", err)
 			}
 
-			if uInfo := universe.GetUserInfo(Adam.ID(), Adam.ID()); uInfo != nil {
-				log.Info(uInfo.String())
-			} else {
-				log.Error("can not find user info")
+			for _, id := range universe.GetUserIDs(Adam.ID()) {
+				if uInfo := universe.GetUserInfo(id, Adam.ID()); uInfo != nil {
+					log.Info("Adam Space Time :", common.Hash2String(id), uInfo.String())
+				} else {
+					log.Error("can not find user info")
+				}
 			}
-			if uInfo := universe.GetUserInfo(Eve.ID(), Adam.ID()); uInfo != nil {
-				log.Info(uInfo.String())
-			} else {
-				log.Error("can not find user info")
-			}
-
-			if uInfo := universe.GetUserInfo(Adam.ID(), Eve.ID()); uInfo != nil {
-				log.Info(uInfo.String())
-			} else {
-				log.Error("can not find user info")
-			}
-			if uInfo := universe.GetUserInfo(Eve.ID(), Eve.ID()); uInfo != nil {
-				log.Info(uInfo.String())
-			} else {
-				log.Error("can not find user info")
+			for _, id := range universe.GetUserIDs(Eve.ID()) {
+				if uInfo := universe.GetUserInfo(id, Eve.ID()); uInfo != nil {
+					log.Info("Eve Space Time :", common.Hash2String(id), uInfo.String())
+				} else {
+					log.Error("can not find user info")
+				}
 			}
 
 			return nil

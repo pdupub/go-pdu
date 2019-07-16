@@ -209,7 +209,7 @@ func (u Universe) GetUserByID(userID common.Hash) *User {
 	}
 }
 
-// GetMaxSeq will return the max time proof sequence for
+// GetMaxSeq return the max time proof sequence
 // time proof by the stID
 func (u Universe) GetMaxSeq(stID common.Hash) uint64 {
 	if vertex := u.stD.GetVertex(stID); vertex != nil {
@@ -217,6 +217,17 @@ func (u Universe) GetMaxSeq(stID common.Hash) uint64 {
 	} else {
 		return 0
 	}
+}
+
+// GetUserIDs return userIDs in this space time
+func (u Universe) GetUserIDs(stID common.Hash) []common.Hash {
+	var userIDs []common.Hash
+	if vertex := u.stD.GetVertex(stID); vertex != nil {
+		for _, id := range vertex.Value().(*SpaceTime).userStateD.GetIDs() {
+			userIDs = append(userIDs, id.(common.Hash))
+		}
+	}
+	return userIDs
 }
 
 // GetUserInfo return the user info in space time
