@@ -40,16 +40,20 @@ func TestCmd() *cobra.Command {
 		Short: "Test on pdu",
 		RunE: func(_ *cobra.Command, args []string) error {
 
-			// Test 1: create root users, Adam and Eve
+			// Test 1: create root users, Adam and Eve , create universe
 			// because the gender of user relate to public key (random),
 			// so createRootUser will repeat until two root user be created.
 			Adam, Eve, privKeyAdam, privKeyEve, err := createAdamAndEve()
 			universe, err := core.NewUniverse(Eve, Adam)
 			if err != nil {
-				log.Info("create msg dag fail, err:", err)
+				log.Error("create msg dag fail, err:", err)
 			}
+			if res := universe.GetUserInfo(Adam.ID(), Adam.ID()); res != nil {
+				log.Error("should be nil")
+			}
+			log.Split("Test 1 finish")
 
-			// Test 4: create txt msg
+			// Test 2: create txt msg
 			// this msg is signed by Adam
 			value := core.MsgValue{
 				ContentType: core.TypeText,
@@ -57,36 +61,48 @@ func TestCmd() *cobra.Command {
 			}
 			msg, err := core.CreateMsg(Adam, &value, privKeyAdam)
 			if err != nil {
-				log.Info("create msg fail , err :", err)
+				log.Error("create msg fail , err :", err)
 			} else {
 				log.Info("first msg from Adam ", "sender", common.Hash2String(msg.SenderID))
 				if msg.Value.ContentType == core.TypeText {
 					log.Info("first msg from Adam ", "value.content", string(msg.Value.Content))
 				}
 				log.Info("first msg from Adam ", "reference", msg.Reference)
-				//log.Info("first msg from Adam ", "signature", msg.Signature)
+				log.Info("first msg from Adam ", "signature", msg.Signature)
 			}
 
-			// Test 5: create msgDaG
+			log.Split("Test 2 finish")
+			// Test 3: add msg into universe
 			// add the txt msg from Test 4 as the root msg
-
 			err = universe.AddMsg(msg)
 			if err != nil {
 				log.Error("add msg fail , err :", err)
 			} else {
 				log.Trace("msg dag add msg", common.Hash2String(universe.GetMsgByID(msg.ID()).ID()))
 			}
-
 			if newAdam := universe.GetUserByID(Adam.ID()); newAdam != nil {
 				log.Trace("get Adam from userDAG :", common.Hash2String(newAdam.ID()))
 			}
+			if uInfo := universe.GetUserInfo(Adam.ID(), Adam.ID()); uInfo != nil {
+				log.Trace(uInfo.String())
+			} else {
+				log.Error("can not find user info")
+			}
+			if uInfo := universe.GetUserInfo(Eve.ID(), Adam.ID()); uInfo != nil {
+				log.Trace(uInfo.String())
+			} else {
+				log.Error("can not find user info")
+			}
 
-			// Test 6: verify msg
+			log.Split("Test 3 finish")
+
+			// Test 4: verify msg
 			// msg contain the Adam is and signature.
 			// Adam's public key can be found from userDAG by Adam ID
 			verifyMsg(universe, msg, true)
 
-			// Test 7: create second txt msg with reference, add into msg dag, verify msg
+			log.Split("Test 4 finish")
+			// Test 5: create second txt msg with reference, add into msg dag, verify msg
 			// new msg reference first msg
 			value2 := core.MsgValue{
 				ContentType: core.TypeText,
@@ -139,7 +155,8 @@ func TestCmd() *cobra.Command {
 			maxSeq := universe.GetMaxSeq(Adam.ID())
 			log.Trace("max seq for time proof :", maxSeq)
 
-			// Test 8: create dob msg, and verify
+			log.Split("Test 5 finish")
+			// Test 6: create dob msg, and verify
 			// new msg reference first & second msg
 			valueDob := core.MsgValue{
 				ContentType: core.TypeDOB,
@@ -229,8 +246,8 @@ func TestCmd() *cobra.Command {
 			} else {
 				log.Error("should be dob msg")
 			}
-
-			// Test 10: create new User from dob message
+			log.Split("Test 6 finish ")
+			// Test 7: create new User from dob message
 			// user create from msg3 and msg4 should be same user
 
 			if err := universe.AddMsg(msgDob); err != nil {
@@ -240,6 +257,17 @@ func TestCmd() *cobra.Command {
 			}
 			if err := universe.AddMsg(&msgDob2); err != core.ErrMsgAlreadyExist {
 				log.Error("add msg4 fail, err should be %s, but now err : %s", core.ErrMsgAlreadyExist, err)
+			}
+
+			if uInfo := universe.GetUserInfo(Adam.ID(), Adam.ID()); uInfo != nil {
+				log.Trace(uInfo.String())
+			} else {
+				log.Error("can not find user info")
+			}
+			if uInfo := universe.GetUserInfo(Eve.ID(), Adam.ID()); uInfo != nil {
+				log.Trace(uInfo.String())
+			} else {
+				log.Error("can not find user info")
 			}
 
 			maxSeq = universe.GetMaxSeq(Eve.ID())
@@ -271,6 +299,7 @@ func TestCmd() *cobra.Command {
 				log.Trace("max seq for Eve time proof, should be larger than 0 :", maxSeq)
 			}
 
+			log.Split("Test 7 finish")
 			return nil
 		},
 	}

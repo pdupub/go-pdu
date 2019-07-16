@@ -19,6 +19,7 @@ package core
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/core/rule"
 	"github.com/pdupub/go-pdu/dag"
@@ -49,6 +50,10 @@ type UserInfo struct {
 	natureLifeMaxSeq uint64 // max time sequence this use can use as reference in this space time
 	natureDOBSeq     uint64 // sequence of dob in this space time
 	localNickname    string
+}
+
+func (ui *UserInfo) String() string {
+	return fmt.Sprintf("natureState : %d \t natureLastCosign : %d \t natureLifeMaxSeq : %d \t natureDOBSeq : %d \t localNickname : %s", ui.natureState, ui.natureLastCosign, ui.natureLifeMaxSeq, ui.natureDOBSeq, ui.localNickname)
 }
 
 // SpaceTime contain time proof of this space time and the user info who is valid in this space time
@@ -218,6 +223,20 @@ func (u Universe) GetMaxSeq(stID common.Hash) uint64 {
 	}
 }
 
+// GetUserInfo return the user info in space time
+// return nil if not find user
+func (u Universe) GetUserInfo(userID common.Hash, stID common.Hash) *UserInfo {
+	if u.stD != nil {
+		if stVertex := u.stD.GetVertex(stID); stVertex != nil {
+			st := stVertex.Value().(*SpaceTime)
+			if uVertex := st.userStateD.GetVertex(userID); uVertex != nil {
+				return uVertex.Value().(*UserInfo)
+			}
+		}
+	}
+	return nil
+}
+
 // GetMsgByID will return the msg by msg.ID()
 // nil will be return if msg not exist
 func (u Universe) GetMsgByID(msgID interface{}) *Message {
@@ -360,18 +379,18 @@ func (u *Universe) addUserByMsg(msg *Message) error {
 					continue
 				}
 				userInfo0 := p0.Value().(*UserInfo)
-				p1 := st.userStateD.GetVertex(dobContent.Parents[0].UserID)
+				p1 := st.userStateD.GetVertex(dobContent.Parents[1].UserID)
 				if p1 == nil {
 					continue
 				}
-				userInfo1 := p0.Value().(*UserInfo)
+				userInfo1 := p1.Value().(*UserInfo)
 				if userInfo0.natureDOBSeq+userInfo0.natureLifeMaxSeq > msgSeq &&
 					userInfo1.natureDOBSeq+userInfo1.natureLifeMaxSeq > msgSeq &&
 					msgSeq-userInfo0.natureLastCosign > rule.REPRODUCTION_INTERVAL &&
 					msgSeq-userInfo1.natureLastCosign > rule.REPRODUCTION_INTERVAL {
 					// update nature last cosign number as msgSeq
-					p0.Value().(*UserInfo).natureLastCosign = msgSeq
-					p1.Value().(*UserInfo).natureLastCosign = msgSeq
+					userInfo0.natureLastCosign = msgSeq
+					userInfo1.natureLastCosign = msgSeq
 					// append validST
 					validST = append(validST, ref.SenderID)
 					// add user in this st
