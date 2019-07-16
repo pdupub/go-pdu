@@ -68,7 +68,7 @@ func TestCmd() *cobra.Command {
 					log.Info("first msg from Adam ", "value.content", string(msg.Value.Content))
 				}
 				log.Info("first msg from Adam ", "reference", msg.Reference)
-				log.Info("first msg from Adam ", "signature", msg.Signature)
+				//log.Info("first msg from Adam ", "signature", msg.Signature)
 			}
 
 			log.Split("Test 2 finish")
@@ -78,18 +78,18 @@ func TestCmd() *cobra.Command {
 			if err != nil {
 				log.Error("add msg fail , err :", err)
 			} else {
-				log.Trace("msg dag add msg", common.Hash2String(universe.GetMsgByID(msg.ID()).ID()))
+				log.Info("msg dag add msg", common.Hash2String(universe.GetMsgByID(msg.ID()).ID()))
 			}
 			if newAdam := universe.GetUserByID(Adam.ID()); newAdam != nil {
-				log.Trace("get Adam from userDAG :", common.Hash2String(newAdam.ID()))
+				log.Info("get Adam from userDAG :", common.Hash2String(newAdam.ID()))
 			}
 			if uInfo := universe.GetUserInfo(Adam.ID(), Adam.ID()); uInfo != nil {
-				log.Trace(uInfo.String())
+				log.Info(uInfo.String())
 			} else {
 				log.Error("can not find user info")
 			}
 			if uInfo := universe.GetUserInfo(Eve.ID(), Adam.ID()); uInfo != nil {
-				log.Trace(uInfo.String())
+				log.Info(uInfo.String())
 			} else {
 				log.Error("can not find user info")
 			}
@@ -124,7 +124,7 @@ func TestCmd() *cobra.Command {
 			if err := universe.AddMsg(msg2); err != nil {
 				log.Error("add msg2 fail, err:", err)
 			} else {
-				log.Trace("msg dag add msg2", common.Hash2String(universe.GetMsgByID(msg2.ID()).ID()))
+				log.Info("msg dag add msg2", common.Hash2String(universe.GetMsgByID(msg2.ID()).ID()))
 			}
 
 			// verify msg
@@ -132,6 +132,7 @@ func TestCmd() *cobra.Command {
 
 			// loop to add msg dag
 			ref = core.MsgReference{SenderID: Adam.ID(), MsgID: msg.ID()}
+			var AdamPartMsgIDs []common.Hash
 			for i := uint64(0); i < rule.REPRODUCTION_INTERVAL; i++ {
 				v := core.MsgValue{
 					ContentType: core.TypeText,
@@ -146,14 +147,15 @@ func TestCmd() *cobra.Command {
 					log.Error("loop :", i, " err:", err)
 				}
 				ref = core.MsgReference{SenderID: Adam.ID(), MsgID: msgT.ID()}
+				AdamPartMsgIDs = append(AdamPartMsgIDs, msgT.ID())
 				if i%(rule.REPRODUCTION_INTERVAL>>3) == 0 {
-					log.Trace("add ", i, "msgs")
+					log.Info("add ", i, "msgs")
 				}
 				verifyMsg(universe, msgT, false)
 			}
 
 			maxSeq := universe.GetMaxSeq(Adam.ID())
-			log.Trace("max seq for time proof :", maxSeq)
+			log.Info("max seq for time proof :", maxSeq)
 
 			log.Split("Test 5 finish")
 			// Test 6: create dob msg, and verify
@@ -172,7 +174,6 @@ func TestCmd() *cobra.Command {
 			content.SignByParent(Eve, *privKeyEve)
 
 			valueDob.Content, err = json.Marshal(content)
-			log.Info()
 			if err != nil {
 				log.Error("content marshal fail , err:", err)
 			}
@@ -193,8 +194,9 @@ func TestCmd() *cobra.Command {
 			}
 
 			verifyMsg(universe, msgDob, true)
+			log.Split("Test 6 finish")
 
-			// Test 9: json marshal & unmarshal for msg
+			// Test 7: json marshal & unmarshal for msg
 			msgBytes, err := json.Marshal(msgDob)
 			//log.Info(common.Bytes2String(msgBytes))
 
@@ -235,53 +237,60 @@ func TestCmd() *cobra.Command {
 				if res, err := pdu.Verify(jsonBytes, sigAdam); err != nil || res == false {
 					log.Error("verify Adam fail, err", err)
 				} else {
-					log.Trace("verify Adam true")
+					log.Info("verify Adam true")
 				}
 
 				if res, err := pdu.Verify(jsonBytes, sigEve); err != nil || res == false {
-					log.Trace("verify Eve fail, err", err)
+					log.Info("verify Eve fail, err", err)
 				} else {
 					log.Info("verify Eve true")
 				}
 			} else {
 				log.Error("should be dob msg")
 			}
-			log.Split("Test 6 finish ")
-			// Test 7: create new User from dob message
+			log.Split("Test 7 finish ")
+			// Test 8: create new User from dob message
 			// user create from msg3 and msg4 should be same user
 
 			if err := universe.AddMsg(msgDob); err != nil {
 				log.Error("add msg3 fail , err", err)
 			} else {
-				log.Trace("add msg3 success")
+				log.Info("add msg3 success")
 			}
 			if err := universe.AddMsg(&msgDob2); err != core.ErrMsgAlreadyExist {
 				log.Error("add msg4 fail, err should be %s, but now err : %s", core.ErrMsgAlreadyExist, err)
 			}
 
 			if uInfo := universe.GetUserInfo(Adam.ID(), Adam.ID()); uInfo != nil {
-				log.Trace(uInfo.String())
+				log.Info(uInfo.String())
 			} else {
 				log.Error("can not find user info")
 			}
 			if uInfo := universe.GetUserInfo(Eve.ID(), Adam.ID()); uInfo != nil {
-				log.Trace(uInfo.String())
+				log.Info(uInfo.String())
 			} else {
 				log.Error("can not find user info")
 			}
 
 			maxSeq = universe.GetMaxSeq(Eve.ID())
-			log.Trace("max seq for Eve time proof, should be 0 :", maxSeq)
+			log.Info("max seq for Eve time proof, should be 0 :", maxSeq)
+
+			log.Split("Test 8 finish")
 
 			ref = core.MsgReference{SenderID: Eve.ID(), MsgID: msg2.ID()}
+			var msgNewST *core.Message
 			for i := uint64(0); i < 150; i++ {
 				v := core.MsgValue{
 					ContentType: core.TypeText,
 					Content:     []byte(fmt.Sprintf("msg:%d", i)),
 				}
-				msgT, err := core.CreateMsg(Eve, &v, privKeyEve, &ref)
+				refT := core.MsgReference{SenderID: Adam.ID(), MsgID: AdamPartMsgIDs[i]}
+				msgT, err := core.CreateMsg(Eve, &v, privKeyEve, &ref, &refT)
 				if err != nil {
 					log.Error("loop :", i, " err:", err)
+				}
+				if i == 50 {
+					msgNewST = msgT
 				}
 				err = universe.AddMsg(msgT)
 				if err != nil {
@@ -291,15 +300,17 @@ func TestCmd() *cobra.Command {
 				verifyMsg(universe, msgT, false)
 			}
 
-			err = universe.AddSpaceTime(msg2)
-			if err != nil {
-				log.Error("add time proof fail, err :", err)
+			if err = universe.AddSpaceTime(msgNewST, msgNewST.Reference[0]); err != core.ErrCreateSpaceTimeFail {
+				log.Error("should be err : ", core.ErrCreateSpaceTimeFail)
+			}
+			if err = universe.AddSpaceTime(msgNewST, msgNewST.Reference[1]); err != nil {
+				log.Error("add space time fail, err :", err)
 			} else {
 				maxSeq = universe.GetMaxSeq(Eve.ID())
-				log.Trace("max seq for Eve time proof, should be larger than 0 :", maxSeq)
+				log.Info("max seq for Eve time proof, should be larger than 0 :", maxSeq)
 			}
+			log.Split("Test 9 finish")
 
-			log.Split("Test 7 finish")
 			return nil
 		},
 	}
@@ -316,7 +327,7 @@ func verifyMsg(universe *core.Universe, msg *core.Message, show bool) {
 		if err != nil {
 			log.Error("verfiy fail, err :", err)
 		} else if show {
-			log.Trace("verify result is: ", res)
+			log.Info("verify result is: ", res)
 		}
 	} else {
 		log.Error("verify fail, err:", errUserNotExist)
@@ -337,8 +348,8 @@ func createAdamAndEve() (*core.User, *core.User, *crypto.PrivateKey, *crypto.Pri
 			privKeyEve, Eve, _ = createRootUser(false)
 		}
 		if Adam != nil && Eve != nil {
-			log.Trace("Adam ID :", common.Hash2String(Adam.ID()))
-			log.Trace("Eve ID  :", common.Hash2String(Eve.ID()))
+			log.Info("Adam ID :", common.Hash2String(Adam.ID()))
+			log.Info("Eve ID  :", common.Hash2String(Eve.ID()))
 			break
 		}
 	}

@@ -33,7 +33,6 @@ var (
 	ErrUserAlreadyExist    = errors.New("user already exist")
 	ErrNotSupportYet       = errors.New("not error, just not support ye")
 	ErrNewUserAddFail      = errors.New("new user add fail")
-	ErrReferenceNotUnique  = errors.New("reference not unique")
 	ErrCreateSpaceTimeFail = errors.New("create space time fail")
 )
 
@@ -102,7 +101,7 @@ func (u *Universe) AddMsg(msg *Message) error {
 		if err := u.initializeMsgD(msg); err != nil {
 			return err
 		}
-		if err := u.AddSpaceTime(msg); err != nil {
+		if err := u.AddSpaceTime(msg, nil); err != nil {
 			return err
 		}
 	} else {
@@ -139,7 +138,7 @@ func (u *Universe) AddMsg(msg *Message) error {
 }
 
 // AddSpaceTime will get all messages save in Universe with same msg.SenderID
-func (u *Universe) AddSpaceTime(msg *Message) error {
+func (u *Universe) AddSpaceTime(msg *Message, ref *MsgReference) error {
 	if u.GetMsgByID(msg.ID()) == nil {
 		return ErrMsgNotFound
 	}
@@ -148,9 +147,6 @@ func (u *Universe) AddSpaceTime(msg *Message) error {
 	}
 	if !u.CheckUserExist(msg.SenderID) {
 		return ErrUserNotExist
-	}
-	if len(msg.Reference) > 1 {
-		return ErrReferenceNotUnique
 	}
 	// update time proof
 	initialize := true
@@ -161,13 +157,13 @@ func (u *Universe) AddSpaceTime(msg *Message) error {
 		}
 		if msgSpaceTime := u.GetMsgByID(id); msgSpaceTime != nil && msgSpaceTime.SenderID == msg.SenderID && startRecord {
 			if initialize {
-				st, err := u.createSpaceTime(msgSpaceTime)
+				st, err := u.createSpaceTime(msgSpaceTime, ref)
 				if err != nil {
 					return err
 				}
 				var stVertex *dag.Vertex
-				if len(msg.Reference) > 0 {
-					stVertex, err = dag.NewVertex(msg.SenderID, st, msg.Reference[0].SenderID)
+				if ref != nil {
+					stVertex, err = dag.NewVertex(msg.SenderID, st, ref.SenderID)
 				} else {
 					stVertex, err = dag.NewVertex(msg.SenderID, st)
 				}
@@ -274,7 +270,7 @@ func (u *Universe) processMsg(msg *Message) error {
 	return nil
 }
 
-func (u *Universe) createSpaceTime(msg *Message) (*SpaceTime, error) {
+func (u *Universe) createSpaceTime(msg *Message, ref *MsgReference) (*SpaceTime, error) {
 	timeVertex, err := dag.NewVertex(msg.ID(), uint64(1))
 	if err != nil {
 		return nil, err
@@ -287,16 +283,24 @@ func (u *Universe) createSpaceTime(msg *Message) (*SpaceTime, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	if nil != u.stD {
-		if len(msg.Reference) != 1 {
-			return nil, ErrReferenceNotUnique
+		if ref == nil {
+			return nil, ErrCreateSpaceTimeFail
 		}
-		if stVertex := u.stD.GetVertex(msg.Reference[0].SenderID); stVertex == nil {
+		refExist := false
+		for _, v := range msg.Reference {
+			if v.SenderID == ref.SenderID && v.MsgID == ref.MsgID {
+				refExist = true
+			}
+		}
+		if !refExist {
+			return nil, ErrCreateSpaceTimeFail
+		}
+		if stVertex := u.stD.GetVertex(ref.SenderID); stVertex == nil {
 			return nil, ErrCreateSpaceTimeFail
 		} else {
 			st := stVertex.Value().(*SpaceTime)
-			refSeq := st.timeProofD.GetVertex(msg.Reference[0].MsgID).Value().(uint64)
+			refSeq := st.timeProofD.GetVertex(ref.MsgID).Value().(uint64)
 			for _, k := range st.userStateD.GetIDs() {
 				lifeMaxSeq := st.userStateD.GetVertex(k).Value().(*UserInfo).natureLifeMaxSeq - refSeq
 				userStateVertex, err := dag.NewVertex(k, &UserInfo{natureState: UserStatusNormal, natureLastCosign: 0, natureLifeMaxSeq: lifeMaxSeq, natureDOBSeq: 0}, u.userD.GetVertex(k).Parents()...)
