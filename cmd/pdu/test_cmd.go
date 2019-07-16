@@ -210,10 +210,10 @@ func TestCmd() *cobra.Command {
 					log.Error("user to json fail , err:", err)
 				}
 
-				sigAdam := crypto.Signature{Signature: dobContent.Parents[1].Sig,
-					PublicKey: universe.GetUserByID(dobContent.Parents[1].PID).Auth.PublicKey}
-				sigEve := crypto.Signature{Signature: dobContent.Parents[0].Sig,
-					PublicKey: universe.GetUserByID(dobContent.Parents[0].PID).Auth.PublicKey}
+				sigAdam := crypto.Signature{Signature: dobContent.Parents[1].Signature,
+					PublicKey: universe.GetUserByID(dobContent.Parents[1].UserID).Auth.PublicKey}
+				sigEve := crypto.Signature{Signature: dobContent.Parents[0].Signature,
+					PublicKey: universe.GetUserByID(dobContent.Parents[0].UserID).Auth.PublicKey}
 
 				if res, err := pdu.Verify(jsonBytes, sigAdam); err != nil || res == false {
 					log.Error("verify Adam fail, err", err)

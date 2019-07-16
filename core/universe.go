@@ -200,8 +200,8 @@ func (u Universe) CheckUserExist(userID common.Hash) bool {
 }
 
 // GetUserByID return the user from userD, not userInfo by space time
-func (u Universe) GetUserByID(uid common.Hash) *User {
-	if v := u.userD.GetVertex(uid); v != nil {
+func (u Universe) GetUserByID(userID common.Hash) *User {
+	if v := u.userD.GetVertex(userID); v != nil {
 		return v.Value().(*User)
 	} else {
 		return nil
@@ -209,9 +209,9 @@ func (u Universe) GetUserByID(uid common.Hash) *User {
 }
 
 // GetMaxSeq will return the max time proof sequence for
-// time proof by the userID
-func (u Universe) GetMaxSeq(userID common.Hash) uint64 {
-	if vertex := u.stD.GetVertex(userID); vertex != nil {
+// time proof by the stID
+func (u Universe) GetMaxSeq(stID common.Hash) uint64 {
+	if vertex := u.stD.GetVertex(stID); vertex != nil {
 		return vertex.Value().(*SpaceTime).maxTimeSequence
 	} else {
 		return 0
@@ -220,8 +220,8 @@ func (u Universe) GetMaxSeq(userID common.Hash) uint64 {
 
 // GetMsgByID will return the msg by msg.ID()
 // nil will be return if msg not exist
-func (u Universe) GetMsgByID(mid interface{}) *Message {
-	if v := u.msgD.GetVertex(mid); v != nil {
+func (u Universe) GetMsgByID(msgID interface{}) *Message {
+	if v := u.msgD.GetVertex(msgID); v != nil {
 		return v.Value().(*Message)
 	} else {
 		return nil
@@ -355,12 +355,12 @@ func (u *Universe) addUserByMsg(msg *Message) error {
 
 			if tp := st.timeProofD.GetVertex(ref.MsgID); tp != nil {
 				msgSeq := tp.Value().(uint64)
-				p0 := st.userStateD.GetVertex(dobContent.Parents[0].PID)
+				p0 := st.userStateD.GetVertex(dobContent.Parents[0].UserID)
 				if p0 == nil {
 					continue
 				}
 				userInfo0 := p0.Value().(*UserInfo)
-				p1 := st.userStateD.GetVertex(dobContent.Parents[0].PID)
+				p1 := st.userStateD.GetVertex(dobContent.Parents[0].UserID)
 				if p1 == nil {
 					continue
 				}
@@ -388,7 +388,7 @@ func (u *Universe) addUserByMsg(msg *Message) error {
 	if len(validST) == 0 {
 		return ErrNewUserAddFail
 	}
-	userVertex, err := dag.NewVertex(user.ID(), user, dobContent.Parents[0].PID, dobContent.Parents[1].PID)
+	userVertex, err := dag.NewVertex(user.ID(), user, dobContent.Parents[0].UserID, dobContent.Parents[1].UserID)
 	if err != nil {
 		return err
 	}

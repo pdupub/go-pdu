@@ -39,8 +39,8 @@ type DOBMsgContent struct {
 }
 
 type ParentSig struct {
-	PID common.Hash
-	Sig []byte
+	UserID    common.Hash
+	Signature []byte
 }
 
 func CreateDOBMsgContent(name string, extra string, auth *Auth) (*DOBMsgContent, error) {
@@ -64,9 +64,9 @@ func (mv *DOBMsgContent) SignByParent(user *User, privKey crypto.PrivateKey) err
 		}
 	}
 	if user.Gender() == male {
-		mv.Parents[1] = ParentSig{PID: user.ID(), Sig: signature.Signature}
+		mv.Parents[1] = ParentSig{UserID: user.ID(), Signature: signature.Signature}
 	} else {
-		mv.Parents[0] = ParentSig{PID: user.ID(), Sig: signature.Signature}
+		mv.Parents[0] = ParentSig{UserID: user.ID(), Signature: signature.Signature}
 	}
 	return nil
 }

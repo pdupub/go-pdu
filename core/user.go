@@ -80,13 +80,13 @@ func CreateNewUser(universe *Universe, msg *Message) (*User, error) {
 	newUser := dobContent.User
 	newUser.DOBMsg = msg
 	// calculate the life time of new user
-	p0 := universe.userD.GetVertex(dobContent.Parents[0].PID)
+	p0 := universe.userD.GetVertex(dobContent.Parents[0].UserID)
 	if p0 == nil {
 		return nil, ErrUserNotExist
 	}
 	maxParentLifeTime := p0.Value().(*User).LifeTime
 
-	p1 := universe.userD.GetVertex(dobContent.Parents[1].PID)
+	p1 := universe.userD.GetVertex(dobContent.Parents[1].UserID)
 	if p1 == nil {
 		return nil, ErrUserNotExist
 	}
@@ -149,8 +149,8 @@ func (u User) ParentsID() [2]common.Hash {
 		if err := json.Unmarshal(u.DOBMsg.Value.Content, &dobContent); err != nil {
 			return parentsID
 		}
-		parentsID[0] = dobContent.Parents[0].PID
-		parentsID[1] = dobContent.Parents[1].PID
+		parentsID[0] = dobContent.Parents[0].UserID
+		parentsID[1] = dobContent.Parents[1].UserID
 	}
 	return parentsID
 }
