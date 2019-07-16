@@ -279,7 +279,7 @@ func TestCmd() *cobra.Command {
 
 			ref = core.MsgReference{SenderID: Eve.ID(), MsgID: msg2.ID()}
 			var msgNewST *core.Message
-			for i := uint64(0); i < 150; i++ {
+			for i := uint64(0); i < rule.REPRODUCTION_INTERVAL; i++ {
 				v := core.MsgValue{
 					ContentType: core.TypeText,
 					Content:     []byte(fmt.Sprintf("msg:%d", i)),
@@ -310,6 +310,78 @@ func TestCmd() *cobra.Command {
 				log.Info("max seq for Eve time proof, should be larger than 0 :", maxSeq)
 			}
 			log.Split("Test 9 finish")
+
+			for i := uint64(0); i < rule.REPRODUCTION_INTERVAL; i++ {
+				v := core.MsgValue{
+					ContentType: core.TypeText,
+					Content:     []byte(fmt.Sprintf("msg 2:%d", i)),
+				}
+				msgT, err := core.CreateMsg(Eve, &v, privKeyEve, &ref)
+				if err != nil {
+					log.Error("loop :", i, " err:", err)
+				}
+				err = universe.AddMsg(msgT)
+				if err != nil {
+					log.Error("loop :", i, " err:", err)
+				}
+				ref = core.MsgReference{SenderID: Eve.ID(), MsgID: msgT.ID()}
+				verifyMsg(universe, msgT, false)
+			}
+			maxSeq = universe.GetMaxSeq(Eve.ID())
+			log.Info("max seq for Eve time proof, should be larger than 0 :", maxSeq)
+			log.Split("Test 10 Finish")
+
+			valueDob = core.MsgValue{
+				ContentType: core.TypeDOB,
+			}
+			_, pubKeyA3, err := pdu.GenKey(pdu.MultipleSignatures, 3)
+
+			auth = core.Auth{PublicKey: *pubKeyA3}
+			content, err = core.CreateDOBMsgContent("A3", "789", &auth)
+			if err != nil {
+				log.Error("create bod content fail, err:", err)
+			}
+			content.SignByParent(Adam, *privKeyAdam)
+			content.SignByParent(Eve, *privKeyEve)
+
+			valueDob.Content, err = json.Marshal(content)
+			if err != nil {
+				log.Error("content marshal fail , err:", err)
+			}
+			refAdam := core.MsgReference{SenderID: Adam.ID(), MsgID: AdamPartMsgIDs[len(AdamPartMsgIDs)-1]}
+			msgDob, err = core.CreateMsg(Eve, &valueDob, privKeyEve, &ref, &refAdam)
+			if err != nil {
+				log.Error("create msg fail , err :", err)
+			} else {
+				log.Info("dob msg ", "sender", common.Hash2String(msgDob.SenderID))
+				log.Info("dob msg ", "bod.content", string(msgDob.Value.Content)[:60]+"...")
+
+			}
+			if err := universe.AddMsg(msgDob); err != nil {
+				log.Error("add user dob msg fail, err:", err)
+			}
+
+			if uInfo := universe.GetUserInfo(Adam.ID(), Adam.ID()); uInfo != nil {
+				log.Info(uInfo.String())
+			} else {
+				log.Error("can not find user info")
+			}
+			if uInfo := universe.GetUserInfo(Eve.ID(), Adam.ID()); uInfo != nil {
+				log.Info(uInfo.String())
+			} else {
+				log.Error("can not find user info")
+			}
+
+			if uInfo := universe.GetUserInfo(Adam.ID(), Eve.ID()); uInfo != nil {
+				log.Info(uInfo.String())
+			} else {
+				log.Error("can not find user info")
+			}
+			if uInfo := universe.GetUserInfo(Eve.ID(), Eve.ID()); uInfo != nil {
+				log.Info(uInfo.String())
+			} else {
+				log.Error("can not find user info")
+			}
 
 			return nil
 		},
