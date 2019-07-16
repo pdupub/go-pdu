@@ -356,18 +356,19 @@ func (u *Universe) addUserByMsg(msg *Message) error {
 			if tp := st.timeProofD.GetVertex(ref.MsgID); tp != nil {
 				msgSeq := tp.Value().(uint64)
 				p0 := st.userStateD.GetVertex(dobContent.Parents[0].PID)
-
 				if p0 == nil {
 					continue
 				}
+				userInfo0 := p0.Value().(*UserInfo)
 				p1 := st.userStateD.GetVertex(dobContent.Parents[0].PID)
 				if p1 == nil {
 					continue
 				}
-				// todo : parents life time should still be valid
-				// todo : parent.natureDOBSeq + parent.natureLifeMaxSeq > msgSeq
-				if msgSeq-p0.Value().(*UserInfo).natureLastCosign > rule.REPRODUCTION_INTERVAL &&
-					msgSeq-p1.Value().(*UserInfo).natureLastCosign > rule.REPRODUCTION_INTERVAL {
+				userInfo1 := p0.Value().(*UserInfo)
+				if userInfo0.natureDOBSeq+userInfo0.natureLifeMaxSeq > msgSeq &&
+					userInfo1.natureDOBSeq+userInfo1.natureLifeMaxSeq > msgSeq &&
+					msgSeq-userInfo0.natureLastCosign > rule.REPRODUCTION_INTERVAL &&
+					msgSeq-userInfo1.natureLastCosign > rule.REPRODUCTION_INTERVAL {
 					// update nature last cosign number as msgSeq
 					p0.Value().(*UserInfo).natureLastCosign = msgSeq
 					p1.Value().(*UserInfo).natureLastCosign = msgSeq
