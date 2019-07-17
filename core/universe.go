@@ -52,7 +52,7 @@ type UserInfo struct {
 }
 
 func (ui *UserInfo) String() string {
-	return fmt.Sprintf("natureState : %d \t natureLastCosign : %d \t natureLifeMaxSeq : %d \t natureDOBSeq : %d \t localNickname : %s", ui.natureState, ui.natureLastCosign, ui.natureLifeMaxSeq, ui.natureDOBSeq, ui.localNickname)
+	return fmt.Sprintf("localNickname:\t%s\tnatureState:\t%d\tnatureLastCosign:\t%d\tnatureLifeMaxSeq:\t%d\tnatureDOBSeq:\t%d\t", ui.localNickname, ui.natureState, ui.natureLastCosign, ui.natureLifeMaxSeq, ui.natureDOBSeq)
 }
 
 // SpaceTime contain time proof of this space time and the user info who is valid in this space time
@@ -135,6 +135,17 @@ func (u *Universe) AddMsg(msg *Message) error {
 		}
 	}
 	return nil
+}
+
+// GetSpaceTimeIDs
+func (u *Universe) GetSpaceTimeIDs() []common.Hash {
+	var ids []common.Hash
+	if u.stD != nil {
+		for _, id := range u.stD.GetIDs() {
+			ids = append(ids, id.(common.Hash))
+		}
+	}
+	return ids
 }
 
 // AddSpaceTime will get all messages save in Universe with same msg.SenderID

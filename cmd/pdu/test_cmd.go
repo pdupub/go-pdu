@@ -83,17 +83,7 @@ func TestCmd() *cobra.Command {
 			if newAdam := universe.GetUserByID(Adam.ID()); newAdam != nil {
 				log.Info("get Adam from userDAG :", common.Hash2String(newAdam.ID()))
 			}
-			if uInfo := universe.GetUserInfo(Adam.ID(), Adam.ID()); uInfo != nil {
-				log.Info(uInfo.String())
-			} else {
-				log.Error("can not find user info")
-			}
-			if uInfo := universe.GetUserInfo(Eve.ID(), Adam.ID()); uInfo != nil {
-				log.Info(uInfo.String())
-			} else {
-				log.Error("can not find user info")
-			}
-
+			displayAllSpaceTimeUserState(universe)
 			log.Split("Test 3 finish")
 
 			// Test 4: verify msg
@@ -156,7 +146,7 @@ func TestCmd() *cobra.Command {
 
 			maxSeq := universe.GetMaxSeq(Adam.ID())
 			log.Info("max seq for time proof :", maxSeq)
-
+			displayAllSpaceTimeUserState(universe)
 			log.Split("Test 5 finish")
 			// Test 6: create dob msg, and verify
 			// new msg reference first & second msg
@@ -261,19 +251,9 @@ func TestCmd() *cobra.Command {
 				log.Error("add msg4 fail, err should be %s, but now err : %s", core.ErrMsgAlreadyExist, err)
 			}
 
-			if uInfo := universe.GetUserInfo(Adam.ID(), Adam.ID()); uInfo != nil {
-				log.Info(uInfo.String())
-			} else {
-				log.Error("can not find user info")
-			}
-			if uInfo := universe.GetUserInfo(Eve.ID(), Adam.ID()); uInfo != nil {
-				log.Info(uInfo.String())
-			} else {
-				log.Error("can not find user info")
-			}
-
 			maxSeq = universe.GetMaxSeq(Eve.ID())
 			log.Info("max seq for Eve time proof, should be 0 :", maxSeq)
+			displayAllSpaceTimeUserState(universe)
 
 			log.Split("Test 8 finish")
 
@@ -361,26 +341,25 @@ func TestCmd() *cobra.Command {
 				log.Error("add user dob msg fail, err:", err)
 			}
 
-			for _, id := range universe.GetUserIDs(Adam.ID()) {
-				if uInfo := universe.GetUserInfo(id, Adam.ID()); uInfo != nil {
-					log.Info("Adam Space Time :", common.Hash2String(id), uInfo.String())
-				} else {
-					log.Error("can not find user info")
-				}
-			}
-			for _, id := range universe.GetUserIDs(Eve.ID()) {
-				if uInfo := universe.GetUserInfo(id, Eve.ID()); uInfo != nil {
-					log.Info("Eve Space Time :", common.Hash2String(id), uInfo.String())
-				} else {
-					log.Error("can not find user info")
-				}
-			}
+			displayAllSpaceTimeUserState(universe)
 			log.Split("Test 11 Finish")
 			return nil
 		},
 	}
 
 	return cmd
+}
+
+func displayAllSpaceTimeUserState(universe *core.Universe) {
+	for _, stID := range universe.GetSpaceTimeIDs() {
+		for _, id := range universe.GetUserIDs(stID) {
+			if uInfo := universe.GetUserInfo(id, stID); uInfo != nil {
+				log.Info("ST:", universe.GetUserByID(stID).Name, uInfo.String(), "userID:", common.Hash2String(id)[:5])
+			} else {
+				log.Error("can not find user info")
+			}
+		}
+	}
 }
 
 func verifyMsg(universe *core.Universe, msg *core.Message, show bool) {
