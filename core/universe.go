@@ -314,7 +314,7 @@ func (u *Universe) createSpaceTime(msg *Message, ref *MsgReference) (*SpaceTime,
 			refSeq := st.timeProofD.GetVertex(ref.MsgID).Value().(uint64)
 			for _, k := range st.userStateD.GetIDs() {
 				lifeMaxSeq := st.userStateD.GetVertex(k).Value().(*UserInfo).natureLifeMaxSeq - refSeq
-				userStateVertex, err := dag.NewVertex(k, &UserInfo{natureState: UserStatusNormal, natureLastCosign: 0, natureLifeMaxSeq: lifeMaxSeq, natureDOBSeq: 0}, u.userD.GetVertex(k).Parents()...)
+				userStateVertex, err := dag.NewVertex(k, &UserInfo{natureState: UserStatusNormal, natureLastCosign: 0, natureLifeMaxSeq: lifeMaxSeq, natureDOBSeq: 0, localNickname: u.userD.GetVertex(k).Value().(*User).Name}, u.userD.GetVertex(k).Parents()...)
 				if err != nil {
 					return nil, err
 				}
@@ -325,7 +325,7 @@ func (u *Universe) createSpaceTime(msg *Message, ref *MsgReference) (*SpaceTime,
 		// create the userState for the first space time
 		for _, k := range u.userD.GetIDs() {
 			if nil == userStateD.GetVertex(k) {
-				userStateVertex, err := dag.NewVertex(k, &UserInfo{natureState: UserStatusNormal, natureLastCosign: 0, natureLifeMaxSeq: rule.MAX_LIFTTIME, natureDOBSeq: 0}, u.userD.GetVertex(k).Parents()...)
+				userStateVertex, err := dag.NewVertex(k, &UserInfo{natureState: UserStatusNormal, natureLastCosign: 0, natureLifeMaxSeq: rule.MAX_LIFTTIME, natureDOBSeq: 0, localNickname: u.userD.GetVertex(k).Value().(*User).Name}, u.userD.GetVertex(k).Parents()...)
 				if err != nil {
 					return nil, err
 				}
@@ -409,7 +409,7 @@ func (u *Universe) addUserByMsg(msg *Message) error {
 					// append validST
 					validST = append(validST, ref.SenderID)
 					// add user in this st
-					userVertex, err := dag.NewVertex(user.ID(), &UserInfo{natureState: UserStatusNormal, natureLastCosign: msgSeq, natureLifeMaxSeq: user.LifeTime, natureDOBSeq: msgSeq}, p0, p1)
+					userVertex, err := dag.NewVertex(user.ID(), &UserInfo{natureState: UserStatusNormal, natureLastCosign: msgSeq, natureLifeMaxSeq: user.LifeTime, natureDOBSeq: msgSeq, localNickname: user.Name}, p0, p1)
 					if err != nil {
 						return err
 					}

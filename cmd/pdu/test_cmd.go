@@ -375,7 +375,7 @@ func TestCmd() *cobra.Command {
 					log.Error("can not find user info")
 				}
 			}
-
+			log.Split("Test 11 Finish")
 			return nil
 		},
 	}
