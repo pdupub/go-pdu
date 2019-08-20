@@ -42,9 +42,11 @@ func TestCmd() *cobra.Command {
 		Short: "Test on pdu",
 		RunE: func(_ *cobra.Command, args []string) error {
 
-			// Test 1: create root users, Adam and Eve , create universe
-			// because the gender of user relate to public key (random),
-			// so createRootUser will repeat until two root user be created.
+			// Test 1: Create root users, Adam and Eve , create universe
+			// The gender of user relate to public key (random), so createRootUser
+			// will repeat until two root user with different gender be created.
+			// The new universe will be created by those two root users.
+			// There is no message(msg) right now, so now space-time in universe.
 			Adam, Eve, privKeyAdam, privKeyEve, err := createAdamAndEve()
 			universe, err := core.NewUniverse(Eve, Adam)
 			if err != nil {
@@ -55,7 +57,7 @@ func TestCmd() *cobra.Command {
 			}
 			log.Split("Test 1 finish")
 
-			// Test 2: create txt msg
+			// Test 2: Create txt msg, first msg with no reference
 			// this msg is signed by Adam
 			value := core.MsgValue{
 				ContentType: core.TypeText,
@@ -72,10 +74,13 @@ func TestCmd() *cobra.Command {
 				log.Info("first msg from Adam ", "reference", msg.Reference)
 				//log.Info("first msg from Adam ", "signature", msg.Signature)
 			}
-
 			log.Split("Test 2 finish")
-			// Test 3: add msg into universe
-			// add the txt msg from Test 4 as the root msg
+
+			// Test 3: Add msg from Adam into universe, this msg will
+			// be used to create default space-time in universe.
+			// The initialize process of universe have been finished.
+			// New space-time can be created later, but the universe
+			// will always be this one. (equal to genesis.json in ethereum config)
 			err = universe.AddMsg(msg)
 			if err != nil {
 				log.Error("add msg fail , err :", err)
@@ -88,14 +93,16 @@ func TestCmd() *cobra.Command {
 			displayAllSpaceTimeUserState(universe)
 			log.Split("Test 3 finish")
 
-			// Test 4: verify msg
+			// Test 4: Verify msg
 			// msg contain the Adam is and signature.
 			// Adam's public key can be found from userDAG by Adam ID
 			verifyMsg(universe, msg, true)
-
 			log.Split("Test 4 finish")
-			// Test 5: create second txt msg with reference, add into msg dag, verify msg
-			// new msg reference first msg
+
+			// Test 5: Create lots of txt msg with reference, add into universe,
+			// Each valid message will add into messageDAG in universe, and the ID of msg
+			// will be keep in timespaceDAG for check reference and check DOB
+			// In this step, the count of msg is more than tp need for bod.
 			value2 := core.MsgValue{
 				ContentType: core.TypeText,
 				Content:     []byte("hey u!"),
