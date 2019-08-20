@@ -21,22 +21,26 @@ import (
 	"log"
 )
 
+// Info log in default color
 func Info(v ...interface{}) {
 	log.Println(v...)
 }
 
+// Trace log in green
 func Trace(v ...interface{}) {
 	fmt.Printf("%c[;;%dm", 0x1B, 32)
 	log.Println(v...)
 	fmt.Printf("%c[0m", 0x1B)
 }
 
+// Error log in red
 func Error(v ...interface{}) {
 	fmt.Printf("%c[;;%dm", 0x1B, 31)
 	log.Println(v...)
 	fmt.Printf("%c[0m", 0x1B)
 }
 
+// Split add ###### as split line
 func Split(info string) {
 	Trace("############################################## ", info, " #################################################")
 }

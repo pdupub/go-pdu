@@ -34,6 +34,8 @@ var (
 	errCreateRootUserFail = errors.New("create root user fail")
 )
 
+// TestCmd do the test related to step of create the pdu universe and
+// split the universe for different space-time
 func TestCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "test",

@@ -22,6 +22,7 @@ type Hash [HashLength]byte
 
 const HashLength = 32
 
+// Hash2String
 func Hash2String(b Hash) (s string) {
 	s = ""
 	for i := 0; i < HashLength; i++ {
@@ -30,6 +31,7 @@ func Hash2String(b Hash) (s string) {
 	return s
 }
 
+// Bytes2String
 func Bytes2String(b []byte) (s string) {
 	s = ""
 	for i := 0; i < len(b); i++ {
@@ -38,6 +40,7 @@ func Bytes2String(b []byte) (s string) {
 	return s
 }
 
+// Bytes2Hash
 func Bytes2Hash(b []byte) Hash {
 	hash := [HashLength]byte{}
 	if len(b) > HashLength {
