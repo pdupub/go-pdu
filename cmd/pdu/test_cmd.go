@@ -118,17 +118,14 @@ func TestCmd() *cobra.Command {
 				}
 				log.Info("first msg from Eve ", "reference", msg2.Reference)
 			}
-
 			// add msg2
 			if err := universe.AddMsg(msg2); err != nil {
 				log.Error("add msg2 fail, err:", err)
 			} else {
 				log.Info("msg dag add msg2", common.Hash2String(universe.GetMsgByID(msg2.ID()).ID()))
 			}
-
 			// verify msg
 			verifyMsg(universe, msg2, true)
-
 			// loop to add msg dag
 			ref = core.MsgReference{SenderID: Adam.ID(), MsgID: msg.ID()}
 			var AdamPartMsgIDs []common.Hash
@@ -157,7 +154,8 @@ func TestCmd() *cobra.Command {
 			log.Info("max seq for time proof :", maxSeq)
 			displayAllSpaceTimeUserState(universe)
 			log.Split("Test 5 finish")
-			// Test 6: create dob msg, and verify
+
+			// Test 6: Create dob msg(create new user msg), and verify
 			// new msg reference first & second msg
 			valueDob := core.MsgValue{
 				ContentType: core.TypeDOB,
@@ -195,10 +193,9 @@ func TestCmd() *cobra.Command {
 			verifyMsg(universe, msgDob, true)
 			log.Split("Test 6 finish")
 
-			// Test 7: json marshal & unmarshal for msg
+			// Test 7: Marshal & unmarshal JSON for msg
 			msgBytes, err := json.Marshal(msgDob)
 			//log.Info(common.Bytes2String(msgBytes))
-
 			var msgDob2 core.Message
 			if err != nil {
 				log.Error("marshal fail err :", err)
@@ -248,9 +245,9 @@ func TestCmd() *cobra.Command {
 				log.Error("should be dob msg")
 			}
 			log.Split("Test 7 finish ")
-			// Test 8: create new User from dob message
-			// user create from msg3 and msg4 should be same user
 
+			// Test 8: Create new User from dob message
+			// user create from msg3 and msg4 should be same user
 			if err := universe.AddMsg(msgDob); err != nil {
 				log.Error("add msg3 fail , err", err)
 			} else {
@@ -263,9 +260,9 @@ func TestCmd() *cobra.Command {
 			maxSeq = universe.GetMaxSeq(Eve.ID())
 			log.Info("max seq for Eve time proof, should be 0 :", maxSeq)
 			displayAllSpaceTimeUserState(universe)
-
 			log.Split("Test 8 finish")
 
+			// Test 9: Create new space-time by msg from Eve
 			ref = core.MsgReference{SenderID: Eve.ID(), MsgID: msg2.ID()}
 			var msgNewST *core.Message
 			for i := uint64(0); i < rule.REPRODUCTION_INTERVAL; i++ {
@@ -300,6 +297,8 @@ func TestCmd() *cobra.Command {
 			}
 			log.Split("Test 9 finish")
 
+			// Test 10: Create lots of msg, add them into universe, user Eve
+			// is valid in both space-time, so msg from Eve is valid in both space-time.
 			for i := uint64(0); i < rule.REPRODUCTION_INTERVAL; i++ {
 				v := core.MsgValue{
 					ContentType: core.TypeText,
@@ -320,6 +319,8 @@ func TestCmd() *cobra.Command {
 			log.Info("max seq for Eve time proof, should be larger than 0 :", maxSeq)
 			log.Split("Test 10 Finish")
 
+			// Test 11: Create new user, new user is valid in both
+			// space-time with different life length left.
 			valueDob = core.MsgValue{
 				ContentType: core.TypeDOB,
 			}
