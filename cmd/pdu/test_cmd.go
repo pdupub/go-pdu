@@ -55,7 +55,6 @@ func TestCmd() *cobra.Command {
 			if res := universe.GetUserInfo(Adam.ID(), Adam.ID()); res != nil {
 				log.Error("should be nil")
 			}
-			log.Split("Test 1 finish")
 
 			// Test 2: Create txt msg, first msg with no reference
 			// this msg is signed by Adam
@@ -74,7 +73,6 @@ func TestCmd() *cobra.Command {
 				log.Info("first msg from Adam ", "reference", msg.Reference)
 				//log.Info("first msg from Adam ", "signature", msg.Signature)
 			}
-			log.Split("Test 2 finish")
 
 			// Test 3: Add msg from Adam into universe, this msg will
 			// be used to create default space-time in universe.
@@ -91,13 +89,11 @@ func TestCmd() *cobra.Command {
 				log.Info("get Adam from userDAG :", common.Hash2String(newAdam.ID()))
 			}
 			displayAllSpaceTimeUserState(universe)
-			log.Split("Test 3 finish")
 
 			// Test 4: Verify msg
 			// msg contain the Adam is and signature.
 			// Adam's public key can be found from userDAG by Adam ID
 			verifyMsg(universe, msg, true)
-			log.Split("Test 4 finish")
 
 			// Test 5: Create lots of txt msg with reference, add into universe,
 			// Each valid message will add into messageDAG in universe, and the ID of msg
@@ -153,7 +149,6 @@ func TestCmd() *cobra.Command {
 			maxSeq := universe.GetMaxSeq(Adam.ID())
 			log.Info("max seq for time proof :", maxSeq)
 			displayAllSpaceTimeUserState(universe)
-			log.Split("Test 5 finish")
 
 			// Test 6: Create dob msg(create new user msg), and verify
 			// new msg reference first & second msg
@@ -191,7 +186,6 @@ func TestCmd() *cobra.Command {
 			}
 
 			verifyMsg(universe, msgDob, true)
-			log.Split("Test 6 finish")
 
 			// Test 7: Marshal & unmarshal JSON for msg
 			msgBytes, err := json.Marshal(msgDob)
@@ -244,7 +238,6 @@ func TestCmd() *cobra.Command {
 			} else {
 				log.Error("should be dob msg")
 			}
-			log.Split("Test 7 finish ")
 
 			// Test 8: Create new User from dob message
 			// user create from msg3 and msg4 should be same user
@@ -260,7 +253,6 @@ func TestCmd() *cobra.Command {
 			maxSeq = universe.GetMaxSeq(Eve.ID())
 			log.Info("max seq for Eve time proof, should be 0 :", maxSeq)
 			displayAllSpaceTimeUserState(universe)
-			log.Split("Test 8 finish")
 
 			// Test 9: Create new space-time by msg from Eve
 			ref = core.MsgReference{SenderID: Eve.ID(), MsgID: msg2.ID()}
@@ -295,7 +287,6 @@ func TestCmd() *cobra.Command {
 				maxSeq = universe.GetMaxSeq(Eve.ID())
 				log.Info("max seq for Eve time proof, should be larger than 0 :", maxSeq)
 			}
-			log.Split("Test 9 finish")
 
 			// Test 10: Create lots of msg, add them into universe, user Eve
 			// is valid in both space-time, so msg from Eve is valid in both space-time.
@@ -317,7 +308,6 @@ func TestCmd() *cobra.Command {
 			}
 			maxSeq = universe.GetMaxSeq(Eve.ID())
 			log.Info("max seq for Eve time proof, should be larger than 0 :", maxSeq)
-			log.Split("Test 10 Finish")
 
 			// Test 11: Create new user, new user is valid in both
 			// space-time with different life length left.
@@ -352,7 +342,6 @@ func TestCmd() *cobra.Command {
 			}
 
 			displayAllSpaceTimeUserState(universe)
-			log.Split("Test 11 Finish")
 			return nil
 		},
 	}

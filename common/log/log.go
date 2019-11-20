@@ -21,26 +21,71 @@ import (
 	"log"
 )
 
+const (
+	LvlCrit = iota
+	LvlError
+	LvlWarn
+	LvlInfo
+	LvlDebug
+	LvlTrace
+)
+
+func alignedString(lvl int) string {
+	switch lvl {
+	case LvlTrace:
+		return "TRACE"
+	case LvlDebug:
+		return "DEBUG"
+	case LvlInfo:
+		return "INFO "
+	case LvlWarn:
+		return "WARN "
+	case LvlError:
+		return "ERROR"
+	case LvlCrit:
+		return "CRIT "
+	default:
+		panic("bad level")
+	}
+}
+
+func msgColor(lvl int) (color int) {
+	switch lvl {
+	case LvlCrit:
+		color = 35
+	case LvlError:
+		color = 31
+	case LvlWarn:
+		color = 33
+	case LvlInfo:
+		color = 32
+	case LvlDebug:
+		color = 36
+	case LvlTrace:
+		color = 34
+	default:
+		panic("bad level")
+	}
+	return
+}
+
 // Info log in default color
 func Info(v ...interface{}) {
-	log.Println(v...)
+	println(LvlInfo, v...)
 }
 
 // Trace log in green
 func Trace(v ...interface{}) {
-	fmt.Printf("%c[;;%dm", 0x1B, 32)
-	log.Println(v...)
-	fmt.Printf("%c[0m", 0x1B)
+	println(LvlTrace, v...)
 }
 
 // Error log in red
 func Error(v ...interface{}) {
-	fmt.Printf("%c[;;%dm", 0x1B, 31)
-	log.Println(v...)
-	fmt.Printf("%c[0m", 0x1B)
+	println(LvlError, v...)
 }
 
-// Split add ###### as split line
-func Split(info string) {
-	Trace("############################################## ", info, " #################################################")
+func println(lvl int, v ...interface{}) {
+	fmt.Printf("%c[;;%dm", 0x1B, msgColor(lvl))
+	log.Println(v...)
+	fmt.Printf("%c[0m", 0x1B)
 }
