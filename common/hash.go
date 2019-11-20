@@ -18,11 +18,13 @@ package common
 
 import "fmt"
 
+// Hash is fixed length []byte
 type Hash [HashLength]byte
 
+// HashLength is the length of Hash
 const HashLength = 32
 
-// Hash2String
+// Hash2String is transform Hash to string
 func Hash2String(b Hash) (s string) {
 	s = ""
 	for i := 0; i < HashLength; i++ {
@@ -31,7 +33,7 @@ func Hash2String(b Hash) (s string) {
 	return s
 }
 
-// Bytes2String
+// Bytes2String is transform []byte to string
 func Bytes2String(b []byte) (s string) {
 	s = ""
 	for i := 0; i < len(b); i++ {
@@ -40,7 +42,7 @@ func Bytes2String(b []byte) (s string) {
 	return s
 }
 
-// Bytes2Hash
+// Bytes2Hash is transform []byte to Hash
 func Bytes2Hash(b []byte) Hash {
 	hash := [HashLength]byte{}
 	if len(b) > HashLength {

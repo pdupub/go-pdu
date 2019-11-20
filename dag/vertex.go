@@ -25,6 +25,7 @@ var (
 	errVertexIDInvalid = errors.New("vertex ID invalid")
 )
 
+// Vertex is a node in DAG
 type Vertex struct {
 	id       interface{}
 	value    interface{}
@@ -56,10 +57,12 @@ func NewVertex(id interface{}, value interface{}, parents ...interface{}) (*Vert
 	return v, nil
 }
 
+// ID is the id of vertex
 func (v Vertex) ID() interface{} {
 	return v.id
 }
 
+// Parents is the vertexes which current vertex reference
 func (v Vertex) Parents() []interface{} {
 	var pks []interface{}
 	for k := range v.parents {
@@ -68,6 +71,7 @@ func (v Vertex) Parents() []interface{} {
 	return pks
 }
 
+// Children is the vertexes which reference this vertex
 func (v Vertex) Children() []interface{} {
 	var cks []interface{}
 	for k := range v.children {
@@ -76,10 +80,12 @@ func (v Vertex) Children() []interface{} {
 	return cks
 }
 
+// Value is the content of vertex
 func (v Vertex) Value() interface{} {
 	return v.value
 }
 
+// SetValue set the content of vertex
 func (v *Vertex) SetValue(value interface{}) {
 	v.value = value
 }
@@ -93,6 +99,7 @@ func (v *Vertex) AddChild(children ...interface{}) {
 	}
 }
 
+// DelChild remove the children vertexes
 func (v *Vertex) DelChild(children ...interface{}) {
 	for _, child := range children {
 		ck := getItemID(child)
@@ -100,6 +107,7 @@ func (v *Vertex) DelChild(children ...interface{}) {
 	}
 }
 
+// HasParent return true if this vertex have parents
 func (v Vertex) HasParent(item interface{}) bool {
 	if _, ok := v.parents[getItemID(item)]; !ok {
 		return false
@@ -107,6 +115,7 @@ func (v Vertex) HasParent(item interface{}) bool {
 	return true
 }
 
+// HasChild return true if this vertex have children
 func (v Vertex) HasChild(item interface{}) bool {
 	if _, ok := v.children[getItemID(item)]; !ok {
 		return false
@@ -114,6 +123,7 @@ func (v Vertex) HasChild(item interface{}) bool {
 	return true
 }
 
+// String used to print the content of vertex
 func (v Vertex) String() string {
 	result := fmt.Sprintf("ID: %s - Parents: %d - Children: %d - Value: %v\n", v.id, len(v.Parents()), len(v.Children()), v.value)
 	return result

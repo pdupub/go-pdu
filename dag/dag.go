@@ -41,6 +41,7 @@ var (
 	errVertexParentNumberOutOfRange = errors.New("parent number is out of range")
 )
 
+// DAG is directed acyclic graph
 type DAG struct {
 	mu              sync.Mutex
 	maxParentsCount int // 0 = unlimited
@@ -48,7 +49,7 @@ type DAG struct {
 	ids             []interface{}
 }
 
-// NewDAG
+// NewDAG create new DAG by root vertexes
 func NewDAG(rootVertex ...*Vertex) (*DAG, error) {
 	dag := &DAG{
 		store: make(map[interface{}]*Vertex),
@@ -65,25 +66,26 @@ func NewDAG(rootVertex ...*Vertex) (*DAG, error) {
 	return dag, nil
 }
 
-// SetMaxParentsCount
+// SetMaxParentsCount set the max number of parents one vertex can get
 func (d *DAG) SetMaxParentsCount(maxCount int) {
 	d.maxParentsCount = maxCount
 }
 
-// GetMaxParentsCount
+// GetMaxParentsCount get the max number of parents
 func (d DAG) GetMaxParentsCount() int {
 	return d.maxParentsCount
 }
 
+// GetVertex can get vertex by ID
 func (d *DAG) GetVertex(id interface{}) *Vertex {
-	if v, ok := d.store[id]; !ok {
+
+	if _, ok := d.store[id]; !ok {
 		return nil
-	} else {
-		return v
 	}
+	return d.store[id]
 }
 
-// AddVertex
+// AddVertex is add vertex to DAG
 func (d *DAG) AddVertex(vertex *Vertex) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -111,7 +113,7 @@ func (d *DAG) AddVertex(vertex *Vertex) error {
 	return nil
 }
 
-// DelVertex
+// DelVertex is used to remove vertex from DAG
 func (d *DAG) DelVertex(id interface{}) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -138,10 +140,12 @@ func (d *DAG) DelVertex(id interface{}) error {
 	return nil
 }
 
+// GetIDs get id list of DAG
 func (d DAG) GetIDs() []interface{} {
 	return d.ids
 }
 
+// String is used to print the DAG content
 func (d DAG) String() string {
 	result := fmt.Sprintf("maxParentsCount : %d - storeSize : %d \n", d.maxParentsCount, len(d.store))
 	for k, v := range d.store {

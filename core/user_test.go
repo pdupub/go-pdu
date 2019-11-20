@@ -27,14 +27,14 @@ const (
 	retryCnt = 100
 )
 
-func TestCreateRootUsers(t *testing.T) {
+func TestCreateRootUsersS2PK(t *testing.T) {
 
 	for i := 0; i < retryCnt; i++ {
 		if _, pubKey, err := pdu.GenKey(pdu.Signature2PublicKey); err != nil {
-			t.Errorf("generate key fail, err :%s", err)
+			t.Error("generate key fail", err)
 		} else {
 			if users, err := CreateRootUsers(*pubKey); err != nil {
-				t.Errorf("create root users fail, err : %s", err)
+				t.Error("create root users fail", err)
 			} else {
 				for _, user := range users {
 					if user != nil && user.ID() != copy(user).ID() {
@@ -47,13 +47,15 @@ func TestCreateRootUsers(t *testing.T) {
 			}
 		}
 	}
+}
+func TestCreateRootUsersMS(t *testing.T) {
 
 	for i := 0; i < retryCnt; i++ {
 		if _, pubKey, err := pdu.GenKey(pdu.MultipleSignatures, 3); err != nil {
 
 		} else {
 			if users, err := CreateRootUsers(*pubKey); err != nil {
-				t.Errorf("create root users fail, err : %s", err)
+				t.Error("create root users fail", err)
 			} else {
 				for _, user := range users {
 					if user != nil && user.ID() != copy(user).ID() {
@@ -77,35 +79,38 @@ func TestCreateNewUser(t *testing.T) {
 
 	_, pubKey, err := pdu.GenKey(pdu.MultipleSignatures, 5)
 	if err != nil {
-		t.Errorf("generate key fail, err:%s", err)
+		t.Error("generate key fail", err)
 	}
 	// build auth for new user
 	auth := Auth{PublicKey: *pubKey}
 	// build dob msg content
 	content, err := CreateDOBMsgContent("A2", "1234", &auth)
 	if err != nil {
-		t.Errorf("create bod content fail, err: %s", err)
+		t.Error("create bod content fail", err)
 	}
 	content.SignByParent(Adam, privKeyAdam)
 	content.SignByParent(Eve, privKeyEve)
 	value.Content, err = json.Marshal(content)
 	if err != nil {
-		t.Errorf("content marshal fail , err: %s", err)
+		t.Error("content marshal fail ", err)
 	}
 	// build dob msg
 	dobMsg, err := CreateMsg(Eve, &value, &privKeyEve)
 	if err != nil {
-		t.Errorf("create msg fail, err :%s", err)
+		t.Error("create msg fails", err)
 	}
 
 	universe, err := NewUniverse(Eve, Adam)
+	if err != nil {
+		t.Error("create universe fail", err)
+	}
 	// create new user by dob msg
 	newUser, err := CreateNewUser(universe, dobMsg)
 	if err != nil {
-		t.Errorf("create new user fail, err:%s", err)
+		t.Error("create new user fail", err)
 	} else {
 		if newUser.ID() != copy(newUser).ID() {
-			t.Errorf("json Encode & Decode fail ")
+			t.Error("json Encode & Decode fail ")
 		}
 	}
 }

@@ -37,6 +37,7 @@ const (
 	female        = false
 )
 
+// User is the author of any msg in pdu
 type User struct {
 	Name     string   `json:"name"`
 	DOBExtra string   `json:"extra"`
@@ -49,7 +50,7 @@ var (
 	errContentTypeNotDOB = errors.New("content type is not TypeDOB")
 )
 
-// CreateRootUser try to create two root users by public key
+// CreateRootUsers try to create two root users by public key
 // One Male user and one female user,
 func CreateRootUsers(key crypto.PublicKey) ([2]*User, error) {
 	rootUsers := [2]*User{nil, nil}
@@ -155,40 +156,42 @@ func (u User) ParentsID() [2]common.Hash {
 	return parentsID
 }
 
+// UnmarshalJSON is used to unmarshal json
 func (u *User) UnmarshalJSON(input []byte) error {
 	userMap := make(map[string]interface{})
 	err := json.Unmarshal(input, &userMap)
 	if err != nil {
 		return err
-	} else {
-		u.Name = userMap["name"].(string)
-		u.DOBExtra = userMap["dobExtra"].(string)
-		u.LifeTime, err = strconv.ParseUint(userMap["lifeTime"].(string), 0, 64)
-		if err != nil {
-			return err
-		}
-		json.Unmarshal([]byte(userMap["dobMsg"].(string)), &u.DOBMsg)
-		json.Unmarshal([]byte(userMap["auth"].(string)), &u.Auth)
 	}
+	u.Name = userMap["name"].(string)
+	u.DOBExtra = userMap["dobExtra"].(string)
+	u.LifeTime, err = strconv.ParseUint(userMap["lifeTime"].(string), 0, 64)
+	if err != nil {
+		return err
+	}
+	json.Unmarshal([]byte(userMap["dobMsg"].(string)), &u.DOBMsg)
+	json.Unmarshal([]byte(userMap["auth"].(string)), &u.Auth)
+
 	return nil
 }
 
+// MarshalJSON marshal user to json
 func (u *User) MarshalJSON() ([]byte, error) {
 	userMap := make(map[string]interface{})
 	userMap["name"] = u.Name
 	userMap["dobExtra"] = u.DOBExtra
 	userMap["lifeTime"] = fmt.Sprintf("%v", u.LifeTime)
 
-	if auth, err := json.Marshal(&u.Auth); err != nil {
+	auth, err := json.Marshal(&u.Auth)
+	if err != nil {
 		return []byte{}, err
-	} else {
-		userMap["auth"] = string(auth)
 	}
+	userMap["auth"] = string(auth)
+	dobMsg, err := json.Marshal(&u.DOBMsg)
+	if err != nil {
+		return []byte{}, err
+	}
+	userMap["dobMsg"] = string(dobMsg)
 
-	if dobMsg, err := json.Marshal(&u.DOBMsg); err != nil {
-		return []byte{}, err
-	} else {
-		userMap["dobMsg"] = string(dobMsg)
-	}
 	return json.Marshal(userMap)
 }

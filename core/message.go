@@ -26,6 +26,7 @@ import (
 	"github.com/pdupub/go-pdu/crypto/pdu"
 )
 
+// Message is valid msg in pdu
 type Message struct {
 	SenderID  common.Hash       `json:"senderID"`
 	Reference []*MsgReference   `json:"reference"`
@@ -33,12 +34,14 @@ type Message struct {
 	Signature *crypto.Signature `json:"signature"`
 }
 
+// MsgReference is the msg before current msg
 type MsgReference struct {
 	SenderID common.Hash `json:"senderID"`
 	MsgID    common.Hash `json:"msgID"`
 }
 
-func CreateMsg(user *User, value *MsgValue, privKey *crypto.PrivateKey, refs ...*MsgReference) (*Message, error) {
+// CreateMsg used to create a new msg by user in universe
+func CreateMsg(user *User, value *MsgValue, priKey *crypto.PrivateKey, refs ...*MsgReference) (*Message, error) {
 
 	v := &MsgValue{
 		ContentType: value.ContentType,
@@ -55,25 +58,25 @@ func CreateMsg(user *User, value *MsgValue, privKey *crypto.PrivateKey, refs ...
 		Value:     v,
 		Signature: nil,
 	}
-	switch privKey.Source {
+	switch priKey.Source {
 	case pdu.SourceName:
 		jsonMsg, err := json.Marshal(msg)
 		if err != nil {
 			return nil, err
 		}
-		sig, err := pdu.Sign(jsonMsg, *privKey)
+		sig, err := pdu.Sign(jsonMsg, priKey)
 		if err != nil {
 			return nil, err
-		} else {
-			sig.PubKey = nil
-			msg.Signature = sig
 		}
+		sig.PubKey = nil
+		msg.Signature = sig
 		return msg, nil
 	}
 
 	return nil, errors.New("not support right now")
 }
 
+// VerifyMsg is used to valid the msg and the user
 func VerifyMsg(msg Message) (bool, error) {
 	signature := msg.Signature
 	msg.Signature = nil
@@ -83,12 +86,13 @@ func VerifyMsg(msg Message) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		return pdu.Verify(jsonMsg, *signature)
+		return pdu.Verify(jsonMsg, signature)
 	}
 	return false, errors.New("not support right now")
 
 }
 
+// ID is the id of msg based on content and author info
 func (msg Message) ID() common.Hash {
 	hash := sha256.New()
 	hash.Reset()
@@ -111,7 +115,7 @@ func (msg Message) ParentsID() []common.Hash {
 	return parentsID
 }
 
-// always return nil for msg
+// ChildrenID always return nil for msg (useless in pdu)
 func (msg Message) ChildrenID() []common.Hash {
 	return nil
 }

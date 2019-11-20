@@ -22,33 +22,34 @@ import (
 	"github.com/pdupub/go-pdu/crypto/pdu"
 )
 
+// Auth contain public key
 type Auth struct {
 	crypto.PublicKey
 }
 
+// UnmarshalJSON is used to unmarshal json
 func (a *Auth) UnmarshalJSON(input []byte) error {
 	aMap := make(map[string]interface{})
 	err := json.Unmarshal(input, &aMap)
 	if err != nil {
 		return err
-	} else {
-		a.Source = aMap["source"].(string)
-		a.SigType = aMap["sigType"].(string)
-		switch a.Source {
-		case pdu.SourceName:
-			pk, err := pdu.UnmarshalJSON(input)
-			if err != nil {
-				return err
-			} else {
-				a.PublicKey = *pk
-			}
-		default:
-			return crypto.ErrSourceNotMatch
+	}
+	a.Source = aMap["source"].(string)
+	a.SigType = aMap["sigType"].(string)
+	switch a.Source {
+	case pdu.SourceName:
+		pk, err := pdu.UnmarshalJSON(input)
+		if err != nil {
+			return err
 		}
+		a.PublicKey = *pk
+	default:
+		return crypto.ErrSourceNotMatch
 	}
 	return nil
 }
 
+// MarshalJSON marshal public key to json
 func (a Auth) MarshalJSON() ([]byte, error) {
 	switch a.Source {
 	case pdu.SourceName:

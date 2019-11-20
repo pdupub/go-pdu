@@ -19,32 +19,48 @@ package crypto
 import "errors"
 
 var (
-	ErrSourceNotMatch    = errors.New("signature source not match")
+	// ErrParamsMissing is returned when params is not enough
+	ErrParamsMissing = errors.New("params missing")
+
+	// ErrSourceNotMatch is returned if the source name of signature and key not match
+	ErrSourceNotMatch = errors.New("signature source not match")
+
+	// ErrSigTypeNotSupport is returned if the signature is not MS or S2PK
 	ErrSigTypeNotSupport = errors.New("signature type not support")
-	ErrGenerateKeyFail   = errors.New("generate key fail")
+
+	// ErrGenerateKeyFail is returned when generate key fail
+	ErrGenerateKeyFail = errors.New("generate key fail")
+
+	// ErrKeyTypeNotSupport is returned if key type not support
 	ErrKeyTypeNotSupport = errors.New("key type not support")
+
+	// ErrSigPubKeyNotMatch is returned if the signature and key not match for MS
 	ErrSigPubKeyNotMatch = errors.New("count of signature and public key not match")
 )
 
+// PublicKey contains the source name, type and public key content
 type PublicKey struct {
 	Source  string      `json:"source"`
 	SigType string      `json:"sigType"`
 	PubKey  interface{} `json:"pubKey"`
 }
 
+// Signature contain the signature and public key
 type Signature struct {
 	PublicKey
 	Signature []byte `json:"signature"`
 }
 
+// PrivateKey contains the source name, type and private key content
 type PrivateKey struct {
 	Source  string      `json:"source"`
 	SigType string      `json:"sigType"`
 	PriKey  interface{} `json:"priKey"`
 }
 
+// Engine is an crypto algorithm engine
 type Engine interface {
 	GenKey(params ...interface{}) (*PrivateKey, *PublicKey, error)
-	Sign([]byte, PrivateKey) (*Signature, error)
-	Verify([]byte, Signature) bool
+	Sign([]byte, *PrivateKey) (*Signature, error)
+	Verify([]byte, *Signature) bool
 }

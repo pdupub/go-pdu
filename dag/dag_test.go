@@ -20,7 +20,7 @@ import (
 	"testing"
 )
 
-func TestDAG(t *testing.T) {
+func TestDAG_AddVertex(t *testing.T) {
 	v1, _ := NewVertex("id-1", "hello world")
 	v2, _ := NewVertex("id-2", "hello you")
 	dag, err := NewDAG(v1, v2)
@@ -41,8 +41,8 @@ func TestDAG(t *testing.T) {
 		t.Errorf("id number not match, should be %d, dag getIDs is %d", 3, dag.GetIDs())
 	}
 
-	v3_, _ := NewVertex("id-3", "hello", "id-1", "id-2")
-	if err := dag.AddVertex(v3_); err != errVertexAlreadyExist {
+	v3b, _ := NewVertex("id-3", "hello", "id-1", "id-2")
+	if err := dag.AddVertex(v3b); err != errVertexAlreadyExist {
 		t.Errorf("add vertex should not be success, becasuse id depulicate")
 	}
 
@@ -62,6 +62,25 @@ func TestDAG(t *testing.T) {
 
 	v6, _ := NewVertex("id-4", "hello", "id-1", "id-3")
 	if err := dag.AddVertex(v6); err != nil {
+		t.Errorf("add vertex fail, err : %s", err)
+	}
+}
+
+func TestDAG_DelVertex(t *testing.T) {
+	v1, _ := NewVertex("id-1", "hello world")
+	v2, _ := NewVertex("id-2", "hello you")
+	dag, err := NewDAG(v1, v2)
+	if err != nil {
+		t.Errorf("create DAG fail , err : %s", err)
+	}
+
+	v3, _ := NewVertex("id-3", "hello you", v1, v2)
+	if err := dag.AddVertex(v3); err != nil {
+		t.Errorf("add vertex fail, err : %s", err)
+	}
+
+	v4, _ := NewVertex("id-4", "hello", "id-1", "id-3")
+	if err := dag.AddVertex(v4); err != nil {
 		t.Errorf("add vertex fail, err : %s", err)
 	}
 

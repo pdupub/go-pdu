@@ -24,6 +24,7 @@ import (
 )
 
 var (
+	// DefaultNodeHome is the directory to save pdu data
 	DefaultNodeHome = os.ExpandEnv("$HOME/.pdu")
 )
 

@@ -22,11 +22,15 @@ import (
 )
 
 const (
-	LvlCrit = iota
-	LvlError
+	// LvlError is log level error
+	LvlError = iota
+	// LvlWarn is log level warn
 	LvlWarn
+	// LvlInfo is log level info
 	LvlInfo
+	// LvlDebug is log level debug
 	LvlDebug
+	// LvlTrace is log level trace
 	LvlTrace
 )
 
@@ -42,8 +46,6 @@ func alignedString(lvl int) string {
 		return "WARN "
 	case LvlError:
 		return "ERROR"
-	case LvlCrit:
-		return "CRIT "
 	default:
 		panic("bad level")
 	}
@@ -51,8 +53,6 @@ func alignedString(lvl int) string {
 
 func msgColor(lvl int) (color int) {
 	switch lvl {
-	case LvlCrit:
-		color = 35
 	case LvlError:
 		color = 31
 	case LvlWarn:
