@@ -17,6 +17,7 @@
 package main
 
 import (
+	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
@@ -31,7 +32,7 @@ func main() {
 	viper.New()
 	rootCmd := &cobra.Command{
 		Use:   "pdu",
-		Short: "PDU command line interface",
+		Short: "PDU command line interface (" + params.Version + ")",
 	}
 	rootCmd.AddCommand(TestCmd())
 	rootCmd.AddCommand(StartCmd())
