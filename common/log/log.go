@@ -84,8 +84,19 @@ func Error(v ...interface{}) {
 	println(LvlError, v...)
 }
 
+// Warn log is yellow
+func Warn(v ...interface{}) {
+	println(LvlWarn, v...)
+}
+
+// Debug log is blue
+func Debug(v ...interface{}) {
+	println(LvlDebug, v...)
+}
+
 func println(lvl int, v ...interface{}) {
 	fmt.Printf("%c[;;%dm", 0x1B, msgColor(lvl))
+	v = append([]interface{}{alignedString(lvl)}, v...)
 	log.Println(v...)
 	fmt.Printf("%c[0m", 0x1B)
 }
