@@ -17,23 +17,23 @@
 package rule
 
 const (
-	// MORTAL_LIFETIME is valid life time for mortal account
+	// MortalLifetime is valid life time for mortal account
 	// It means any msg from this account, if need to proof the msg be sent during the account life time.
 	// The reference of that msg must contain at least one msg from the time proof account, which used
 	// in DOBMsg when create this account. And the reference must choose from the msg from used as reference
 	// dob message to next 2^16 messages from the same time proof account.
-	MORTAL_LIFETIME uint64 = 1 << 12 // 16
+	MortalLifetime uint64 = 1 << 12 // 16
 
-	// REPRODUCTION_INTERVAL is valid time interval for reproduction
+	// ReproductionInterval is valid time interval for reproduction
 	// The interval is 1/4 of life time, so any account can participate in reproduction for three times.
 	// Each reproduction need two account to cosign, so the max reproduce rate for mortal is 1.5
-	REPRODUCTION_INTERVAL = MORTAL_LIFETIME >> 2
+	ReproductionInterval = MortalLifetime >> 2
 
-	// MAX_LIFTTIME is valid life time for 0 generation account (root accounts Adam & Eve)
-	MAX_LIFTTIME = MORTAL_LIFETIME << 16
+	// MaxLifeTime is valid life time for 0 generation account (root accounts Adam & Eve)
+	MaxLifeTime = MortalLifetime << 16
 
-	// LIFETIME_REDUCE_RATE is life time of account will reduce except the mortal.
-	// life_time_of_child = max(life_time_of_parent) / LIFETIME_REDUCE_RATE
-	// if life_time_of_child < MORTAL_LIFETIME then life_time_of_child = MORTAL_LIFETIME
-	LIFETIME_REDUCE_RATE = 2
+	// LifetimeReduceRate is life time of account will reduce except the mortal.
+	// life_time_of_child = max(life_time_of_parent) / LifetimeReduceRate
+	// if life_time_of_child < MortalLifetime then life_time_of_child = MortalLifetime
+	LifetimeReduceRate = 2
 )

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/ethereum"
 	"github.com/pdupub/go-pdu/crypto/pdu"
 )
 
@@ -71,6 +72,19 @@ func CreateMsg(user *User, value *MsgValue, priKey *crypto.PrivateKey, refs ...*
 		sig.PubKey = nil
 		msg.Signature = sig
 		return msg, nil
+
+	case ethereum.SourceName:
+		jsonMsg, err := json.Marshal(msg)
+		if err != nil {
+			return nil, err
+		}
+		sig, err := ethereum.Sign(jsonMsg, priKey)
+		if err != nil {
+			return nil, err
+		}
+		sig.PubKey = nil
+		msg.Signature = sig
+		return msg, nil
 	}
 
 	return nil, errors.New("not support right now")
@@ -87,6 +101,13 @@ func VerifyMsg(msg Message) (bool, error) {
 			return false, err
 		}
 		return pdu.Verify(jsonMsg, signature)
+
+	case ethereum.SourceName:
+		jsonMsg, err := json.Marshal(&msg)
+		if err != nil {
+			return false, err
+		}
+		return ethereum.Verify(jsonMsg, signature)
 	}
 	return false, errors.New("not support right now")
 

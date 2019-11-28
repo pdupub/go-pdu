@@ -26,32 +26,16 @@ import (
 )
 
 var (
-	// ErrUserNotExist is returned when
-	ErrUserNotExist = errors.New("user not exist")
-
-	// ErrMsgAlreadyExist is returned when
-	ErrMsgAlreadyExist = errors.New("msg already exist")
-
-	// ErrMsgNotFound is returned when
-	ErrMsgNotFound = errors.New("msg not found")
-
-	// ErrTPAlreadyExist is returned when
-	ErrTPAlreadyExist = errors.New("time proof already exist")
-
-	// ErrUserAlreadyExist is returned when
-	ErrUserAlreadyExist = errors.New("user already exist")
-
-	// ErrNotSupportYet is returned when
-	ErrNotSupportYet = errors.New("not error, just not support ye")
-
-	// ErrNewUserAddFail is returned when
-	ErrNewUserAddFail = errors.New("new user add fail")
-
-	// ErrCreateSpaceTimeFail is returned when
-	ErrCreateSpaceTimeFail = errors.New("create space time fail")
-
-	// ErrAddUserToSpaceTimeFail is returned when
-	ErrAddUserToSpaceTimeFail = errors.New("add user to space time fail")
+	errUserNotExist           = errors.New("user not exist")
+	errMsgAlreadyExist        = errors.New("msg already exist")
+	errMsgNotFound            = errors.New("msg not found")
+	errTPAlreadyExist         = errors.New("time proof already exist")
+	errUserAlreadyExist       = errors.New("user already exist")
+	errNotSupportYet          = errors.New("not error, just not support ye")
+	errNewUserAddFail         = errors.New("new user add fail")
+	errCreateSpaceTimeFail    = errors.New("create space time fail")
+	errAddUserToSpaceTimeFail = errors.New("add user to space time fail")
+	errCreateRootUserFail     = errors.New("create root user fail")
 )
 
 const (
@@ -92,7 +76,7 @@ type Universe struct {
 // NewUniverse create Universe from two user with diff gender
 func NewUniverse(Eve, Adam *User) (*Universe, error) {
 	if Eve.Gender() == Adam.Gender() {
-		return nil, ErrNotSupportYet
+		return nil, errNotSupportYet
 	}
 	EveVertex, err := dag.NewVertex(Eve.ID(), Eve)
 	if err != nil {
@@ -115,7 +99,7 @@ func NewUniverse(Eve, Adam *User) (*Universe, error) {
 // msg.SenderID is belong to time proof
 func (u *Universe) AddMsg(msg *Message) error {
 	if !u.CheckUserExist(msg.SenderID) {
-		return ErrUserNotExist
+		return errUserNotExist
 	}
 	if u.msgD == nil {
 		if err := u.initializeMsgD(msg); err != nil {
@@ -128,7 +112,7 @@ func (u *Universe) AddMsg(msg *Message) error {
 
 		// check
 		if u.GetMsgByID(msg.ID()) != nil {
-			return ErrMsgAlreadyExist
+			return errMsgAlreadyExist
 		}
 		// update dag
 		var refs []interface{}
@@ -171,13 +155,13 @@ func (u *Universe) GetSpaceTimeIDs() []common.Hash {
 // AddSpaceTime will get all messages save in Universe with same msg.SenderID
 func (u *Universe) AddSpaceTime(msg *Message, ref *MsgReference) error {
 	if u.GetMsgByID(msg.ID()) == nil {
-		return ErrMsgNotFound
+		return errMsgNotFound
 	}
 	if u.stD != nil && nil != u.stD.GetVertex(msg.SenderID) {
-		return ErrTPAlreadyExist
+		return errTPAlreadyExist
 	}
 	if !u.CheckUserExist(msg.SenderID) {
-		return ErrUserNotExist
+		return errUserNotExist
 	}
 	// update time proof
 	initialize := true
@@ -329,7 +313,7 @@ func (u *Universe) createSpaceTime(msg *Message, ref *MsgReference) (*SpaceTime,
 	spaceTime := &SpaceTime{maxTimeSequence: timeVertex.Value().(uint64), timeProofD: timeProofDag, userStateD: nil}
 	if nil != u.stD {
 		if ref == nil {
-			return nil, ErrCreateSpaceTimeFail
+			return nil, errCreateSpaceTimeFail
 		}
 		refExist := false
 		for _, v := range msg.Reference {
@@ -338,11 +322,11 @@ func (u *Universe) createSpaceTime(msg *Message, ref *MsgReference) (*SpaceTime,
 			}
 		}
 		if !refExist {
-			return nil, ErrCreateSpaceTimeFail
+			return nil, errCreateSpaceTimeFail
 		}
 		stVertex := u.stD.GetVertex(ref.SenderID)
 		if stVertex == nil {
-			return nil, ErrCreateSpaceTimeFail
+			return nil, errCreateSpaceTimeFail
 		}
 		st := stVertex.Value().(*SpaceTime)
 		userStateD, err := u.createUserStateD(st, ref)
@@ -367,7 +351,7 @@ func (u Universe) createUserStateD(st *SpaceTime, ref *MsgReference) (*dag.DAG, 
 		return nil, err
 	}
 	refSeq := uint64(0)
-	lifeMaxSeq := rule.MAX_LIFTTIME
+	lifeMaxSeq := rule.MaxLifeTime
 	userStateD := u.userD
 	if st != nil {
 		refSeq = st.timeProofD.GetVertex(ref.MsgID).Value().(uint64)
@@ -424,7 +408,7 @@ func (u *Universe) addUserByMsg(msg *Message) error {
 		return err
 	}
 	if u.GetUserByID(user.ID()) != nil {
-		return ErrUserAlreadyExist
+		return errUserAlreadyExist
 	}
 
 	var dobContent DOBMsgContent
@@ -444,7 +428,7 @@ func (u *Universe) addUserByMsg(msg *Message) error {
 		}
 	}
 	if !userAdded {
-		return ErrNewUserAddFail
+		return errNewUserAddFail
 	}
 
 	userVertex, err := dag.NewVertex(user.ID(), user, dobContent.Parents[0].UserID, dobContent.Parents[1].UserID)
@@ -467,18 +451,18 @@ func (u *Universe) addUserToSpaceTime(ref *MsgReference, dobContent DOBMsgConten
 			msgSeq := tp.Value().(uint64)
 			p0 := st.userStateD.GetVertex(dobContent.Parents[0].UserID)
 			if p0 == nil {
-				return ErrAddUserToSpaceTimeFail
+				return errAddUserToSpaceTimeFail
 			}
 			userInfo0 := p0.Value().(*UserInfo)
 			p1 := st.userStateD.GetVertex(dobContent.Parents[1].UserID)
 			if p1 == nil {
-				return ErrAddUserToSpaceTimeFail
+				return errAddUserToSpaceTimeFail
 			}
 			userInfo1 := p1.Value().(*UserInfo)
 			if userInfo0.natureDOBSeq+userInfo0.natureLifeMaxSeq > msgSeq &&
 				userInfo1.natureDOBSeq+userInfo1.natureLifeMaxSeq > msgSeq &&
-				msgSeq-userInfo0.natureLastCosign > rule.REPRODUCTION_INTERVAL &&
-				msgSeq-userInfo1.natureLastCosign > rule.REPRODUCTION_INTERVAL {
+				msgSeq-userInfo0.natureLastCosign > rule.ReproductionInterval &&
+				msgSeq-userInfo1.natureLastCosign > rule.ReproductionInterval {
 				// update nature last cosign number as msgSeq
 				userInfo0.natureLastCosign = msgSeq
 				userInfo1.natureLastCosign = msgSeq
@@ -494,5 +478,5 @@ func (u *Universe) addUserToSpaceTime(ref *MsgReference, dobContent DOBMsgConten
 			}
 		}
 	}
-	return ErrAddUserToSpaceTimeFail
+	return errAddUserToSpaceTimeFail
 }

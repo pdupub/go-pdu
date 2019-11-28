@@ -20,12 +20,6 @@ import (
 	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
-)
-
-var (
-	// DefaultNodeHome is the directory to save pdu data
-	DefaultNodeHome = os.ExpandEnv("$HOME/.pdu")
 )
 
 func main() {
@@ -35,7 +29,6 @@ func main() {
 		Use:   "pdu",
 		Short: "PDU command line interface (" + params.Version + ")",
 	}
-	rootCmd.AddCommand(TestCmd())
 	rootCmd.AddCommand(StartCmd())
 
 	rootCmd.Execute()

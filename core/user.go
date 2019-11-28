@@ -54,11 +54,11 @@ var (
 // One Male user and one female user,
 func CreateRootUsers(key crypto.PublicKey) ([2]*User, error) {
 	rootUsers := [2]*User{nil, nil}
-	rootFUser := User{Name: rootFName, DOBExtra: rootFDOBExtra, Auth: &Auth{key}, DOBMsg: nil, LifeTime: rule.MAX_LIFTTIME}
+	rootFUser := User{Name: rootFName, DOBExtra: rootFDOBExtra, Auth: &Auth{key}, DOBMsg: nil, LifeTime: rule.MaxLifeTime}
 	if rootFUser.Gender() == female {
 		rootUsers[0] = &rootFUser
 	}
-	rootMUser := User{Name: rootMName, DOBExtra: rootMDOBExtra, Auth: &Auth{key}, DOBMsg: nil, LifeTime: rule.MAX_LIFTTIME}
+	rootMUser := User{Name: rootMName, DOBExtra: rootMDOBExtra, Auth: &Auth{key}, DOBMsg: nil, LifeTime: rule.MaxLifeTime}
 	if rootMUser.Gender() == male {
 		rootUsers[1] = &rootMUser
 	}
@@ -83,21 +83,21 @@ func CreateNewUser(universe *Universe, msg *Message) (*User, error) {
 	// calculate the life time of new user
 	p0 := universe.userD.GetVertex(dobContent.Parents[0].UserID)
 	if p0 == nil {
-		return nil, ErrUserNotExist
+		return nil, errUserNotExist
 	}
 	maxParentLifeTime := p0.Value().(*User).LifeTime
 
 	p1 := universe.userD.GetVertex(dobContent.Parents[1].UserID)
 	if p1 == nil {
-		return nil, ErrUserNotExist
+		return nil, errUserNotExist
 	}
 	if maxParentLifeTime < p1.Value().(*User).LifeTime {
 		maxParentLifeTime = p1.Value().(*User).LifeTime
 	}
-	if maxParentLifeTime == rule.MORTAL_LIFETIME {
-		newUser.LifeTime = rule.MORTAL_LIFETIME
+	if maxParentLifeTime == rule.MortalLifetime {
+		newUser.LifeTime = rule.MortalLifetime
 	} else {
-		newUser.LifeTime = maxParentLifeTime / rule.LIFETIME_REDUCE_RATE
+		newUser.LifeTime = maxParentLifeTime / rule.LifetimeReduceRate
 	}
 
 	return &newUser, nil

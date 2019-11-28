@@ -21,10 +21,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// StartCmd start the pdu server, have not start coding yet.
-// In first step of our road map, this server is only for test.
-// In later step, the server will be have different functions,
-// time proof server, broadcast server ...
+// StartCmd start the pdu server.
+// At first step of our road map, this server is only for test.
+// At later steps, the server will have different functions, like time proof server, broadcast server etc.
 func StartCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start [port]",

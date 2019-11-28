@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/ethereum"
 	"github.com/pdupub/go-pdu/crypto/pdu"
 )
 
@@ -66,6 +67,11 @@ func (mv *DOBMsgContent) SignByParent(user *User, privKey crypto.PrivateKey) err
 	switch privKey.Source {
 	case pdu.SourceName:
 		signature, err = pdu.Sign(jsonByte, &privKey)
+		if err != nil {
+			return err
+		}
+	case ethereum.SourceName:
+		signature, err = ethereum.Sign(jsonByte, &privKey)
 		if err != nil {
 			return err
 		}

@@ -19,6 +19,7 @@ package core
 import (
 	"encoding/json"
 	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/ethereum"
 	"github.com/pdupub/go-pdu/crypto/pdu"
 )
 
@@ -43,6 +44,12 @@ func (a *Auth) UnmarshalJSON(input []byte) error {
 			return err
 		}
 		a.PublicKey = *pk
+	case ethereum.SourceName:
+		pk, err := ethereum.UnmarshalJSON(input)
+		if err != nil {
+			return err
+		}
+		a.PublicKey = *pk
 	default:
 		return crypto.ErrSourceNotMatch
 	}
@@ -54,6 +61,8 @@ func (a Auth) MarshalJSON() ([]byte, error) {
 	switch a.Source {
 	case pdu.SourceName:
 		return pdu.MarshalJSON(a.PublicKey)
+	case ethereum.SourceName:
+		return ethereum.MarshalJSON(a.PublicKey)
 	default:
 		return nil, crypto.ErrSourceNotMatch
 	}

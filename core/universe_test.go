@@ -24,13 +24,10 @@ import (
 	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/core/rule"
 	"github.com/pdupub/go-pdu/crypto"
-	"github.com/pdupub/go-pdu/crypto/pdu"
+	"github.com/pdupub/go-pdu/crypto/ethereum"
+	//"github.com/pdupub/go-pdu/crypto/pdu"
+	//"github.com/pdupub/go-pdu/crypto/ethereum"
 	"testing"
-)
-
-var (
-	errUserNotExist       = errors.New("user not exist in this system")
-	errCreateRootUserFail = errors.New("create root user fail")
 )
 
 var (
@@ -41,6 +38,7 @@ var (
 	firstMsgIDFromAdam, firstMsgIDFromEve common.Hash
 	ref                                   MsgReference
 	AdamPartMsgIDs                        []common.Hash
+	cryptoEngine                          crypto.Engine
 )
 
 func TestNewUniverse(t *testing.T) {
@@ -126,7 +124,7 @@ func TestNewUniverse(t *testing.T) {
 		t.Error(err)
 	}
 
-	if maxSeq := universe.GetMaxSeq(Adam.ID()); maxSeq != rule.REPRODUCTION_INTERVAL+1 {
+	if maxSeq := universe.GetMaxSeq(Adam.ID()); maxSeq != rule.ReproductionInterval+1 {
 		t.Error("max seq for time proof :", maxSeq)
 	}
 
@@ -138,7 +136,7 @@ func TestUniverse_AddBODMsg(t *testing.T) {
 	valueDob := MsgValue{
 		ContentType: TypeDOB,
 	}
-	_, pubKeyA2, err := pdu.GenKey(pdu.MultipleSignatures, 5)
+	_, pubKeyA2, err := ethereum.GenKey(ethereum.MultipleSignatures, 5)
 	if err != nil {
 		t.Error("generate public key fail", err)
 	}
@@ -185,10 +183,10 @@ func TestUniverse_AddBODMsg(t *testing.T) {
 	sigEve := crypto.Signature{Signature: dobContent.Parents[0].Signature,
 		PublicKey: universe.GetUserByID(dobContent.Parents[0].UserID).Auth.PublicKey}
 
-	if res, err := pdu.Verify(jsonBytes, &sigAdam); err != nil || res == false {
+	if res, err := ethereum.Verify(jsonBytes, &sigAdam); err != nil || res == false {
 		t.Error("verify Adam fail", err)
 	}
-	if res, err := pdu.Verify(jsonBytes, &sigEve); err != nil || res == false {
+	if res, err := ethereum.Verify(jsonBytes, &sigEve); err != nil || res == false {
 		t.Error("verify Eve fail", err)
 	}
 
@@ -197,8 +195,8 @@ func TestUniverse_AddBODMsg(t *testing.T) {
 	if err := universe.AddMsg(msgDob); err != nil {
 		t.Error("add msg3 fail", err)
 	}
-	if err := universe.AddMsg(&msgDob2); err != ErrMsgAlreadyExist {
-		t.Errorf("add msg4 fail, err should be %s, but now err : %s", ErrMsgAlreadyExist, err)
+	if err := universe.AddMsg(&msgDob2); err != errMsgAlreadyExist {
+		t.Errorf("add msg4 fail, err should be %s, but now err : %s", errMsgAlreadyExist, err)
 	}
 
 	if maxSeq := universe.GetMaxSeq(Eve.ID()); maxSeq != 0 {
@@ -211,7 +209,7 @@ func TestUniverse_AddSpaceTime(t *testing.T) {
 	// Test 9: Create new space-time by msg from Eve
 	ref = MsgReference{SenderID: Eve.ID(), MsgID: firstMsgIDFromEve}
 	var msgNewST *Message
-	for i := uint64(0); i < rule.REPRODUCTION_INTERVAL; i++ {
+	for i := uint64(0); i < rule.ReproductionInterval; i++ {
 		v := MsgValue{
 			ContentType: TypeText,
 			Content:     []byte(fmt.Sprintf("msg:%d", i)),
@@ -232,8 +230,8 @@ func TestUniverse_AddSpaceTime(t *testing.T) {
 		verifyMsg(msgT)
 	}
 
-	if err = universe.AddSpaceTime(msgNewST, msgNewST.Reference[0]); err != ErrCreateSpaceTimeFail {
-		t.Error("should be err : ", ErrCreateSpaceTimeFail)
+	if err = universe.AddSpaceTime(msgNewST, msgNewST.Reference[0]); err != errCreateSpaceTimeFail {
+		t.Error("should be err : ", errCreateSpaceTimeFail)
 	}
 	if err = universe.AddSpaceTime(msgNewST, msgNewST.Reference[1]); err != nil {
 		t.Error("add space time fail, err :", err)
@@ -247,7 +245,7 @@ func TestUniverse_AddSpaceTime(t *testing.T) {
 func TestUniverse_AddUserOnSpaceTime(t *testing.T) {
 	// Test 10: Create lots of msg, add them into universe, user Eve
 	// is valid in both space-time, so msg from Eve is valid in both space-time.
-	for i := uint64(0); i < rule.REPRODUCTION_INTERVAL; i++ {
+	for i := uint64(0); i < rule.ReproductionInterval; i++ {
 		v := MsgValue{
 			ContentType: TypeText,
 			Content:     []byte(fmt.Sprintf("msg 2:%d", i)),
@@ -272,7 +270,7 @@ func TestUniverse_AddUserOnSpaceTime(t *testing.T) {
 	valueDob := MsgValue{
 		ContentType: TypeDOB,
 	}
-	_, pubKeyA3, err := pdu.GenKey(pdu.MultipleSignatures, 3)
+	_, pubKeyA3, err := ethereum.GenKey(ethereum.MultipleSignatures, 3)
 	if err != nil {
 		t.Error("generate public key fail", err)
 	}
@@ -302,7 +300,7 @@ func loopAddMsg(universe *Universe, user *User, priKey *crypto.PrivateKey, lastM
 	ref = MsgReference{SenderID: user.ID(), MsgID: lastMsgID}
 	// loop to add msg dag
 
-	for i := uint64(0); i < rule.REPRODUCTION_INTERVAL; i++ {
+	for i := uint64(0); i < rule.ReproductionInterval; i++ {
 		v := MsgValue{
 			ContentType: TypeText,
 			Content:     []byte(fmt.Sprintf("msg:%d", i)),
@@ -364,7 +362,7 @@ func createRootUser(male bool) (*crypto.PrivateKey, *User, error) {
 	if !male {
 		keyCnt = 3
 	}
-	privKey, pubKey, err := pdu.GenKey(pdu.MultipleSignatures, keyCnt)
+	privKey, pubKey, err := ethereum.GenKey(ethereum.MultipleSignatures, keyCnt)
 	if err != nil {
 		return nil, nil, err
 	}
