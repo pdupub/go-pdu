@@ -19,13 +19,14 @@ package core
 import (
 	"crypto/ecdsa"
 	"encoding/json"
+	"github.com/pdupub/go-pdu/crypto/ethereum"
 	"github.com/pdupub/go-pdu/crypto/pdu"
 	"testing"
 )
 
 func TestAuth_MarshalJSON(t *testing.T) {
 
-	_, pubKey, err := pdu.GenKey(pdu.Signature2PublicKey)
+	_, pubKey, err := ethereum.GenKey(pdu.Signature2PublicKey)
 	if err != nil {
 		t.Errorf("pdu genereate key fail, err: %s", err)
 	}

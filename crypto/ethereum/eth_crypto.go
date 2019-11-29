@@ -18,11 +18,10 @@ package ethereum
 
 import (
 	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
-	gc "github.com/ethereum/go-ethereum/crypto"
-	"github.com/pdupub/go-pdu/common"
+	"fmt"
+	eth "github.com/ethereum/go-ethereum/crypto"
 	"github.com/pdupub/go-pdu/crypto"
 	"math/big"
 )
@@ -37,7 +36,7 @@ const (
 )
 
 func genKey() (*ecdsa.PrivateKey, error) {
-	return gc.GenerateKey()
+	return eth.GenerateKey()
 }
 
 // GenKey generate the private and public key pair
@@ -82,11 +81,11 @@ func ParsePriKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 	case ecdsa.PrivateKey:
 		*pk = priKey.(ecdsa.PrivateKey)
 	case []byte:
-		pk.PublicKey.Curve = gc.S256()
+		pk.PublicKey.Curve = eth.S256()
 		pk.D = new(big.Int).SetBytes(priKey.([]byte))
 		pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
 	case *big.Int:
-		pk.PublicKey.Curve = gc.S256()
+		pk.PublicKey.Curve = eth.S256()
 		pk.D = new(big.Int).Set(priKey.(*big.Int))
 		pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
 	default:
@@ -104,11 +103,11 @@ func ParsePubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
 	case ecdsa.PublicKey:
 		*pk = pubKey.(ecdsa.PublicKey)
 	case []byte:
-		pk.Curve = gc.S256()
+		pk.Curve = eth.S256()
 		pk.X = new(big.Int).SetBytes(pubKey.([]byte)[:32])
 		pk.Y = new(big.Int).SetBytes(pubKey.([]byte)[32:])
 	case *big.Int:
-		pk.Curve = gc.S256()
+		pk.Curve = eth.S256()
 		pk.X = new(big.Int).SetBytes(pubKey.(*big.Int).Bytes()[:32])
 		pk.Y = new(big.Int).SetBytes(pubKey.(*big.Int).Bytes()[32:])
 	default:
@@ -128,38 +127,33 @@ func Sign(hash []byte, priKey *crypto.PrivateKey) (*crypto.Signature, error) {
 		if err != nil {
 			return nil, err
 		}
-		r, s, err := ecdsa.Sign(rand.Reader, pk, hash[:])
+		signature, err := eth.Sign(signHash(hash), pk)
 		if err != nil {
 			return nil, err
 		}
-
-		rb := common.Bytes2Hash(r.Bytes())
-		sb := common.Bytes2Hash(s.Bytes())
 		return &crypto.Signature{
 			PublicKey: crypto.PublicKey{Source: SourceName, SigType: priKey.SigType, PubKey: pk.PublicKey},
-			Signature: append(rb[:], sb[:]...),
+			Signature: signature,
 		}, nil
 	case MultipleSignatures:
 		pks := priKey.PriKey.([]interface{})
 		var pubKeys []interface{}
-		var signature []byte
+		var signatures []byte
 		for _, item := range pks {
 			pk, err := ParsePriKey(item)
 			if err != nil {
 				return nil, err
 			}
-			r, s, err := ecdsa.Sign(rand.Reader, pk, hash[:])
+			signature, err := eth.Sign(signHash(hash), pk)
 			if err != nil {
 				return nil, err
 			}
-			rb := common.Bytes2Hash(r.Bytes())
-			sb := common.Bytes2Hash(s.Bytes())
-			signature = append(signature, append(rb[:], sb[:]...)...)
+			signatures = append(signatures, signature...)
 			pubKeys = append(pubKeys, pk.PublicKey)
 		}
 		return &crypto.Signature{
 			PublicKey: crypto.PublicKey{Source: SourceName, SigType: priKey.SigType, PubKey: pubKeys},
-			Signature: signature,
+			Signature: signatures,
 		}, nil
 	default:
 		return nil, crypto.ErrSigTypeNotSupport
@@ -177,12 +171,20 @@ func Verify(hash []byte, sig *crypto.Signature) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		r := new(big.Int).SetBytes(sig.Signature[:32])
-		s := new(big.Int).SetBytes(sig.Signature[32:])
-		return ecdsa.Verify(pk, hash, r, s), nil
+
+		recoveredPubKey, err := eth.SigToPub(signHash(hash), sig.Signature)
+		if err != nil || recoveredPubKey == nil {
+			return false, err
+		}
+
+		if recoveredPubKey.Y.Cmp(pk.Y) != 0 || recoveredPubKey.X.Cmp(pk.X) != 0 {
+			return false, nil
+		}
+		return true, nil
+
 	case MultipleSignatures:
 		pks := sig.PubKey.([]interface{})
-		if len(pks) != len(sig.Signature)/64 {
+		if len(pks) != len(sig.Signature)/65 {
 			return false, crypto.ErrSigPubKeyNotMatch
 		}
 		for i, pubkey := range pks {
@@ -190,9 +192,13 @@ func Verify(hash []byte, sig *crypto.Signature) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-			r := new(big.Int).SetBytes(sig.Signature[i*64 : i*64+32])
-			s := new(big.Int).SetBytes(sig.Signature[i*64+32 : i*64+64])
-			if !ecdsa.Verify(pk, hash, r, s) {
+
+			recoveredPubKey, err := eth.SigToPub(signHash(hash), sig.Signature[i*65:(i+1)*65])
+			if err != nil || recoveredPubKey == nil {
+				return false, err
+			}
+
+			if recoveredPubKey.Y.Cmp(pk.Y) != 0 || recoveredPubKey.X.Cmp(pk.X) != 0 {
 				return false, nil
 			}
 		}
@@ -215,22 +221,27 @@ func UnmarshalJSON(input []byte) (*crypto.PublicKey, error) {
 
 	if p.Source == SourceName {
 		if p.SigType == Signature2PublicKey {
-			pubKey := new(ecdsa.PublicKey)
-			pubKey.Curve = elliptic.P256()
-			pubKey.X, pubKey.Y = big.NewInt(0), big.NewInt(0)
-			pk := aMap["pubKey"].([]interface{})
-			pubKey.X.UnmarshalText([]byte(pk[0].(string)))
-			pubKey.Y.UnmarshalText([]byte(pk[1].(string)))
+			pk, err := hex.DecodeString(aMap["pubKey"].(string))
+			if err != nil {
+				return nil, err
+			}
+			pubKey, err := eth.UnmarshalPubkey(pk)
+			if err != nil {
+				return nil, err
+			}
 			p.PubKey = *pubKey
 		} else if p.SigType == MultipleSignatures {
-			pk := aMap["pubKey"].([]interface{})
+			pks := aMap["pubKey"].([]interface{})
 			var pubKeys []ecdsa.PublicKey
-			for i := 0; i < len(pk)/2; i++ {
-				pubKey := new(ecdsa.PublicKey)
-				pubKey.Curve = elliptic.P256()
-				pubKey.X, pubKey.Y = big.NewInt(0), big.NewInt(0)
-				pubKey.X.UnmarshalText([]byte(pk[i*2].(string)))
-				pubKey.Y.UnmarshalText([]byte(pk[i*2+1].(string)))
+			for _, v := range pks {
+				pk, err := hex.DecodeString(v.(string))
+				if err != nil {
+					return nil, err
+				}
+				pubKey, err := eth.UnmarshalPubkey(pk)
+				if err != nil {
+					return nil, err
+				}
 				pubKeys = append(pubKeys, *pubKey)
 			}
 			p.PubKey = pubKeys
@@ -252,27 +263,22 @@ func MarshalJSON(a crypto.PublicKey) ([]byte, error) {
 	if a.Source == SourceName {
 		if a.SigType == Signature2PublicKey {
 			pk := a.PubKey.(ecdsa.PublicKey)
-			pubKey := make([]string, 2)
-			pubKey[0] = pk.X.String()
-			pubKey[1] = pk.Y.String()
-			aMap["pubKey"] = pubKey
+			aMap["pubKey"] = hex.EncodeToString(eth.FromECDSAPub(&pk))
 		} else if a.SigType == MultipleSignatures {
 			switch a.PubKey.(type) {
 			case []ecdsa.PublicKey:
 				pks := a.PubKey.([]ecdsa.PublicKey)
-				pubKey := make([]string, len(pks)*2)
+				pubKey := make([]string, len(pks))
 				for i, pk := range pks {
-					pubKey[i*2] = pk.X.String()
-					pubKey[i*2+1] = pk.Y.String()
+					pubKey[i] = hex.EncodeToString(eth.FromECDSAPub(&pk))
 				}
 				aMap["pubKey"] = pubKey
 			case []interface{}:
 				pks := a.PubKey.([]interface{})
-				pubKey := make([]string, len(pks)*2)
+				pubKey := make([]string, len(pks))
 				for i, v := range pks {
 					pk := v.(ecdsa.PublicKey)
-					pubKey[i*2] = pk.X.String()
-					pubKey[i*2+1] = pk.Y.String()
+					pubKey[i] = hex.EncodeToString(eth.FromECDSAPub(&pk))
 				}
 				aMap["pubKey"] = pubKey
 			}
@@ -284,4 +290,9 @@ func MarshalJSON(a crypto.PublicKey) ([]byte, error) {
 		return nil, crypto.ErrSourceNotMatch
 	}
 	return json.Marshal(aMap)
+}
+
+func signHash(data []byte) []byte {
+	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data)
+	return eth.Keccak256([]byte(msg))
 }
