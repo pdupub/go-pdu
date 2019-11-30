@@ -83,9 +83,7 @@ func ParsePriKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 	case []byte:
 		return eth.ToECDSA(priKey.([]byte))
 	case *big.Int:
-		pk.PublicKey.Curve = eth.S256()
-		pk.D = new(big.Int).Set(priKey.(*big.Int))
-		pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
+		return eth.ToECDSA(priKey.(*big.Int).Bytes())
 	default:
 		return nil, crypto.ErrKeyTypeNotSupport
 	}
@@ -103,9 +101,7 @@ func ParsePubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
 	case []byte:
 		return eth.UnmarshalPubkey(pubKey.([]byte))
 	case *big.Int:
-		pk.Curve = eth.S256()
-		pk.X = new(big.Int).SetBytes(pubKey.(*big.Int).Bytes()[:32])
-		pk.Y = new(big.Int).SetBytes(pubKey.(*big.Int).Bytes()[32:])
+		return eth.UnmarshalPubkey(pubKey.(*big.Int).Bytes())
 	default:
 		return nil, crypto.ErrKeyTypeNotSupport
 	}

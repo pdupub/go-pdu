@@ -263,7 +263,7 @@ func TestParsePubKey(t *testing.T) {
 		t.Error("private key not equal")
 	}
 
-	if pk, err := ParsePubKey(new(big.Int).SetBytes(append(pkTarget.X.Bytes(), pkTarget.Y.Bytes()...))); err != nil {
+	if pk, err := ParsePubKey(new(big.Int).SetBytes(eth.FromECDSAPub(&pkTarget))); err != nil {
 		t.Error(err)
 	} else if pk.X.Cmp(pkTarget.X) != 0 || pk.Y.Cmp(pkTarget.Y) != 0 {
 		t.Error("private key not equal")
