@@ -154,6 +154,22 @@ func (e EEngine) Sign(hash []byte, priKey *crypto.PrivateKey) (*crypto.Signature
 	}
 }
 
+func (e EEngine) verify(hash []byte, pubKey interface{}, signature []byte) (bool, error) {
+	pk, err := parsePubKey(pubKey)
+	if err != nil {
+		return false, err
+	}
+	recoveredPubKey, err := eth.SigToPub(signHash(hash), signature)
+	if err != nil || recoveredPubKey == nil {
+		return false, err
+	}
+
+	if recoveredPubKey.Y.Cmp(pk.Y) != 0 || recoveredPubKey.X.Cmp(pk.X) != 0 {
+		return false, nil
+	}
+	return true, nil
+}
+
 // Verify is used to verify the signature
 func (e EEngine) Verify(hash []byte, sig *crypto.Signature) (bool, error) {
 	if sig.Source != e.name {
@@ -161,39 +177,15 @@ func (e EEngine) Verify(hash []byte, sig *crypto.Signature) (bool, error) {
 	}
 	switch sig.SigType {
 	case crypto.Signature2PublicKey:
-		pk, err := parsePubKey(sig.PubKey)
-		if err != nil {
-			return false, err
-		}
-
-		recoveredPubKey, err := eth.SigToPub(signHash(hash), sig.Signature)
-		if err != nil || recoveredPubKey == nil {
-			return false, err
-		}
-
-		if recoveredPubKey.Y.Cmp(pk.Y) != 0 || recoveredPubKey.X.Cmp(pk.X) != 0 {
-			return false, nil
-		}
-		return true, nil
-
+		return e.verify(hash, sig.PubKey, sig.Signature)
 	case crypto.MultipleSignatures:
 		pks := sig.PubKey.([]interface{})
 		if len(pks) != len(sig.Signature)/65 {
 			return false, crypto.ErrSigPubKeyNotMatch
 		}
 		for i, pubkey := range pks {
-			pk, err := parsePubKey(pubkey)
-			if err != nil {
-				return false, err
-			}
-
-			recoveredPubKey, err := eth.SigToPub(signHash(hash), sig.Signature[i*65:(i+1)*65])
-			if err != nil || recoveredPubKey == nil {
-				return false, err
-			}
-
-			if recoveredPubKey.Y.Cmp(pk.Y) != 0 || recoveredPubKey.X.Cmp(pk.X) != 0 {
-				return false, nil
+			if verify, err := e.verify(hash, pubkey, sig.Signature[i*65:(i+1)*65]); err != nil || !verify {
+				return verify, err
 			}
 		}
 		return true, nil
