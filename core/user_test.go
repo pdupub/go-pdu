@@ -30,7 +30,7 @@ const (
 func TestCreateRootUsersS2PK(t *testing.T) {
 
 	for i := 0; i < retryCnt; i++ {
-		if _, pubKey, err := pdu.GenKey(pdu.Signature2PublicKey); err != nil {
+		if _, pubKey, err := pdu.GenKey(crypto.Signature2PublicKey); err != nil {
 			t.Error("generate key fail", err)
 		} else {
 			if users, err := CreateRootUsers(*pubKey); err != nil {
@@ -38,7 +38,7 @@ func TestCreateRootUsersS2PK(t *testing.T) {
 			} else {
 				for _, user := range users {
 					if user != nil && user.ID() != copy(user).ID() {
-						t.Errorf("%s : %s json Encode & Decode fail ", pdu.SourceName, pdu.Signature2PublicKey)
+						t.Errorf("%s : %s json Encode & Decode fail ", pdu.SourceName, crypto.Signature2PublicKey)
 					}
 				}
 				if users[0] != nil && users[1] != nil {
@@ -51,7 +51,7 @@ func TestCreateRootUsersS2PK(t *testing.T) {
 func TestCreateRootUsersMS(t *testing.T) {
 
 	for i := 0; i < retryCnt; i++ {
-		if _, pubKey, err := pdu.GenKey(pdu.MultipleSignatures, 3); err != nil {
+		if _, pubKey, err := pdu.GenKey(crypto.MultipleSignatures, 3); err != nil {
 
 		} else {
 			if users, err := CreateRootUsers(*pubKey); err != nil {
@@ -59,7 +59,7 @@ func TestCreateRootUsersMS(t *testing.T) {
 			} else {
 				for _, user := range users {
 					if user != nil && user.ID() != copy(user).ID() {
-						t.Errorf("%s : %s json Encode & Decode fail ", pdu.SourceName, pdu.MultipleSignatures)
+						t.Errorf("%s : %s json Encode & Decode fail ", pdu.SourceName, crypto.MultipleSignatures)
 					}
 				}
 				if users[0] != nil && users[1] != nil {
@@ -77,7 +77,7 @@ func TestCreateNewUser(t *testing.T) {
 		ContentType: TypeDOB,
 	}
 
-	_, pubKey, err := pdu.GenKey(pdu.MultipleSignatures, 5)
+	_, pubKey, err := pdu.GenKey(crypto.MultipleSignatures, 5)
 	if err != nil {
 		t.Error("generate key fail", err)
 	}
@@ -133,7 +133,7 @@ func createRootUsers() (*User, crypto.PrivateKey, *User, crypto.PrivateKey) {
 	var privKeyRes crypto.PrivateKey
 	for i := 0; i < retryCnt; i++ {
 
-		privKey, pubKey, err := pdu.GenKey(pdu.MultipleSignatures, 3)
+		privKey, pubKey, err := pdu.GenKey(crypto.MultipleSignatures, 3)
 		if err != nil {
 			continue
 		}

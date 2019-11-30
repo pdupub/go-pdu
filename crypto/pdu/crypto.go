@@ -30,10 +30,6 @@ import (
 const (
 	// SourceName is name of this
 	SourceName = "PDU"
-	// MultipleSignatures is type of signature by more than one key pairs
-	MultipleSignatures = "MS"
-	// Signature2PublicKey is type of signature by one key pair
-	Signature2PublicKey = "S2PK"
 )
 
 func genKey() (*ecdsa.PrivateKey, error) {
@@ -47,14 +43,14 @@ func GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.PublicKey, error
 	}
 	sigType := params[0].(string)
 	switch sigType {
-	case Signature2PublicKey:
+	case crypto.Signature2PublicKey:
 		pk, err := genKey()
 		if err != nil {
 			return nil, nil, err
 		}
-		return &crypto.PrivateKey{Source: SourceName, SigType: Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: SourceName, SigType: Signature2PublicKey, PubKey: pk.PublicKey}, nil
+		return &crypto.PrivateKey{Source: SourceName, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: SourceName, SigType: crypto.Signature2PublicKey, PubKey: pk.PublicKey}, nil
 
-	case MultipleSignatures:
+	case crypto.MultipleSignatures:
 		if len(params) == 1 {
 			return nil, nil, crypto.ErrParamsMissing
 		}
@@ -67,7 +63,7 @@ func GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.PublicKey, error
 			privKeys = append(privKeys, pk)
 			pubKeys = append(pubKeys, pk.PublicKey)
 		}
-		return &crypto.PrivateKey{Source: SourceName, SigType: MultipleSignatures, PriKey: privKeys}, &crypto.PublicKey{Source: SourceName, SigType: MultipleSignatures, PubKey: pubKeys}, nil
+		return &crypto.PrivateKey{Source: SourceName, SigType: crypto.MultipleSignatures, PriKey: privKeys}, &crypto.PublicKey{Source: SourceName, SigType: crypto.MultipleSignatures, PubKey: pubKeys}, nil
 	default:
 		return nil, nil, crypto.ErrSigTypeNotSupport
 	}
@@ -123,7 +119,7 @@ func Sign(hash []byte, priKey *crypto.PrivateKey) (*crypto.Signature, error) {
 		return nil, crypto.ErrSourceNotMatch
 	}
 	switch priKey.SigType {
-	case Signature2PublicKey:
+	case crypto.Signature2PublicKey:
 		pk, err := ParsePriKey(priKey.PriKey)
 		if err != nil {
 			return nil, err
@@ -139,7 +135,7 @@ func Sign(hash []byte, priKey *crypto.PrivateKey) (*crypto.Signature, error) {
 			PublicKey: crypto.PublicKey{Source: SourceName, SigType: priKey.SigType, PubKey: pk.PublicKey},
 			Signature: append(rb[:], sb[:]...),
 		}, nil
-	case MultipleSignatures:
+	case crypto.MultipleSignatures:
 		pks := priKey.PriKey.([]interface{})
 		var pubKeys []interface{}
 		var signature []byte
@@ -172,7 +168,7 @@ func Verify(hash []byte, sig *crypto.Signature) (bool, error) {
 		return false, crypto.ErrSourceNotMatch
 	}
 	switch sig.SigType {
-	case Signature2PublicKey:
+	case crypto.Signature2PublicKey:
 		pk, err := ParsePubKey(sig.PubKey)
 		if err != nil {
 			return false, err
@@ -180,7 +176,7 @@ func Verify(hash []byte, sig *crypto.Signature) (bool, error) {
 		r := new(big.Int).SetBytes(sig.Signature[:32])
 		s := new(big.Int).SetBytes(sig.Signature[32:])
 		return ecdsa.Verify(pk, hash, r, s), nil
-	case MultipleSignatures:
+	case crypto.MultipleSignatures:
 		pks := sig.PubKey.([]interface{})
 		if len(pks) != len(sig.Signature)/64 {
 			return false, crypto.ErrSigPubKeyNotMatch
@@ -214,7 +210,7 @@ func UnmarshalJSON(input []byte) (*crypto.PublicKey, error) {
 	p.SigType = aMap["sigType"].(string)
 
 	if p.Source == SourceName {
-		if p.SigType == Signature2PublicKey {
+		if p.SigType == crypto.Signature2PublicKey {
 			pubKey := new(ecdsa.PublicKey)
 			pubKey.Curve = elliptic.P256()
 			pubKey.X, pubKey.Y = big.NewInt(0), big.NewInt(0)
@@ -222,7 +218,7 @@ func UnmarshalJSON(input []byte) (*crypto.PublicKey, error) {
 			pubKey.X.UnmarshalText([]byte(pk[0].(string)))
 			pubKey.Y.UnmarshalText([]byte(pk[1].(string)))
 			p.PubKey = *pubKey
-		} else if p.SigType == MultipleSignatures {
+		} else if p.SigType == crypto.MultipleSignatures {
 			pk := aMap["pubKey"].([]interface{})
 			var pubKeys []ecdsa.PublicKey
 			for i := 0; i < len(pk)/2; i++ {
@@ -250,13 +246,13 @@ func MarshalJSON(a crypto.PublicKey) ([]byte, error) {
 	aMap["source"] = a.Source
 	aMap["sigType"] = a.SigType
 	if a.Source == SourceName {
-		if a.SigType == Signature2PublicKey {
+		if a.SigType == crypto.Signature2PublicKey {
 			pk := a.PubKey.(ecdsa.PublicKey)
 			pubKey := make([]string, 2)
 			pubKey[0] = pk.X.String()
 			pubKey[1] = pk.Y.String()
 			aMap["pubKey"] = pubKey
-		} else if a.SigType == MultipleSignatures {
+		} else if a.SigType == crypto.MultipleSignatures {
 			switch a.PubKey.(type) {
 			case []ecdsa.PublicKey:
 				pks := a.PubKey.([]ecdsa.PublicKey)

@@ -38,6 +38,13 @@ var (
 	ErrSigPubKeyNotMatch = errors.New("count of signature and public key not match")
 )
 
+const (
+	// MultipleSignatures is type of signature by more than one key pairs
+	MultipleSignatures = "MS"
+	// Signature2PublicKey is type of signature by one key pair
+	Signature2PublicKey = "S2PK"
+)
+
 // PublicKey contains the source name, type and public key content
 type PublicKey struct {
 	Source  string      `json:"source"`

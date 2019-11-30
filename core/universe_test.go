@@ -136,7 +136,7 @@ func TestUniverse_AddBODMsg(t *testing.T) {
 	valueDob := MsgValue{
 		ContentType: TypeDOB,
 	}
-	_, pubKeyA2, err := ethereum.GenKey(ethereum.MultipleSignatures, 5)
+	_, pubKeyA2, err := ethereum.GenKey(crypto.MultipleSignatures, 5)
 	if err != nil {
 		t.Error("generate public key fail", err)
 	}
@@ -270,7 +270,7 @@ func TestUniverse_AddUserOnSpaceTime(t *testing.T) {
 	valueDob := MsgValue{
 		ContentType: TypeDOB,
 	}
-	_, pubKeyA3, err := ethereum.GenKey(ethereum.MultipleSignatures, 3)
+	_, pubKeyA3, err := ethereum.GenKey(crypto.MultipleSignatures, 3)
 	if err != nil {
 		t.Error("generate public key fail", err)
 	}
@@ -362,7 +362,7 @@ func createRootUser(male bool) (*crypto.PrivateKey, *User, error) {
 	if !male {
 		keyCnt = 3
 	}
-	privKey, pubKey, err := ethereum.GenKey(ethereum.MultipleSignatures, keyCnt)
+	privKey, pubKey, err := ethereum.GenKey(crypto.MultipleSignatures, keyCnt)
 	if err != nil {
 		return nil, nil, err
 	}
