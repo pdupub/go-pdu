@@ -24,8 +24,6 @@ import (
 	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/core/rule"
 	"github.com/pdupub/go-pdu/crypto"
-	//"github.com/pdupub/go-pdu/crypto/pdu"
-	//"github.com/pdupub/go-pdu/crypto/ethereum"
 	"github.com/pdupub/go-pdu/crypto/ethereum"
 	"testing"
 )
