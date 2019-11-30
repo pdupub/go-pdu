@@ -24,9 +24,9 @@ import (
 	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/core/rule"
 	"github.com/pdupub/go-pdu/crypto"
-	"github.com/pdupub/go-pdu/crypto/ethereum"
 	//"github.com/pdupub/go-pdu/crypto/pdu"
 	//"github.com/pdupub/go-pdu/crypto/ethereum"
+	"github.com/pdupub/go-pdu/crypto/ethereum"
 	"testing"
 )
 
@@ -38,10 +38,12 @@ var (
 	firstMsgIDFromAdam, firstMsgIDFromEve common.Hash
 	ref                                   MsgReference
 	AdamPartMsgIDs                        []common.Hash
-	cryptoEngine                          crypto.Engine
+	universeEngine                        crypto.Engine
 )
 
 func TestNewUniverse(t *testing.T) {
+	universeEngine = ethereum.New()
+
 	// Test 1: Create root users, Adam and Eve , create universe
 	// The gender of user relate to public key (random), so createRootUser
 	// will repeat until two root user with different gender be created.
@@ -136,7 +138,7 @@ func TestUniverse_AddBODMsg(t *testing.T) {
 	valueDob := MsgValue{
 		ContentType: TypeDOB,
 	}
-	_, pubKeyA2, err := ethereum.GenKey(crypto.MultipleSignatures, 5)
+	_, pubKeyA2, err := universeEngine.GenKey(crypto.MultipleSignatures, 5)
 	if err != nil {
 		t.Error("generate public key fail", err)
 	}
@@ -183,10 +185,10 @@ func TestUniverse_AddBODMsg(t *testing.T) {
 	sigEve := crypto.Signature{Signature: dobContent.Parents[0].Signature,
 		PublicKey: universe.GetUserByID(dobContent.Parents[0].UserID).Auth.PublicKey}
 
-	if res, err := ethereum.Verify(jsonBytes, &sigAdam); err != nil || res == false {
+	if res, err := universeEngine.Verify(jsonBytes, &sigAdam); err != nil || res == false {
 		t.Error("verify Adam fail", err)
 	}
-	if res, err := ethereum.Verify(jsonBytes, &sigEve); err != nil || res == false {
+	if res, err := universeEngine.Verify(jsonBytes, &sigEve); err != nil || res == false {
 		t.Error("verify Eve fail", err)
 	}
 
@@ -270,7 +272,7 @@ func TestUniverse_AddUserOnSpaceTime(t *testing.T) {
 	valueDob := MsgValue{
 		ContentType: TypeDOB,
 	}
-	_, pubKeyA3, err := ethereum.GenKey(crypto.MultipleSignatures, 3)
+	_, pubKeyA3, err := universeEngine.GenKey(crypto.MultipleSignatures, 3)
 	if err != nil {
 		t.Error("generate public key fail", err)
 	}
@@ -362,7 +364,7 @@ func createRootUser(male bool) (*crypto.PrivateKey, *User, error) {
 	if !male {
 		keyCnt = 3
 	}
-	privKey, pubKey, err := ethereum.GenKey(crypto.MultipleSignatures, keyCnt)
+	privKey, pubKey, err := universeEngine.GenKey(crypto.MultipleSignatures, keyCnt)
 	if err != nil {
 		return nil, nil, err
 	}

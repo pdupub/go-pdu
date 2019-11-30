@@ -54,11 +54,11 @@ var (
 // One Male user and one female user,
 func CreateRootUsers(key crypto.PublicKey) ([2]*User, error) {
 	rootUsers := [2]*User{nil, nil}
-	rootFUser := User{Name: rootFName, DOBExtra: rootFDOBExtra, Auth: &Auth{key}, DOBMsg: nil, LifeTime: rule.MaxLifeTime}
+	rootFUser := User{Name: rootFName, DOBExtra: rootFDOBExtra, Auth: &Auth{PublicKey: key}, DOBMsg: nil, LifeTime: rule.MaxLifeTime}
 	if rootFUser.Gender() == female {
 		rootUsers[0] = &rootFUser
 	}
-	rootMUser := User{Name: rootMName, DOBExtra: rootMDOBExtra, Auth: &Auth{key}, DOBMsg: nil, LifeTime: rule.MaxLifeTime}
+	rootMUser := User{Name: rootMName, DOBExtra: rootMDOBExtra, Auth: &Auth{PublicKey: key}, DOBMsg: nil, LifeTime: rule.MaxLifeTime}
 	if rootMUser.Gender() == male {
 		rootUsers[1] = &rootMUser
 	}

@@ -19,7 +19,6 @@ package core
 import (
 	"crypto/sha256"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/crypto"
@@ -59,57 +58,50 @@ func CreateMsg(user *User, value *MsgValue, priKey *crypto.PrivateKey, refs ...*
 		Value:     v,
 		Signature: nil,
 	}
-	switch priKey.Source {
-	case pdu.SourceName:
-		jsonMsg, err := json.Marshal(msg)
-		if err != nil {
-			return nil, err
-		}
-		sig, err := pdu.Sign(jsonMsg, priKey)
-		if err != nil {
-			return nil, err
-		}
-		sig.PubKey = nil
-		msg.Signature = sig
-		return msg, nil
 
-	case ethereum.SourceName:
-		jsonMsg, err := json.Marshal(msg)
-		if err != nil {
-			return nil, err
-		}
-		sig, err := ethereum.Sign(jsonMsg, priKey)
-		if err != nil {
-			return nil, err
-		}
-		sig.PubKey = nil
-		msg.Signature = sig
-		return msg, nil
+	var engine crypto.Engine
+	switch priKey.Source {
+	case crypto.PDU:
+		engine = pdu.New()
+	case crypto.ETH:
+		engine = ethereum.New()
+	default:
+		return nil, crypto.ErrSourceNotMatch
 	}
 
-	return nil, errors.New("not support right now")
+	jsonMsg, err := json.Marshal(msg)
+	if err != nil {
+		return nil, err
+	}
+	sig, err := engine.Sign(jsonMsg, priKey)
+	if err != nil {
+		return nil, err
+	}
+	sig.PubKey = nil
+	msg.Signature = sig
+	return msg, nil
 }
 
 // VerifyMsg is used to valid the msg and the user
 func VerifyMsg(msg Message) (bool, error) {
 	signature := msg.Signature
 	msg.Signature = nil
+	var engine crypto.Engine
 	switch signature.Source {
-	case pdu.SourceName:
-		jsonMsg, err := json.Marshal(&msg)
-		if err != nil {
-			return false, err
-		}
-		return pdu.Verify(jsonMsg, signature)
+	case crypto.PDU:
+		engine = pdu.New()
+	case crypto.ETH:
+		engine = ethereum.New()
+	default:
+		return false, crypto.ErrSourceNotMatch
 
-	case ethereum.SourceName:
-		jsonMsg, err := json.Marshal(&msg)
-		if err != nil {
-			return false, err
-		}
-		return ethereum.Verify(jsonMsg, signature)
 	}
-	return false, errors.New("not support right now")
+
+	jsonMsg, err := json.Marshal(&msg)
+	if err != nil {
+		return false, err
+	}
+	return engine.Verify(jsonMsg, signature)
 
 }
 

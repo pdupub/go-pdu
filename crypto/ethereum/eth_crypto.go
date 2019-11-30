@@ -26,17 +26,23 @@ import (
 	"math/big"
 )
 
-const (
-	// SourceName is name of this
-	SourceName = "ETH"
-)
+// EEngine is the engine of ETH
+type EEngine struct {
+	name string
+}
 
-func genKey() (*ecdsa.PrivateKey, error) {
-	return eth.GenerateKey()
+// New create new EEngine
+func New() *EEngine {
+	return &EEngine{name: crypto.ETH}
+}
+
+// Name return the name of this engine (ETH)
+func (e EEngine) Name() string {
+	return e.name
 }
 
 // GenKey generate the private and public key pair
-func GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.PublicKey, error) {
+func (e EEngine) GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.PublicKey, error) {
 	if len(params) == 0 {
 		return nil, nil, crypto.ErrSigTypeNotSupport
 	}
@@ -47,7 +53,7 @@ func GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.PublicKey, error
 		if err != nil {
 			return nil, nil, err
 		}
-		return &crypto.PrivateKey{Source: SourceName, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: SourceName, SigType: crypto.Signature2PublicKey, PubKey: pk.PublicKey}, nil
+		return &crypto.PrivateKey{Source: e.name, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: e.name, SigType: crypto.Signature2PublicKey, PubKey: pk.PublicKey}, nil
 
 	case crypto.MultipleSignatures:
 		if len(params) == 1 {
@@ -62,7 +68,7 @@ func GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.PublicKey, error
 			privKeys = append(privKeys, pk)
 			pubKeys = append(pubKeys, pk.PublicKey)
 		}
-		return &crypto.PrivateKey{Source: SourceName, SigType: crypto.MultipleSignatures, PriKey: privKeys}, &crypto.PublicKey{Source: SourceName, SigType: crypto.MultipleSignatures, PubKey: pubKeys}, nil
+		return &crypto.PrivateKey{Source: e.name, SigType: crypto.MultipleSignatures, PriKey: privKeys}, &crypto.PublicKey{Source: e.name, SigType: crypto.MultipleSignatures, PubKey: pubKeys}, nil
 	default:
 		return nil, nil, crypto.ErrSigTypeNotSupport
 	}
@@ -105,8 +111,8 @@ func parsePubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
 }
 
 // Sign is used to create signature of content by private key
-func Sign(hash []byte, priKey *crypto.PrivateKey) (*crypto.Signature, error) {
-	if priKey.Source != SourceName {
+func (e EEngine) Sign(hash []byte, priKey *crypto.PrivateKey) (*crypto.Signature, error) {
+	if priKey.Source != e.name {
 		return nil, crypto.ErrSourceNotMatch
 	}
 	switch priKey.SigType {
@@ -120,7 +126,7 @@ func Sign(hash []byte, priKey *crypto.PrivateKey) (*crypto.Signature, error) {
 			return nil, err
 		}
 		return &crypto.Signature{
-			PublicKey: crypto.PublicKey{Source: SourceName, SigType: priKey.SigType, PubKey: pk.PublicKey},
+			PublicKey: crypto.PublicKey{Source: e.name, SigType: priKey.SigType, PubKey: pk.PublicKey},
 			Signature: signature,
 		}, nil
 	case crypto.MultipleSignatures:
@@ -140,7 +146,7 @@ func Sign(hash []byte, priKey *crypto.PrivateKey) (*crypto.Signature, error) {
 			pubKeys = append(pubKeys, pk.PublicKey)
 		}
 		return &crypto.Signature{
-			PublicKey: crypto.PublicKey{Source: SourceName, SigType: priKey.SigType, PubKey: pubKeys},
+			PublicKey: crypto.PublicKey{Source: e.name, SigType: priKey.SigType, PubKey: pubKeys},
 			Signature: signatures,
 		}, nil
 	default:
@@ -149,8 +155,8 @@ func Sign(hash []byte, priKey *crypto.PrivateKey) (*crypto.Signature, error) {
 }
 
 // Verify is used to verify the signature
-func Verify(hash []byte, sig *crypto.Signature) (bool, error) {
-	if sig.Source != SourceName {
+func (e EEngine) Verify(hash []byte, sig *crypto.Signature) (bool, error) {
+	if sig.Source != e.name {
 		return false, crypto.ErrSourceNotMatch
 	}
 	switch sig.SigType {
@@ -197,7 +203,7 @@ func Verify(hash []byte, sig *crypto.Signature) (bool, error) {
 }
 
 // UnmarshalJSON unmarshal public key from json
-func UnmarshalJSON(input []byte) (*crypto.PublicKey, error) {
+func (e EEngine) UnmarshalJSON(input []byte) (*crypto.PublicKey, error) {
 	p := crypto.PublicKey{}
 	aMap := make(map[string]interface{})
 	err := json.Unmarshal(input, &aMap)
@@ -207,7 +213,7 @@ func UnmarshalJSON(input []byte) (*crypto.PublicKey, error) {
 	p.Source = aMap["source"].(string)
 	p.SigType = aMap["sigType"].(string)
 
-	if p.Source == SourceName {
+	if p.Source == e.name {
 		if p.SigType == crypto.Signature2PublicKey {
 			pk, err := hex.DecodeString(aMap["pubKey"].(string))
 			if err != nil {
@@ -244,11 +250,11 @@ func UnmarshalJSON(input []byte) (*crypto.PublicKey, error) {
 }
 
 // MarshalJSON marshal public key to json
-func MarshalJSON(a crypto.PublicKey) ([]byte, error) {
+func (e EEngine) MarshalJSON(a crypto.PublicKey) ([]byte, error) {
 	aMap := make(map[string]interface{})
 	aMap["source"] = a.Source
 	aMap["sigType"] = a.SigType
-	if a.Source == SourceName {
+	if a.Source == e.name {
 		if a.SigType == crypto.Signature2PublicKey {
 			pk := a.PubKey.(ecdsa.PublicKey)
 			aMap["pubKey"] = hex.EncodeToString(eth.FromECDSAPub(&pk))
@@ -283,4 +289,8 @@ func MarshalJSON(a crypto.PublicKey) ([]byte, error) {
 func signHash(data []byte) []byte {
 	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data)
 	return eth.Keccak256([]byte(msg))
+}
+
+func genKey() (*ecdsa.PrivateKey, error) {
+	return eth.GenerateKey()
 }

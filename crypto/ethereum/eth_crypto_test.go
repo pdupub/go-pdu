@@ -26,6 +26,7 @@ import (
 )
 
 func TestS2PKSignature(t *testing.T) {
+	E := New()
 
 	pk, err := genKey()
 	if err != nil {
@@ -33,23 +34,23 @@ func TestS2PKSignature(t *testing.T) {
 	}
 
 	content := "hello world"
-	sig1, err := Sign([]byte(content), &crypto.PrivateKey{Source: SourceName, SigType: crypto.Signature2PublicKey, PriKey: pk.D})
+	sig1, err := E.Sign([]byte(content), &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PriKey: pk.D})
 	if err != nil {
 		t.Errorf("sign fail, err : %s", err)
 	}
 
-	sig2, err := Sign([]byte(content), &crypto.PrivateKey{Source: SourceName, SigType: crypto.Signature2PublicKey, PriKey: pk.D.Bytes()})
+	sig2, err := E.Sign([]byte(content), &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PriKey: pk.D.Bytes()})
 	if err != nil {
 		t.Errorf("sign fail, err : %s", err)
 	}
 
-	sig3, err := Sign([]byte(content), &crypto.PrivateKey{Source: SourceName, SigType: crypto.Signature2PublicKey, PriKey: pk})
+	sig3, err := E.Sign([]byte(content), &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PriKey: pk})
 	if err != nil {
 		t.Errorf("sign fail, err : %s", err)
 	}
 
-	if sig1.Source != sig2.Source || sig1.Source != sig3.Source || sig1.Source != SourceName {
-		t.Errorf("signature source should be %s", SourceName)
+	if sig1.Source != sig2.Source || sig1.Source != sig3.Source || sig1.Source != crypto.ETH {
+		t.Errorf("signature source should be %s", crypto.ETH)
 	}
 
 	if sig1.SigType != sig2.SigType || sig1.SigType != sig3.SigType || sig1.SigType != crypto.Signature2PublicKey {
@@ -59,6 +60,7 @@ func TestS2PKSignature(t *testing.T) {
 }
 
 func TestS2PKVerify(t *testing.T) {
+	E := New()
 
 	pk, err := genKey()
 	if err != nil {
@@ -66,10 +68,10 @@ func TestS2PKVerify(t *testing.T) {
 	}
 
 	content := "hello world"
-	sig, _ := Sign([]byte(content), &crypto.PrivateKey{Source: SourceName, SigType: crypto.Signature2PublicKey, PriKey: pk.D})
+	sig, _ := E.Sign([]byte(content), &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PriKey: pk.D})
 
-	verify1, err := Verify([]byte(content), &crypto.Signature{
-		PublicKey: crypto.PublicKey{Source: SourceName, SigType: crypto.Signature2PublicKey, PubKey: pk.PublicKey}, Signature: sig.Signature})
+	verify1, err := E.Verify([]byte(content), &crypto.Signature{
+		PublicKey: crypto.PublicKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PubKey: pk.PublicKey}, Signature: sig.Signature})
 	if err != nil {
 		t.Errorf("verify fail, err : %s", err)
 	}
@@ -77,7 +79,7 @@ func TestS2PKVerify(t *testing.T) {
 		t.Errorf("verify fail")
 	}
 
-	verify2, err := Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
+	verify2, err := E.Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: crypto.ETH,
 		SigType: crypto.Signature2PublicKey, PubKey: &pk.PublicKey}, Signature: sig.Signature})
 	if err != nil {
 		t.Error(err)
@@ -87,7 +89,7 @@ func TestS2PKVerify(t *testing.T) {
 	}
 
 	pubKeyBytes := eth.FromECDSAPub(&pk.PublicKey)
-	verify3, err := Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
+	verify3, err := E.Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: crypto.ETH,
 		SigType: crypto.Signature2PublicKey, PubKey: pubKeyBytes}, Signature: sig.Signature})
 	if err != nil {
 		t.Error("verify fail", err)
@@ -99,6 +101,7 @@ func TestS2PKVerify(t *testing.T) {
 }
 
 func TestMSSignature(t *testing.T) {
+	E := New()
 
 	pk1, err := genKey()
 	if err != nil {
@@ -115,23 +118,23 @@ func TestMSSignature(t *testing.T) {
 
 	content := "hello world"
 	var pks []interface{}
-	sig1, err := Sign([]byte(content), &crypto.PrivateKey{Source: SourceName, SigType: crypto.MultipleSignatures, PriKey: append(pks, pk1.D, pk2.D, pk3.D)})
+	sig1, err := E.Sign([]byte(content), &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.MultipleSignatures, PriKey: append(pks, pk1.D, pk2.D, pk3.D)})
 	if err != nil {
 		t.Errorf("sign fail, err : %s", err)
 	}
 	pks = []interface{}{}
-	sig2, err := Sign([]byte(content), &crypto.PrivateKey{Source: SourceName, SigType: crypto.MultipleSignatures, PriKey: append(pks, pk1.D.Bytes(), pk2.D.Bytes(), pk3.D.Bytes())})
+	sig2, err := E.Sign([]byte(content), &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.MultipleSignatures, PriKey: append(pks, pk1.D.Bytes(), pk2.D.Bytes(), pk3.D.Bytes())})
 	if err != nil {
 		t.Errorf("sign fail, err : %s", err)
 	}
 	pks = []interface{}{}
-	sig3, err := Sign([]byte(content), &crypto.PrivateKey{Source: SourceName, SigType: crypto.MultipleSignatures, PriKey: append(pks, pk1, pk2, pk3)})
+	sig3, err := E.Sign([]byte(content), &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.MultipleSignatures, PriKey: append(pks, pk1, pk2, pk3)})
 	if err != nil {
 		t.Errorf("sign fail, err : %s", err)
 	}
 
-	if sig1.Source != sig2.Source || sig1.Source != sig3.Source || sig1.Source != SourceName {
-		t.Errorf("signature source should be %s", SourceName)
+	if sig1.Source != sig2.Source || sig1.Source != sig3.Source || sig1.Source != crypto.ETH {
+		t.Errorf("signature source should be %s", crypto.ETH)
 	}
 
 	if sig1.SigType != sig2.SigType || sig1.SigType != sig3.SigType || sig1.SigType != crypto.MultipleSignatures {
@@ -140,16 +143,17 @@ func TestMSSignature(t *testing.T) {
 }
 
 func TestMSVerify(t *testing.T) {
+	E := New()
 
 	pk1, _ := genKey()
 	pk2, _ := genKey()
 	pk3, _ := genKey()
 	content := "hello world"
 	var pks []interface{}
-	sig, _ := Sign([]byte(content), &crypto.PrivateKey{Source: SourceName, SigType: crypto.MultipleSignatures, PriKey: append(pks, pk1.D, pk2.D, pk3.D)})
+	sig, _ := E.Sign([]byte(content), &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.MultipleSignatures, PriKey: append(pks, pk1.D, pk2.D, pk3.D)})
 
 	var pubks []interface{}
-	verify1, err := Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
+	verify1, err := E.Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: crypto.ETH,
 		SigType: crypto.MultipleSignatures, PubKey: append(pubks, pk1.PublicKey, pk2.PublicKey, pk3.PublicKey)}, Signature: sig.Signature})
 	if err != nil {
 		t.Errorf("verify fail, err : %s", err)
@@ -159,7 +163,7 @@ func TestMSVerify(t *testing.T) {
 	}
 
 	pubks = []interface{}{}
-	verify2, err := Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
+	verify2, err := E.Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: crypto.ETH,
 		SigType: crypto.MultipleSignatures, PubKey: append(pubks, &pk1.PublicKey, &pk2.PublicKey, &pk3.PublicKey)}, Signature: sig.Signature})
 	if err != nil {
 		t.Errorf("verify fail, err : %s", err)
@@ -172,7 +176,7 @@ func TestMSVerify(t *testing.T) {
 	pubKeyBytes1 := eth.FromECDSAPub(&pk1.PublicKey)
 	pubKeyBytes2 := eth.FromECDSAPub(&pk2.PublicKey)
 	pubKeyBytes3 := eth.FromECDSAPub(&pk3.PublicKey)
-	verify3, err := Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
+	verify3, err := E.Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: crypto.ETH,
 		SigType: crypto.MultipleSignatures, PubKey: append(pubks, pubKeyBytes1, pubKeyBytes2, pubKeyBytes3)}, Signature: sig.Signature})
 	if err != nil {
 		t.Errorf("verify fail, err : %s", err)
@@ -184,7 +188,7 @@ func TestMSVerify(t *testing.T) {
 	pubks = []interface{}{}
 	pubKeyBytes1 = eth.FromECDSAPub(&pk1.PublicKey)
 	pubKeyBytes3 = eth.FromECDSAPub(&pk3.PublicKey)
-	_, err = Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
+	_, err = E.Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: crypto.ETH,
 		SigType: crypto.MultipleSignatures, PubKey: append(pubks, pubKeyBytes1, pubKeyBytes3)}, Signature: sig.Signature})
 	if err != crypto.ErrSigPubKeyNotMatch {
 		t.Errorf("verify should fail with err : %s", crypto.ErrSigPubKeyNotMatch)
@@ -194,7 +198,7 @@ func TestMSVerify(t *testing.T) {
 	pubKeyBytes1 = eth.FromECDSAPub(&pk1.PublicKey)
 	pubKeyBytes2 = eth.FromECDSAPub(&pk2.PublicKey)
 	pubKeyBytes3 = eth.FromECDSAPub(&pk3.PublicKey)
-	verify4, err := Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
+	verify4, err := E.Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: crypto.ETH,
 		SigType: crypto.MultipleSignatures, PubKey: append(pubks, pubKeyBytes1, pubKeyBytes3, pubKeyBytes2)}, Signature: sig.Signature})
 	if err != nil {
 		t.Errorf("verify should fail with no err : %s", err)
@@ -206,7 +210,9 @@ func TestMSVerify(t *testing.T) {
 }
 
 func TestParsePriKey(t *testing.T) {
-	priKey, _, err := GenKey(crypto.Signature2PublicKey)
+	E := New()
+
+	priKey, _, err := E.GenKey(crypto.Signature2PublicKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -239,7 +245,9 @@ func TestParsePriKey(t *testing.T) {
 }
 
 func TestParsePubKey(t *testing.T) {
-	priKey, _, err := GenKey(crypto.Signature2PublicKey)
+	E := New()
+
+	priKey, _, err := E.GenKey(crypto.Signature2PublicKey)
 	if err != nil {
 		t.Error(err)
 	}
@@ -272,30 +280,32 @@ func TestParsePubKey(t *testing.T) {
 }
 
 func TestSign(t *testing.T) {
-	priKey, _, err := GenKey(crypto.Signature2PublicKey)
+	E := New()
+
+	priKey, _, err := E.GenKey(crypto.Signature2PublicKey)
 	if err != nil {
 		t.Error(err)
 	}
 	content := "hello world, 今天天气不错 🍊"
-	if signature, err := Sign([]byte(content), priKey); err != nil {
+	if signature, err := E.Sign([]byte(content), priKey); err != nil {
 		t.Error(err)
 	} else {
-		if v, err := Verify([]byte(content), signature); err != nil {
+		if v, err := E.Verify([]byte(content), signature); err != nil {
 			t.Error(err)
 		} else if v == false {
 			t.Error("verify fail")
 		}
 	}
 
-	priKey2, _, err := GenKey(crypto.MultipleSignatures, 3)
+	priKey2, _, err := E.GenKey(crypto.MultipleSignatures, 3)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if signature, err := Sign([]byte(content), priKey2); err != nil {
+	if signature, err := E.Sign([]byte(content), priKey2); err != nil {
 		t.Error(err)
 	} else {
-		if v, err := Verify([]byte(content), signature); err != nil {
+		if v, err := E.Verify([]byte(content), signature); err != nil {
 			t.Error(err)
 		} else if v == false {
 			t.Error("verify fail")

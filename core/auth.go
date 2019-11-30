@@ -37,34 +37,35 @@ func (a *Auth) UnmarshalJSON(input []byte) error {
 	}
 	a.Source = aMap["source"].(string)
 	a.SigType = aMap["sigType"].(string)
+	var engine crypto.Engine
+
 	switch a.Source {
-	case pdu.SourceName:
-		pk, err := pdu.UnmarshalJSON(input)
-		if err != nil {
-			return err
-		}
-		a.PublicKey = *pk
-	case ethereum.SourceName:
-		pk, err := ethereum.UnmarshalJSON(input)
-		if err != nil {
-			return err
-		}
-		a.PublicKey = *pk
+	case crypto.PDU:
+		engine = pdu.New()
+	case crypto.ETH:
+		engine = ethereum.New()
 	default:
 		return crypto.ErrSourceNotMatch
 	}
+
+	pk, err := engine.UnmarshalJSON(input)
+	if err != nil {
+		return err
+	}
+	a.PublicKey = *pk
 	return nil
 }
 
 // MarshalJSON marshal public key to json
 func (a Auth) MarshalJSON() ([]byte, error) {
+	var engine crypto.Engine
 	switch a.Source {
-	case pdu.SourceName:
-		return pdu.MarshalJSON(a.PublicKey)
-	case ethereum.SourceName:
-		return ethereum.MarshalJSON(a.PublicKey)
+	case crypto.PDU:
+		engine = pdu.New()
+	case crypto.ETH:
+		engine = ethereum.New()
 	default:
 		return nil, crypto.ErrSourceNotMatch
 	}
-
+	return engine.MarshalJSON(a.PublicKey)
 }

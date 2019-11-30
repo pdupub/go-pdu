@@ -25,13 +25,13 @@ import (
 )
 
 func TestAuth_MarshalJSON(t *testing.T) {
-
-	_, pubKey, err := ethereum.GenKey(crypto.Signature2PublicKey)
+	engine := ethereum.New()
+	_, pubKey, err := engine.GenKey(crypto.Signature2PublicKey)
 	if err != nil {
 		t.Errorf("pdu genereate key fail, err: %s", err)
 	}
 	auth := Auth{
-		*pubKey,
+		PublicKey: *pubKey,
 	}
 
 	authBytes, err := json.Marshal(auth)

@@ -16,7 +16,9 @@
 
 package crypto
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	// ErrParamsMissing is returned when params is not enough
@@ -43,6 +45,13 @@ const (
 	MultipleSignatures = "MS"
 	// Signature2PublicKey is type of signature by one key pair
 	Signature2PublicKey = "S2PK"
+
+	// BTC is symbol of Bitcoin
+	BTC = "BTC"
+	// ETH is symbol of Ethereum
+	ETH = "ETH"
+	// PDU is symbol of PDU
+	PDU = "PDU"
 )
 
 // PublicKey contains the source name, type and public key content
@@ -67,7 +76,10 @@ type PrivateKey struct {
 
 // Engine is an crypto algorithm engine
 type Engine interface {
+	Name() string
 	GenKey(params ...interface{}) (*PrivateKey, *PublicKey, error)
 	Sign([]byte, *PrivateKey) (*Signature, error)
-	Verify([]byte, *Signature) bool
+	Verify([]byte, *Signature) (bool, error)
+	UnmarshalJSON([]byte) (*PublicKey, error)
+	MarshalJSON(PublicKey) ([]byte, error)
 }

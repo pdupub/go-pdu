@@ -64,18 +64,22 @@ func (mv *DOBMsgContent) SignByParent(user *User, privKey crypto.PrivateKey) err
 		return err
 	}
 	var signature *crypto.Signature
+	var engine crypto.Engine
 	switch privKey.Source {
-	case pdu.SourceName:
-		signature, err = pdu.Sign(jsonByte, &privKey)
-		if err != nil {
-			return err
-		}
-	case ethereum.SourceName:
-		signature, err = ethereum.Sign(jsonByte, &privKey)
-		if err != nil {
-			return err
-		}
+
+	case crypto.PDU:
+		engine = pdu.New()
+	case crypto.ETH:
+		engine = ethereum.New()
+	default:
+		return crypto.ErrSourceNotMatch
 	}
+
+	signature, err = engine.Sign(jsonByte, &privKey)
+	if err != nil {
+		return err
+	}
+
 	if user.Gender() == male {
 		mv.Parents[1] = ParentSig{UserID: user.ID(), Signature: signature.Signature}
 	} else {
