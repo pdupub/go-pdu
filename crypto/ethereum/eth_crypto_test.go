@@ -18,7 +18,9 @@ package ethereum
 
 import (
 	"crypto/ecdsa"
+	eth "github.com/ethereum/go-ethereum/crypto"
 	"github.com/pdupub/go-pdu/crypto"
+
 	"math/big"
 	"testing"
 )
@@ -78,30 +80,20 @@ func TestS2PKVerify(t *testing.T) {
 	verify2, err := Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
 		SigType: Signature2PublicKey, PubKey: &pk.PublicKey}, Signature: sig.Signature})
 	if err != nil {
-		t.Errorf("verify fail, err : %s", err)
+		t.Error(err)
 	}
 	if !verify2 {
 		t.Errorf("verify fail")
 	}
 
-	pubKeyBytes := append(pk.PublicKey.X.Bytes(), pk.PublicKey.Y.Bytes()...)
+	pubKeyBytes := eth.FromECDSAPub(&pk.PublicKey)
 	verify3, err := Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
 		SigType: Signature2PublicKey, PubKey: pubKeyBytes}, Signature: sig.Signature})
 	if err != nil {
-		t.Errorf("verify fail, err : %s", err)
+		t.Error("verify fail", err)
 	}
 	if !verify3 {
-		t.Errorf("verify fail")
-	}
-
-	pubKeyBytes = append(pk.PublicKey.Y.Bytes(), pk.PublicKey.X.Bytes()...)
-	verify4, err := Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
-		SigType: Signature2PublicKey, PubKey: pubKeyBytes}, Signature: sig.Signature})
-	if err != nil {
-		t.Errorf("verify fail, err : %s", err)
-	}
-	if verify4 {
-		t.Errorf("verify should fail")
+		t.Error("verify fail")
 	}
 
 }
@@ -177,9 +169,9 @@ func TestMSVerify(t *testing.T) {
 	}
 
 	pubks = []interface{}{}
-	pubKeyBytes1 := append(pk1.PublicKey.X.Bytes(), pk1.PublicKey.Y.Bytes()...)
-	pubKeyBytes2 := append(pk2.PublicKey.X.Bytes(), pk2.PublicKey.Y.Bytes()...)
-	pubKeyBytes3 := append(pk3.PublicKey.X.Bytes(), pk3.PublicKey.Y.Bytes()...)
+	pubKeyBytes1 := eth.FromECDSAPub(&pk1.PublicKey)
+	pubKeyBytes2 := eth.FromECDSAPub(&pk2.PublicKey)
+	pubKeyBytes3 := eth.FromECDSAPub(&pk3.PublicKey)
 	verify3, err := Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
 		SigType: MultipleSignatures, PubKey: append(pubks, pubKeyBytes1, pubKeyBytes2, pubKeyBytes3)}, Signature: sig.Signature})
 	if err != nil {
@@ -190,8 +182,8 @@ func TestMSVerify(t *testing.T) {
 	}
 
 	pubks = []interface{}{}
-	pubKeyBytes1 = append(pk1.PublicKey.X.Bytes(), pk1.PublicKey.Y.Bytes()...)
-	pubKeyBytes3 = append(pk3.PublicKey.X.Bytes(), pk3.PublicKey.Y.Bytes()...)
+	pubKeyBytes1 = eth.FromECDSAPub(&pk1.PublicKey)
+	pubKeyBytes3 = eth.FromECDSAPub(&pk3.PublicKey)
 	_, err = Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
 		SigType: MultipleSignatures, PubKey: append(pubks, pubKeyBytes1, pubKeyBytes3)}, Signature: sig.Signature})
 	if err != crypto.ErrSigPubKeyNotMatch {
@@ -199,9 +191,9 @@ func TestMSVerify(t *testing.T) {
 	}
 
 	pubks = []interface{}{}
-	pubKeyBytes1 = append(pk1.PublicKey.X.Bytes(), pk1.PublicKey.Y.Bytes()...)
-	pubKeyBytes2 = append(pk2.PublicKey.X.Bytes(), pk2.PublicKey.Y.Bytes()...)
-	pubKeyBytes3 = append(pk3.PublicKey.X.Bytes(), pk3.PublicKey.Y.Bytes()...)
+	pubKeyBytes1 = eth.FromECDSAPub(&pk1.PublicKey)
+	pubKeyBytes2 = eth.FromECDSAPub(&pk2.PublicKey)
+	pubKeyBytes3 = eth.FromECDSAPub(&pk3.PublicKey)
 	verify4, err := Verify([]byte(content), &crypto.Signature{PublicKey: crypto.PublicKey{Source: SourceName,
 		SigType: MultipleSignatures, PubKey: append(pubks, pubKeyBytes1, pubKeyBytes3, pubKeyBytes2)}, Signature: sig.Signature})
 	if err != nil {
@@ -265,7 +257,7 @@ func TestParsePubKey(t *testing.T) {
 		t.Error("private key not equal")
 	}
 
-	if pk, err := ParsePubKey(append(pkTarget.X.Bytes(), pkTarget.Y.Bytes()...)); err != nil {
+	if pk, err := ParsePubKey(eth.FromECDSAPub(&pkTarget)); err != nil {
 		t.Error(err)
 	} else if pk.X.Cmp(pkTarget.X) != 0 || pk.Y.Cmp(pkTarget.Y) != 0 {
 		t.Error("private key not equal")

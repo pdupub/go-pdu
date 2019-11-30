@@ -81,9 +81,7 @@ func ParsePriKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 	case ecdsa.PrivateKey:
 		*pk = priKey.(ecdsa.PrivateKey)
 	case []byte:
-		pk.PublicKey.Curve = eth.S256()
-		pk.D = new(big.Int).SetBytes(priKey.([]byte))
-		pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
+		return eth.ToECDSA(priKey.([]byte))
 	case *big.Int:
 		pk.PublicKey.Curve = eth.S256()
 		pk.D = new(big.Int).Set(priKey.(*big.Int))
@@ -103,9 +101,7 @@ func ParsePubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
 	case ecdsa.PublicKey:
 		*pk = pubKey.(ecdsa.PublicKey)
 	case []byte:
-		pk.Curve = eth.S256()
-		pk.X = new(big.Int).SetBytes(pubKey.([]byte)[:32])
-		pk.Y = new(big.Int).SetBytes(pubKey.([]byte)[32:])
+		return eth.UnmarshalPubkey(pubKey.([]byte))
 	case *big.Int:
 		pk.Curve = eth.S256()
 		pk.X = new(big.Int).SetBytes(pubKey.(*big.Int).Bytes()[:32])
