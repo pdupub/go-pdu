@@ -220,25 +220,25 @@ func TestParsePriKey(t *testing.T) {
 	}
 	pkTarget := priKey.PriKey.(*ecdsa.PrivateKey)
 
-	if pk, err := ParsePriKey(pkTarget); err != nil {
+	if pk, err := parsePriKey(pkTarget); err != nil {
 		t.Error(err)
 	} else if pk.D.Cmp(pkTarget.D) != 0 {
 		t.Error("private key not equal")
 	}
 
-	if pk, err := ParsePriKey(*pkTarget); err != nil {
+	if pk, err := parsePriKey(*pkTarget); err != nil {
 		t.Error(err)
 	} else if pk.D.Cmp(pkTarget.D) != 0 {
 		t.Error("private key not equal")
 	}
 
-	if pk, err := ParsePriKey(pkTarget.D); err != nil {
+	if pk, err := parsePriKey(pkTarget.D); err != nil {
 		t.Error(err)
 	} else if pk.D.Cmp(pkTarget.D) != 0 {
 		t.Error("private key not equal")
 	}
 
-	if pk, err := ParsePriKey(pkTarget.D.Bytes()); err != nil {
+	if pk, err := parsePriKey(pkTarget.D.Bytes()); err != nil {
 		t.Error(err)
 	} else if pk.D.Cmp(pkTarget.D) != 0 {
 		t.Error("private key not equal")
@@ -253,25 +253,25 @@ func TestParsePubKey(t *testing.T) {
 	}
 	pkTarget := priKey.PriKey.(*ecdsa.PrivateKey).PublicKey
 
-	if pk, err := ParsePubKey(pkTarget); err != nil {
+	if pk, err := parsePubKey(pkTarget); err != nil {
 		t.Error(err)
 	} else if pk.X.Cmp(pkTarget.X) != 0 || pk.Y.Cmp(pkTarget.Y) != 0 {
 		t.Error("private key not equal")
 	}
 
-	if pk, err := ParsePubKey(&pkTarget); err != nil {
+	if pk, err := parsePubKey(&pkTarget); err != nil {
 		t.Error(err)
 	} else if pk.X.Cmp(pkTarget.X) != 0 || pk.Y.Cmp(pkTarget.Y) != 0 {
 		t.Error("private key not equal")
 	}
 
-	if pk, err := ParsePubKey(append(pkTarget.X.Bytes(), pkTarget.Y.Bytes()...)); err != nil {
+	if pk, err := parsePubKey(append(pkTarget.X.Bytes(), pkTarget.Y.Bytes()...)); err != nil {
 		t.Error(err)
 	} else if pk.X.Cmp(pkTarget.X) != 0 || pk.Y.Cmp(pkTarget.Y) != 0 {
 		t.Error("private key not equal")
 	}
 
-	if pk, err := ParsePubKey(new(big.Int).SetBytes(append(pkTarget.X.Bytes(), pkTarget.Y.Bytes()...))); err != nil {
+	if pk, err := parsePubKey(new(big.Int).SetBytes(append(pkTarget.X.Bytes(), pkTarget.Y.Bytes()...))); err != nil {
 		t.Error(err)
 	} else if pk.X.Cmp(pkTarget.X) != 0 || pk.Y.Cmp(pkTarget.Y) != 0 {
 		t.Error("private key not equal")
