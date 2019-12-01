@@ -11,6 +11,7 @@ matrix:
         - sudo modprobe fuse
         - sudo chmod 666 /dev/fuse
         - sudo chown root:$USER /etc/fuse.conf
+        - go get github.com/ethereum/go-ethereum
         - make install
         - go test ./crypto/pdu
         - go test ./dag
