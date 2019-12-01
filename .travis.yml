@@ -12,6 +12,7 @@ matrix:
         - sudo chmod 666 /dev/fuse
         - sudo chown root:$USER /etc/fuse.conf
         - go get github.com/ethereum/go-ethereum
+        - go get github.com/btcsuite/btcd
         - make install
         - go test ./crypto/pdu
         - go test ./dag
