@@ -23,6 +23,7 @@ import (
 	"github.com/pdupub/go-pdu/crypto/pdu"
 )
 
+// SelectEngine return a new engine by source type
 func SelectEngine(source string) (crypto.Engine, error) {
 	var engine crypto.Engine
 	switch source {

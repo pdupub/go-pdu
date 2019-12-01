@@ -24,9 +24,6 @@ import (
 	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/core/rule"
 	"github.com/pdupub/go-pdu/crypto"
-	"github.com/pdupub/go-pdu/crypto/bitcoin"
-	"github.com/pdupub/go-pdu/crypto/ethereum"
-	"github.com/pdupub/go-pdu/crypto/pdu"
 	"testing"
 )
 
@@ -39,22 +36,10 @@ var (
 	ref                                   MsgReference
 	AdamPartMsgIDs                        []common.Hash
 	universeEngine                        crypto.Engine
-	engineChoice                          string
 )
 
 func TestNewUniverse(t *testing.T) {
-	engineChoice = crypto.BTC
-
-	switch engineChoice {
-	case crypto.BTC:
-		universeEngine = bitcoin.New()
-	case crypto.ETH:
-		universeEngine = ethereum.New()
-	case crypto.PDU:
-		universeEngine = pdu.New()
-	default:
-		t.Error(errNotSupportYet)
-	}
+	universeEngine, _ = SelectEngine(crypto.BTC)
 
 	// Test 1: Create root users, Adam and Eve , create universe
 	// The gender of user relate to public key (random), so createRootUser
