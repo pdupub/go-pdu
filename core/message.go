@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/bitcoin"
 	"github.com/pdupub/go-pdu/crypto/ethereum"
 	"github.com/pdupub/go-pdu/crypto/pdu"
 )
@@ -61,6 +62,8 @@ func CreateMsg(user *User, value *MsgValue, priKey *crypto.PrivateKey, refs ...*
 
 	var engine crypto.Engine
 	switch priKey.Source {
+	case crypto.BTC:
+		engine = bitcoin.New()
 	case crypto.PDU:
 		engine = pdu.New()
 	case crypto.ETH:
@@ -88,6 +91,8 @@ func VerifyMsg(msg Message) (bool, error) {
 	msg.Signature = nil
 	var engine crypto.Engine
 	switch signature.Source {
+	case crypto.BTC:
+		engine = bitcoin.New()
 	case crypto.PDU:
 		engine = pdu.New()
 	case crypto.ETH:

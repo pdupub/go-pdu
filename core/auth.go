@@ -19,6 +19,7 @@ package core
 import (
 	"encoding/json"
 	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/bitcoin"
 	"github.com/pdupub/go-pdu/crypto/ethereum"
 	"github.com/pdupub/go-pdu/crypto/pdu"
 )
@@ -40,6 +41,8 @@ func (a *Auth) UnmarshalJSON(input []byte) error {
 	var engine crypto.Engine
 
 	switch a.Source {
+	case crypto.BTC:
+		engine = bitcoin.New()
 	case crypto.PDU:
 		engine = pdu.New()
 	case crypto.ETH:
@@ -60,6 +63,8 @@ func (a *Auth) UnmarshalJSON(input []byte) error {
 func (a Auth) MarshalJSON() ([]byte, error) {
 	var engine crypto.Engine
 	switch a.Source {
+	case crypto.BTC:
+		engine = bitcoin.New()
 	case crypto.PDU:
 		engine = pdu.New()
 	case crypto.ETH:

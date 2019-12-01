@@ -24,6 +24,7 @@ import (
 	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/core/rule"
 	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/bitcoin"
 	"github.com/pdupub/go-pdu/crypto/ethereum"
 	"github.com/pdupub/go-pdu/crypto/pdu"
 	"testing"
@@ -42,9 +43,11 @@ var (
 )
 
 func TestNewUniverse(t *testing.T) {
-	engineChoice = crypto.PDU
+	engineChoice = crypto.BTC
 
 	switch engineChoice {
+	case crypto.BTC:
+		universeEngine = bitcoin.New()
 	case crypto.ETH:
 		universeEngine = ethereum.New()
 	case crypto.PDU:
