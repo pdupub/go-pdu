@@ -19,9 +19,6 @@ package core
 import (
 	"encoding/json"
 	"github.com/pdupub/go-pdu/crypto"
-	"github.com/pdupub/go-pdu/crypto/bitcoin"
-	"github.com/pdupub/go-pdu/crypto/ethereum"
-	"github.com/pdupub/go-pdu/crypto/pdu"
 )
 
 // Auth contain public key
@@ -38,19 +35,10 @@ func (a *Auth) UnmarshalJSON(input []byte) error {
 	}
 	a.Source = aMap["source"].(string)
 	a.SigType = aMap["sigType"].(string)
-	var engine crypto.Engine
-
-	switch a.Source {
-	case crypto.BTC:
-		engine = bitcoin.New()
-	case crypto.PDU:
-		engine = pdu.New()
-	case crypto.ETH:
-		engine = ethereum.New()
-	default:
-		return crypto.ErrSourceNotMatch
+	engine, err := SelectEngine(a.Source)
+	if err != nil {
+		return err
 	}
-
 	pk, err := engine.UnmarshalJSON(input)
 	if err != nil {
 		return err
@@ -61,16 +49,9 @@ func (a *Auth) UnmarshalJSON(input []byte) error {
 
 // MarshalJSON marshal public key to json
 func (a Auth) MarshalJSON() ([]byte, error) {
-	var engine crypto.Engine
-	switch a.Source {
-	case crypto.BTC:
-		engine = bitcoin.New()
-	case crypto.PDU:
-		engine = pdu.New()
-	case crypto.ETH:
-		engine = ethereum.New()
-	default:
-		return nil, crypto.ErrSourceNotMatch
+	engine, err := SelectEngine(a.Source)
+	if err != nil {
+		return nil, err
 	}
 	return engine.MarshalJSON(a.PublicKey)
 }

@@ -20,9 +20,6 @@ import (
 	"encoding/json"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/crypto"
-	"github.com/pdupub/go-pdu/crypto/bitcoin"
-	"github.com/pdupub/go-pdu/crypto/ethereum"
-	"github.com/pdupub/go-pdu/crypto/pdu"
 )
 
 const (
@@ -65,16 +62,9 @@ func (mv *DOBMsgContent) SignByParent(user *User, privKey crypto.PrivateKey) err
 		return err
 	}
 	var signature *crypto.Signature
-	var engine crypto.Engine
-	switch privKey.Source {
-	case crypto.BTC:
-		engine = bitcoin.New()
-	case crypto.PDU:
-		engine = pdu.New()
-	case crypto.ETH:
-		engine = ethereum.New()
-	default:
-		return crypto.ErrSourceNotMatch
+	engine, err := SelectEngine(privKey.Source)
+	if err != nil {
+		return err
 	}
 
 	signature, err = engine.Sign(jsonByte, &privKey)

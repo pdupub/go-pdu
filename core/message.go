@@ -22,9 +22,6 @@ import (
 	"fmt"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/crypto"
-	"github.com/pdupub/go-pdu/crypto/bitcoin"
-	"github.com/pdupub/go-pdu/crypto/ethereum"
-	"github.com/pdupub/go-pdu/crypto/pdu"
 )
 
 // Message is valid msg in pdu
@@ -60,16 +57,9 @@ func CreateMsg(user *User, value *MsgValue, priKey *crypto.PrivateKey, refs ...*
 		Signature: nil,
 	}
 
-	var engine crypto.Engine
-	switch priKey.Source {
-	case crypto.BTC:
-		engine = bitcoin.New()
-	case crypto.PDU:
-		engine = pdu.New()
-	case crypto.ETH:
-		engine = ethereum.New()
-	default:
-		return nil, crypto.ErrSourceNotMatch
+	engine, err := SelectEngine(priKey.Source)
+	if err != nil {
+		return nil, err
 	}
 
 	jsonMsg, err := json.Marshal(msg)
@@ -89,19 +79,10 @@ func CreateMsg(user *User, value *MsgValue, priKey *crypto.PrivateKey, refs ...*
 func VerifyMsg(msg Message) (bool, error) {
 	signature := msg.Signature
 	msg.Signature = nil
-	var engine crypto.Engine
-	switch signature.Source {
-	case crypto.BTC:
-		engine = bitcoin.New()
-	case crypto.PDU:
-		engine = pdu.New()
-	case crypto.ETH:
-		engine = ethereum.New()
-	default:
-		return false, crypto.ErrSourceNotMatch
-
+	engine, err := SelectEngine(signature.Source)
+	if err != nil {
+		return false, err
 	}
-
 	jsonMsg, err := json.Marshal(&msg)
 	if err != nil {
 		return false, err
