@@ -16,20 +16,6 @@
 
 package main
 
-import (
-	"github.com/pdupub/go-pdu/params"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-)
-
 func main() {
-
-	viper.New()
-	rootCmd := &cobra.Command{
-		Use:   "pdu",
-		Short: "PDU command line interface (" + params.Version + ")",
-	}
-	rootCmd.AddCommand(StartCmd())
-
-	rootCmd.Execute()
+	Execute()
 }

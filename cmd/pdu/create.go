@@ -14,4 +14,23 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package params
+package main
+
+import (
+	"github.com/pdupub/go-pdu/common/log"
+	"github.com/spf13/cobra"
+)
+
+// createCmd represents the create command
+var createCmd = &cobra.Command{
+	Use:   "create",
+	Short: "Create a new PDU Universe",
+	RunE: func(_ *cobra.Command, args []string) error {
+		log.Info("create ...")
+		return nil
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(createCmd)
+}

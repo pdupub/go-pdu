@@ -21,20 +21,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// StartCmd start the pdu server.
-// At first step of our road map, this server is only for test.
-// At later steps, the server will have different functions, like time proof server, broadcast server etc.
-func StartCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "start [port]",
-		Short: "Start PDU Server on ",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, args []string) error {
-			port := args[0]
-			log.Info("listen on", port)
-			return nil
-		},
-	}
+// startCmd represents the start command
+var startCmd = &cobra.Command{
+	Use:   "start",
+	Short: "Start to run PDU Universe",
+	RunE: func(_ *cobra.Command, args []string) error {
+		log.Info("start ...")
+		return nil
+	},
+}
 
-	return cmd
+func init() {
+	rootCmd.AddCommand(startCmd)
 }
