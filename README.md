@@ -1,4 +1,4 @@
-Go PDU
+go-pdu
 ====
 
 Golang implementation of PDU.
