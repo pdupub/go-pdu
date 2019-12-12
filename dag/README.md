@@ -7,7 +7,7 @@ dag
 [![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](LICENSE)
 [![Chat](https://img.shields.io/badge/gitter-Docs%20chat-4AB495.svg)](https://gitter.im/pdupub/go-pdu)
 
-Package dag provides ...
+A DAG, Directed acyclic graph implementation in golang.
 
 ## Overview
 
