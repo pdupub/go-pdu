@@ -8,14 +8,15 @@ go-pdu
 
 Golang implementation of PDU.
 
-- [**go-dpu**](#go-pdu)
-  - [PDU](#pdu)
-  - [Usage](#usage)
-  - [Development](#development)
-  - [Contributing](#contributing)
+
+- [What is PDU?](#pdu)
+- [Usage](#usage)
+- [Development](#development)
+- [Contributing](#contributing)
 
 ## PDU
 PDU is a decentralized identity-based social network, please read the WhitePaper on [github.com/pdupub/Documentation](https://github.com/pdupub/Documentation) for more details.
+
 
 ## Usage
 
@@ -39,21 +40,34 @@ Flags:
 Use "pdu [command] --help" for more information about a command.
 ```
 
+
+
 ## Development
 
-To copy the repository run:
+To copy the repository:
 
 ```
 go get github.com/pdupub/go-pdu
-make install
-pdu
+
 ```
+OR 
+```
+get clone https://github.com/pdupub/go-pdu.git
+
+```
+
+To build and run:
+```
+make install && pdu start
+```
+
 
 ## Contributing
 
 1. Fork the repository on GitHub to start making your changes to the master branch
 2. Write a test which shows that the bug was fixed or that the feature works as expected
 3. Send a pull request and bug the maintainer until it gets merged and published
+
 
 <a href="https://pdu.pub"><img height="32" align="right" src="https://pdu.pub/images/icon.svg"></a>
 
