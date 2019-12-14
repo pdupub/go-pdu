@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	homedir "github.com/mitchellh/go-homedir"
+	"github.com/mitchellh/go-homedir"
 	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
