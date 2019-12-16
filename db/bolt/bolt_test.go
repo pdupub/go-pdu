@@ -50,6 +50,9 @@ func TestNewDB(t *testing.T) {
 	}
 
 	val, err := u.Get(bucketName, append(keyPrefix, big.NewInt(5).Bytes()...))
+	if err != nil {
+		t.Error(err)
+	}
 	if string(val) != string(append(valPrefix, big.NewInt(5).Bytes()...)) {
 		t.Error("val not equal")
 	}
