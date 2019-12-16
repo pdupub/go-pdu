@@ -9,6 +9,7 @@ db
 
 Package db provides embed key/value database for pdu.
 
+The default database used in this project is bolt, more information could be found [https://github.com/boltdb/bolt](https://github.com/boltdb/bolt)
 ## Overview
 
 This package ...

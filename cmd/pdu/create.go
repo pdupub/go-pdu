@@ -17,8 +17,13 @@
 package main
 
 import (
+	"github.com/mitchellh/go-homedir"
 	"github.com/pdupub/go-pdu/common/log"
+	"github.com/pdupub/go-pdu/db"
+	"github.com/pdupub/go-pdu/db/bolt"
 	"github.com/spf13/cobra"
+	"os"
+	"path"
 )
 
 // createCmd represents the create command
@@ -27,6 +32,19 @@ var createCmd = &cobra.Command{
 	Short: "Create a new PDU Universe",
 	RunE: func(_ *cobra.Command, args []string) error {
 		log.Info("create ...")
+		var udb db.UDB
+		home, _ := homedir.Dir()
+		dbDirPath := path.Join(home, ".pdu")
+		os.Mkdir(dbDirPath, os.ModePerm)
+		dbFilePath := path.Join(dbDirPath, "u.db")
+		udb, err := bolt.NewDB(dbFilePath)
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+		udb.CreateBucket([]byte("universe"))
+		udb.Close()
+
 		return nil
 	},
 }

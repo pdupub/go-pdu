@@ -15,3 +15,12 @@
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
 package db
+
+// UDB is a database interface for embed database, default db is bolt
+type UDB interface {
+	Close() error
+	CreateBucket([]byte) error
+	DeleteBucket([]byte) error
+	Set([]byte, []byte, []byte) error
+	Get([]byte, []byte) ([]byte, error)
+}
