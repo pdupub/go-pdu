@@ -82,4 +82,6 @@ type Engine interface {
 	Verify([]byte, *Signature) (bool, error)
 	UnmarshalJSON([]byte) (*PublicKey, error)
 	MarshalJSON(PublicKey) ([]byte, error)
+	EncryptKey(*PrivateKey, string) ([]byte, error)
+	DecryptKey([]byte, string) (*PrivateKey, error)
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/db"
 	"github.com/pdupub/go-pdu/db/bolt"
+	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
 	"os"
 	"path"
@@ -34,7 +35,7 @@ var createCmd = &cobra.Command{
 		log.Info("create ...")
 		var udb db.UDB
 		home, _ := homedir.Dir()
-		dbDirPath := path.Join(home, ".pdu")
+		dbDirPath := path.Join(home, params.DefaultPath)
 		os.Mkdir(dbDirPath, os.ModePerm)
 		dbFilePath := path.Join(dbDirPath, "u.db")
 		udb, err := bolt.NewDB(dbFilePath)

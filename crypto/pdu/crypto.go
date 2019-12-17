@@ -288,6 +288,16 @@ func (e PEngine) MarshalJSON(a crypto.PublicKey) ([]byte, error) {
 	return json.Marshal(aMap)
 }
 
+// EncryptKey encryptKey into file
+func (e PEngine) EncryptKey(priKey *crypto.PrivateKey, pass string) ([]byte, error) {
+	return nil, nil
+}
+
+// DecryptKey decrypt private key from file
+func (e PEngine) DecryptKey(keyJson []byte, pass string) (*crypto.PrivateKey, error) {
+	return nil, nil
+}
+
 func genKey() (*ecdsa.PrivateKey, error) {
 	return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 }

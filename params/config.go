@@ -15,3 +15,8 @@
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
 package params
+
+const (
+	// DefaultPath is path of config and data of pdu
+	DefaultPath = ".pdu"
+)

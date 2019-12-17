@@ -309,6 +309,16 @@ func (e BEngine) MarshalJSON(a crypto.PublicKey) ([]byte, error) {
 	return json.Marshal(aMap)
 }
 
+// EncryptKey encryptKey into file
+func (e BEngine) EncryptKey(priKey *crypto.PrivateKey, pass string) ([]byte, error) {
+	return nil, nil
+}
+
+// DecryptKey decrypt private key from file
+func (e BEngine) DecryptKey(keyJson []byte, pass string) (*crypto.PrivateKey, error) {
+	return nil, nil
+}
+
 func genKey() (*ecdsa.PrivateKey, error) {
 	pk, err := btc.NewPrivateKey(btc.S256())
 	return (*ecdsa.PrivateKey)(pk), err

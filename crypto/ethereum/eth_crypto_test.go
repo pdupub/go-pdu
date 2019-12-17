@@ -313,3 +313,80 @@ func TestSign(t *testing.T) {
 	}
 
 }
+
+func TestEEngine_EncryptKey(t *testing.T) {
+	E := New()
+
+	pk, err := genKey()
+	if err != nil {
+		t.Error("generate key pair fail", err)
+	}
+
+	privateKey := &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PriKey: pk}
+
+	keyJson, err := E.EncryptKey(privateKey, "123")
+	if err != nil {
+		t.Error("encrypt key fail", err)
+	}
+
+	newPrivateKey, err := E.DecryptKey(keyJson, "123")
+	if err != nil {
+		t.Error("decrypt key fail")
+	}
+
+	if privateKey.Source != newPrivateKey.Source {
+		t.Error("source not equal")
+	}
+	if privateKey.SigType != newPrivateKey.SigType {
+		t.Error("sig type not equal")
+	}
+
+	if privateKey.PriKey.(*ecdsa.PrivateKey).D.Cmp(newPrivateKey.PriKey.(*ecdsa.PrivateKey).D) != 0 {
+		t.Error("private key not equal")
+	}
+
+}
+
+func TestEEngine_EncryptKeyMS(t *testing.T) {
+	E := New()
+
+	pk1, err := genKey()
+	if err != nil {
+		t.Error("generate key pair fail", err)
+	}
+	pk2, err := genKey()
+	if err != nil {
+		t.Error("generate key pair fail", err)
+	}
+	pk3, err := genKey()
+	if err != nil {
+		t.Error("generate key pair fail", err)
+	}
+	var pks []interface{}
+	pks = append(pks, pk1, pk2, pk3)
+	privateKey := &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.MultipleSignatures, PriKey: pks}
+
+	keyJson, err := E.EncryptKey(privateKey, "123")
+	if err != nil {
+		t.Error("encrypt key fail", err)
+	}
+
+	newPrivateKey, err := E.DecryptKey(keyJson, "123")
+	if err != nil {
+		t.Error("decrypt key fail")
+	}
+
+	if privateKey.Source != newPrivateKey.Source {
+		t.Error("source not equal")
+	}
+	if privateKey.SigType != newPrivateKey.SigType {
+		t.Error("sig type not equal")
+	}
+
+	for k, v := range newPrivateKey.PriKey.([]*ecdsa.PrivateKey) {
+		if v.D.Cmp(pks[k].(*ecdsa.PrivateKey).D) != 0 {
+			t.Error("private key not equal")
+		}
+	}
+
+}

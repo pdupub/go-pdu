@@ -21,10 +21,25 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/math"
 	eth "github.com/ethereum/go-ethereum/crypto"
+
+	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/pborman/uuid"
 	"github.com/pdupub/go-pdu/crypto"
 	"math/big"
 )
+
+type encryptedKeyJSONV3 struct {
+	Address string              `json:"address"`
+	Crypto  keystore.CryptoJSON `json:"crypto"`
+	Id      string              `json:"id"`
+	Version int                 `json:"version"`
+}
+
+type encryptedKeyJListV3 []*encryptedKeyJSONV3
+
+const version = 3
 
 // EEngine is the engine of ETH
 type EEngine struct {
@@ -276,6 +291,89 @@ func (e EEngine) MarshalJSON(a crypto.PublicKey) ([]byte, error) {
 		return nil, crypto.ErrSourceNotMatch
 	}
 	return json.Marshal(aMap)
+}
+
+// EncryptKey encryptKey into file
+func (e EEngine) EncryptKey(priKey *crypto.PrivateKey, pass string) ([]byte, error) {
+
+	if priKey.Source != crypto.ETH {
+		return nil, crypto.ErrSourceNotMatch
+	}
+	if priKey.SigType == crypto.Signature2PublicKey {
+		pk, err := parsePriKey(priKey.PriKey)
+		if err != nil {
+			return nil, err
+		}
+		ekj, err := e.encryptKey(pk, pass)
+		if err != nil {
+			return nil, err
+		}
+		return json.Marshal(ekj)
+	} else if priKey.SigType == crypto.MultipleSignatures {
+		var ekl encryptedKeyJListV3
+		for _, v := range priKey.PriKey.([]interface{}) {
+			pk, err := parsePriKey(v)
+			if err != nil {
+				return nil, err
+			}
+			ekj, err := e.encryptKey(pk, pass)
+			if err != nil {
+				return nil, err
+			}
+			ekl = append(ekl, ekj)
+		}
+		return json.Marshal(ekl)
+
+	}
+	return nil, crypto.ErrSigTypeNotSupport
+
+}
+
+func (e EEngine) encryptKey(priKey *ecdsa.PrivateKey, pass string) (*encryptedKeyJSONV3, error) {
+	id := uuid.NewRandom()
+	key := &keystore.Key{
+		Id:         id,
+		Address:    eth.PubkeyToAddress(priKey.PublicKey),
+		PrivateKey: priKey,
+	}
+
+	keyBytes := math.PaddedBigBytes(key.PrivateKey.D, 32)
+	cryptoStruct, err := keystore.EncryptDataV3(keyBytes, []byte(pass), keystore.StandardScryptN, keystore.StandardScryptP)
+	if err != nil {
+		return nil, err
+	}
+	encryptedKeyJSONV3 := encryptedKeyJSONV3{
+		hex.EncodeToString(key.Address[:]),
+		cryptoStruct,
+		key.Id.String(),
+		version,
+	}
+	return &encryptedKeyJSONV3, nil
+}
+
+// DecryptKey decrypt private key from file
+func (e EEngine) DecryptKey(keyJson []byte, pass string) (*crypto.PrivateKey, error) {
+
+	k := new(encryptedKeyJSONV3)
+	var kl encryptedKeyJListV3
+	if err := json.Unmarshal(keyJson, k); err == nil {
+		keyBytes, err := keystore.DecryptDataV3(k.Crypto, pass)
+		if err != nil {
+			return nil, err
+		}
+		return &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PriKey: eth.ToECDSAUnsafe(keyBytes)}, nil
+	} else if err := json.Unmarshal(keyJson, &kl); err == nil {
+		var priKey []*ecdsa.PrivateKey
+		for _, v := range kl {
+			keyBytes, err := keystore.DecryptDataV3(v.Crypto, pass)
+			if err != nil {
+				return nil, err
+			}
+			priKey = append(priKey, eth.ToECDSAUnsafe(keyBytes))
+		}
+		return &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.MultipleSignatures, PriKey: priKey}, nil
+	}
+	return nil, crypto.ErrKeyTypeNotSupport
 }
 
 func signHash(data []byte) []byte {
