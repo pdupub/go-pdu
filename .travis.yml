@@ -14,6 +14,8 @@ matrix:
         - make install
         - GO111MODULE=on
         - go test ./crypto/pdu
+        - go test ./crypto/ethereum
+        - go test ./crypto/bitcoin
         - go test ./dag
         - go test ./core
 
