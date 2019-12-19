@@ -30,17 +30,6 @@ import (
 	"math/big"
 )
 
-type encryptedKeyJSONV3 struct {
-	Address string              `json:"address"`
-	Crypto  keystore.CryptoJSON `json:"crypto"`
-	Id      string              `json:"id"`
-	Version int                 `json:"version"`
-}
-
-type encryptedKeyJListV3 []*encryptedKeyJSONV3
-
-const version = 3
-
 // EEngine is the engine of ETH
 type EEngine struct {
 	name string
@@ -310,7 +299,7 @@ func (e EEngine) EncryptKey(priKey *crypto.PrivateKey, pass string) ([]byte, err
 		}
 		return json.Marshal(ekj)
 	} else if priKey.SigType == crypto.MultipleSignatures {
-		var ekl encryptedKeyJListV3
+		var ekl crypto.EncryptedKeyJListV3
 		for _, v := range priKey.PriKey.([]interface{}) {
 			pk, err := parsePriKey(v)
 			if err != nil {
@@ -329,7 +318,7 @@ func (e EEngine) EncryptKey(priKey *crypto.PrivateKey, pass string) ([]byte, err
 
 }
 
-func (e EEngine) encryptKey(priKey *ecdsa.PrivateKey, pass string) (*encryptedKeyJSONV3, error) {
+func (e EEngine) encryptKey(priKey *ecdsa.PrivateKey, pass string) (*crypto.EncryptedKeyJSONV3, error) {
 	id := uuid.NewRandom()
 	key := &keystore.Key{
 		Id:         id,
@@ -342,11 +331,11 @@ func (e EEngine) encryptKey(priKey *ecdsa.PrivateKey, pass string) (*encryptedKe
 	if err != nil {
 		return nil, err
 	}
-	encryptedKeyJSONV3 := encryptedKeyJSONV3{
-		hex.EncodeToString(key.Address[:]),
-		cryptoStruct,
-		key.Id.String(),
-		version,
+	encryptedKeyJSONV3 := crypto.EncryptedKeyJSONV3{
+		Address: hex.EncodeToString(key.Address[:]),
+		Crypto:  cryptoStruct,
+		Id:      key.Id.String(),
+		Version: crypto.EncryptedVersion,
 	}
 	return &encryptedKeyJSONV3, nil
 }
@@ -354,8 +343,8 @@ func (e EEngine) encryptKey(priKey *ecdsa.PrivateKey, pass string) (*encryptedKe
 // DecryptKey decrypt private key from file
 func (e EEngine) DecryptKey(keyJson []byte, pass string) (*crypto.PrivateKey, error) {
 
-	k := new(encryptedKeyJSONV3)
-	var kl encryptedKeyJListV3
+	k := new(crypto.EncryptedKeyJSONV3)
+	var kl crypto.EncryptedKeyJListV3
 	if err := json.Unmarshal(keyJson, k); err == nil {
 		keyBytes, err := keystore.DecryptDataV3(k.Crypto, pass)
 		if err != nil {

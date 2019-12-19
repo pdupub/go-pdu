@@ -18,6 +18,7 @@ package crypto
 
 import (
 	"errors"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 )
 
 var (
@@ -85,3 +86,14 @@ type Engine interface {
 	EncryptKey(*PrivateKey, string) ([]byte, error)
 	DecryptKey([]byte, string) (*PrivateKey, error)
 }
+
+type EncryptedKeyJSONV3 struct {
+	Address string              `json:"address"`
+	Crypto  keystore.CryptoJSON `json:"crypto"`
+	Id      string              `json:"id"`
+	Version int                 `json:"version"`
+}
+
+type EncryptedKeyJListV3 []*EncryptedKeyJSONV3
+
+const EncryptedVersion = 3
