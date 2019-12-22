@@ -19,6 +19,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/pdupub/go-pdu/common/log"
@@ -47,14 +48,13 @@ Website: https://pdu.pub`,
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		log.Error(err)
 		os.Exit(1)
 	}
 }
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.pdu.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is $HOME/.pdu/config.yaml)")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -69,17 +69,15 @@ func initConfig() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-
-		// Search config in home directory with name ".pdu" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".pdu")
+		// Search config in $HOME/.pdu directory with name "config" (without extension).
+		dataDir = path.Join(home, params.DefaultPath)
+		viper.AddConfigPath(dataDir)
+		viper.SetConfigName("config")
 	}
-
 	viper.AutomaticEnv() // read in environment variables that match
-
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		log.Error("Using config file:", viper.ConfigFileUsed())
+		log.Info("Using config file:", viper.ConfigFileUsed())
 	}
 
 }

@@ -26,7 +26,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"encoding/json"
 	"github.com/howeyc/gopass"
 	"github.com/pdupub/go-pdu/core"
 )
@@ -116,7 +115,6 @@ func generate() error {
 }
 
 func inspect() error {
-	var engine crypto.Engine
 	if keyFile == "" {
 		return errKeyFileMissing
 	}
@@ -130,19 +128,7 @@ func inspect() error {
 		return err
 	}
 
-	if crypt == "" {
-		keyJM := make(map[string]interface{})
-		if err = json.Unmarshal(keyjson, &keyJM); err != nil {
-			return err
-		}
-		crypt = keyJM["source"].(string)
-	}
-	engine, err = core.SelectEngine(crypt)
-	if err != nil {
-		return err
-	}
-
-	pk, err := engine.DecryptKey(keyjson, string(passwd))
+	pk, err := core.DecryptKey(keyjson, string(passwd), crypt)
 	if err != nil {
 		return err
 	}

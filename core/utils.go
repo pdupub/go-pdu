@@ -17,6 +17,7 @@
 package core
 
 import (
+	"encoding/json"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/crypto/bitcoin"
 	"github.com/pdupub/go-pdu/crypto/ethereum"
@@ -38,4 +39,25 @@ func SelectEngine(source string) (crypto.Engine, error) {
 		return nil, crypto.ErrSourceNotMatch
 	}
 	return engine, nil
+}
+
+func DecryptKey(keyjson []byte, passwd, source string) (*crypto.PrivateKey, error) {
+	var engine crypto.Engine
+	if source == "" {
+		keyJM := make(map[string]interface{})
+		if err := json.Unmarshal(keyjson, &keyJM); err != nil {
+			return nil, err
+		}
+		source = keyJM["source"].(string)
+	}
+	engine, err := SelectEngine(source)
+	if err != nil {
+		return nil, err
+	}
+
+	pk, err := engine.DecryptKey(keyjson, passwd)
+	if err != nil {
+		return nil, err
+	}
+	return pk, nil
 }

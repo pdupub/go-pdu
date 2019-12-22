@@ -19,14 +19,19 @@ package main
 import (
 	"github.com/pdupub/go-pdu/common/log"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // startCmd represents the start command
 var startCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Start to run PDU Universe",
+	Use:           "start",
+	Short:         "Start to run PDU Universe",
+	SilenceUsage:  true,
+	SilenceErrors: true,
 	RunE: func(_ *cobra.Command, args []string) error {
-		log.Info("start ...")
+		log.Info("Starting p2p node")
+		name := viper.GetString("name")
+		log.Info(name)
 		return nil
 	},
 }

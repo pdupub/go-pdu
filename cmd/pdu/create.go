@@ -17,8 +17,8 @@
 package main
 
 import (
+	"fmt"
 	"github.com/mitchellh/go-homedir"
-	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/db"
 	"github.com/pdupub/go-pdu/db/bolt"
 	"github.com/pdupub/go-pdu/params"
@@ -27,29 +27,52 @@ import (
 	"path"
 )
 
+var dataDir string
+
 // createCmd represents the create command
 var createCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a new PDU Universe",
 	RunE: func(_ *cobra.Command, args []string) error {
-		log.Info("create ...")
-		var udb db.UDB
-		home, _ := homedir.Dir()
-		dbDirPath := path.Join(home, params.DefaultPath)
-		os.Mkdir(dbDirPath, os.ModePerm)
-		dbFilePath := path.Join(dbDirPath, "u.db")
-		udb, err := bolt.NewDB(dbFilePath)
+		udb, err := initDB(dataDir)
 		if err != nil {
-			log.Error(err)
 			return err
 		}
-		udb.CreateBucket([]byte("universe"))
-		udb.Close()
+		fmt.Println("Database initialized successfully", dataDir)
+		fmt.Println("Create root users")
+		fmt.Println("Create universe and space-time")
 
+		if err := udb.Close(); err != nil {
+			return err
+		}
+		fmt.Println("Database closed successfully")
 		return nil
 	},
 }
 
+func initDB(dataDir string) (db.UDB, error) {
+	if dataDir == "" {
+		home, _ := homedir.Dir()
+		dataDir = path.Join(home, params.DefaultPath)
+	}
+	err := os.Mkdir(dataDir, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+	dbFilePath := path.Join(dataDir, "u.db")
+	udb, err := bolt.NewDB(dbFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	bucketName := []byte("universe")
+	if err := udb.CreateBucket(bucketName); err != nil {
+		return nil, err
+	}
+	return udb, nil
+}
+
 func init() {
+	createCmd.PersistentFlags().StringVar(&dataDir, "datadir", "", fmt.Sprintf("(default $HOME/%s)", params.DefaultPath))
 	rootCmd.AddCommand(createCmd)
 }
