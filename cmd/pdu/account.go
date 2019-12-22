@@ -20,16 +20,15 @@ import (
 	"errors"
 	"fmt"
 	"github.com/pdupub/go-pdu/crypto"
-	"github.com/pdupub/go-pdu/crypto/bitcoin"
-	"github.com/pdupub/go-pdu/crypto/ethereum"
-	"github.com/pdupub/go-pdu/crypto/pdu"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"encoding/json"
 	"github.com/howeyc/gopass"
+	"github.com/pdupub/go-pdu/core"
 )
 
 const (
@@ -54,16 +53,6 @@ var accountCmd = &cobra.Command{
 	RunE: func(_ *cobra.Command, args []string) error {
 
 		var engine crypto.Engine
-		switch strings.ToUpper(crypt) {
-		case crypto.PDU:
-			engine = pdu.New()
-		case crypto.ETH:
-			engine = ethereum.New()
-		case crypto.BTC:
-			engine = bitcoin.New()
-		default:
-			return crypto.ErrSourceNotMatch
-		}
 
 		switch strings.ToLower(args[0]) {
 		case operGenerate:
@@ -89,6 +78,16 @@ var accountCmd = &cobra.Command{
 			if strings.ToUpper(sigType) != crypto.Signature2PublicKey && strings.ToUpper(sigType) != crypto.MultipleSignatures {
 				return crypto.ErrSigTypeNotSupport
 			}
+
+			// set pdu as default
+			if crypt == "" {
+				crypt = crypto.PDU
+			}
+			engine, err = core.SelectEngine(crypt)
+			if err != nil {
+				return err
+			}
+
 			privateKey, _, err := engine.GenKey(strings.ToUpper(sigType), msCount)
 			if err != nil {
 				return err
@@ -118,6 +117,20 @@ var accountCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
+
+			if crypt == "" {
+				keyJM := make(map[string]interface{})
+				if err = json.Unmarshal(keyjson, &keyJM); err != nil {
+					return err
+				} else {
+					crypt = keyJM["source"].(string)
+				}
+			}
+			engine, err = core.SelectEngine(crypt)
+			if err != nil {
+				return err
+			}
+
 			pk, err := engine.DecryptKey(keyjson, string(passwd))
 			if err != nil {
 				return err
@@ -137,7 +150,7 @@ func init() {
 	accountCmd.PersistentFlags().StringVar(&sigType, "sigType", crypto.Signature2PublicKey, "sig type (S2PK/MS)")
 	accountCmd.PersistentFlags().IntVar(&msCount, "msCount", 1, "count number of MS")
 	accountCmd.PersistentFlags().StringVar(&keyFile, "key", "", "key file")
-	accountCmd.PersistentFlags().StringVar(&crypt, "crypt", "PDU", "type of crypt (default is PDU)")
+	accountCmd.PersistentFlags().StringVar(&crypt, "crypt", "", "type of crypt (default is PDU)")
 	accountCmd.PersistentFlags().StringVarP(&output, "output", "o", "key.json", "output file")
 	rootCmd.AddCommand(accountCmd)
 }

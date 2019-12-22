@@ -21,12 +21,13 @@ import (
 	"github.com/pdupub/go-pdu/crypto/bitcoin"
 	"github.com/pdupub/go-pdu/crypto/ethereum"
 	"github.com/pdupub/go-pdu/crypto/pdu"
+	"strings"
 )
 
 // SelectEngine return a new engine by source type
 func SelectEngine(source string) (crypto.Engine, error) {
 	var engine crypto.Engine
-	switch source {
+	switch strings.ToUpper(source) {
 	case crypto.BTC:
 		engine = bitcoin.New()
 	case crypto.PDU:
