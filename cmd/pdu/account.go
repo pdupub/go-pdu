@@ -122,9 +122,8 @@ var accountCmd = &cobra.Command{
 				keyJM := make(map[string]interface{})
 				if err = json.Unmarshal(keyjson, &keyJM); err != nil {
 					return err
-				} else {
-					crypt = keyJM["source"].(string)
 				}
+				crypt = keyJM["source"].(string)
 			}
 			engine, err = core.SelectEngine(crypt)
 			if err != nil {
