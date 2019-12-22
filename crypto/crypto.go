@@ -87,6 +87,7 @@ type Engine interface {
 	DecryptKey([]byte, string) (*PrivateKey, error)
 }
 
+// EncryptedKeyJSONV3 is from geth
 type EncryptedKeyJSONV3 struct {
 	Address string              `json:"address"`
 	Crypto  keystore.CryptoJSON `json:"crypto"`
@@ -94,6 +95,8 @@ type EncryptedKeyJSONV3 struct {
 	Version int                 `json:"version"`
 }
 
+// EncryptedKeyJListV3 is for ms
 type EncryptedKeyJListV3 []*EncryptedKeyJSONV3
 
+// EncryptedVersion is version of EncryptedKeyJSONV3
 const EncryptedVersion = 3

@@ -81,7 +81,7 @@ var accountCmd = &cobra.Command{
 				return errPasswordNotMatch
 			}
 			if _, err := os.Stat(keyFile); err == nil {
-				return errors.New(fmt.Sprintf("Keyfile already exists at %s.", keyFile))
+				return fmt.Errorf("keyfile already exists at %s", keyFile)
 			} else if !os.IsNotExist(err) {
 				return err
 			}
@@ -94,12 +94,14 @@ var accountCmd = &cobra.Command{
 				return err
 			}
 			keyJson, err := engine.EncryptKey(privateKey, string(passwd))
-
+			if err != nil {
+				return err
+			}
 			if err := os.MkdirAll(filepath.Dir(output), 0700); err != nil {
-				return errors.New(fmt.Sprintf("Could not create directory %s", filepath.Dir(keyFile)))
+				return fmt.Errorf("could not create directory %s", filepath.Dir(keyFile))
 			}
 			if err := ioutil.WriteFile(output, keyJson, 0600); err != nil {
-				return errors.New(fmt.Sprintf("Failed to write keyfile to %s: %v", keyFile, err))
+				return fmt.Errorf("failed to write keyfile to %s: %v", keyFile, err)
 			}
 			fmt.Println(output, "is created success.")
 
