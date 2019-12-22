@@ -51,97 +51,103 @@ var accountCmd = &cobra.Command{
 	Short: "Account generate or inspect",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(_ *cobra.Command, args []string) error {
-
-		var engine crypto.Engine
-
 		switch strings.ToLower(args[0]) {
 		case operGenerate:
-			fmt.Printf("password: ")
-			passwd, err := gopass.GetPasswd()
-			if err != nil {
-				return err
-			}
-			fmt.Printf("repeat password: ")
-			passwd2, err := gopass.GetPasswd()
-			if err != nil {
-				return err
-			}
-			if string(passwd) != string(passwd2) {
-				return errPasswordNotMatch
-			}
-			if _, err := os.Stat(keyFile); err == nil {
-				return fmt.Errorf("keyfile already exists at %s", keyFile)
-			} else if !os.IsNotExist(err) {
-				return err
-			}
-
-			if strings.ToUpper(sigType) != crypto.Signature2PublicKey && strings.ToUpper(sigType) != crypto.MultipleSignatures {
-				return crypto.ErrSigTypeNotSupport
-			}
-
-			// set pdu as default
-			if crypt == "" {
-				crypt = crypto.PDU
-			}
-			engine, err = core.SelectEngine(crypt)
-			if err != nil {
-				return err
-			}
-
-			privateKey, _, err := engine.GenKey(strings.ToUpper(sigType), msCount)
-			if err != nil {
-				return err
-			}
-			keyJson, err := engine.EncryptKey(privateKey, string(passwd))
-			if err != nil {
-				return err
-			}
-			if err := os.MkdirAll(filepath.Dir(output), 0700); err != nil {
-				return fmt.Errorf("could not create directory %s", filepath.Dir(keyFile))
-			}
-			if err := ioutil.WriteFile(output, keyJson, 0600); err != nil {
-				return fmt.Errorf("failed to write keyfile to %s: %v", keyFile, err)
-			}
-			fmt.Println(output, "is created success.")
-
+			return generate()
 		case operInspect:
-			if keyFile == "" {
-				return errKeyFileMissing
-			}
-			keyjson, err := ioutil.ReadFile(keyFile)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("password: ")
-			passwd, err := gopass.GetPasswd()
-			if err != nil {
-				return err
-			}
-
-			if crypt == "" {
-				keyJM := make(map[string]interface{})
-				if err = json.Unmarshal(keyjson, &keyJM); err != nil {
-					return err
-				}
-				crypt = keyJM["source"].(string)
-			}
-			engine, err = core.SelectEngine(crypt)
-			if err != nil {
-				return err
-			}
-
-			pk, err := engine.DecryptKey(keyjson, string(passwd))
-			if err != nil {
-				return err
-			}
-			fmt.Println(pk.PriKey)
-
+			return inspect()
 		default:
 			return errUnknownOperation
 		}
-
 		return nil
 	},
+}
+
+func generate() error {
+	var engine crypto.Engine
+	fmt.Printf("password: ")
+	passwd, err := gopass.GetPasswd()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("repeat password: ")
+	passwd2, err := gopass.GetPasswd()
+	if err != nil {
+		return err
+	}
+	if string(passwd) != string(passwd2) {
+		return errPasswordNotMatch
+	}
+	if _, err := os.Stat(keyFile); err == nil {
+		return fmt.Errorf("keyfile already exists at %s", keyFile)
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+
+	if strings.ToUpper(sigType) != crypto.Signature2PublicKey && strings.ToUpper(sigType) != crypto.MultipleSignatures {
+		return crypto.ErrSigTypeNotSupport
+	}
+
+	// set pdu as default
+	if crypt == "" {
+		crypt = crypto.PDU
+	}
+	engine, err = core.SelectEngine(crypt)
+	if err != nil {
+		return err
+	}
+
+	privateKey, _, err := engine.GenKey(strings.ToUpper(sigType), msCount)
+	if err != nil {
+		return err
+	}
+	keyJson, err := engine.EncryptKey(privateKey, string(passwd))
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(output), 0700); err != nil {
+		return fmt.Errorf("could not create directory %s", filepath.Dir(keyFile))
+	}
+	if err := ioutil.WriteFile(output, keyJson, 0600); err != nil {
+		return fmt.Errorf("failed to write keyfile to %s: %v", keyFile, err)
+	}
+	fmt.Println(output, "is created success.")
+	return nil
+}
+
+func inspect() error {
+	var engine crypto.Engine
+	if keyFile == "" {
+		return errKeyFileMissing
+	}
+	keyjson, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("password: ")
+	passwd, err := gopass.GetPasswd()
+	if err != nil {
+		return err
+	}
+
+	if crypt == "" {
+		keyJM := make(map[string]interface{})
+		if err = json.Unmarshal(keyjson, &keyJM); err != nil {
+			return err
+		}
+		crypt = keyJM["source"].(string)
+	}
+	engine, err = core.SelectEngine(crypt)
+	if err != nil {
+		return err
+	}
+
+	pk, err := engine.DecryptKey(keyjson, string(passwd))
+	if err != nil {
+		return err
+	}
+	fmt.Println(pk.PriKey)
+	return nil
 }
 
 func init() {
