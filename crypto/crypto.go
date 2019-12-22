@@ -87,6 +87,13 @@ type Engine interface {
 	DecryptKey([]byte, string) (*PrivateKey, error)
 }
 
+// EncryptedPrivateKey is encrypted private key in json
+type EncryptedPrivateKey struct {
+	Source  string              `json:"source"`
+	SigType string              `json:"sigType"`
+	EPK     EncryptedKeyJListV3 `json:"priKey"`
+}
+
 // EncryptedKeyJSONV3 is from geth
 type EncryptedKeyJSONV3 struct {
 	Address string              `json:"address"`
