@@ -318,6 +318,7 @@ func (e BEngine) EncryptKey(priKey *crypto.PrivateKey, pass string) ([]byte, err
 	if priKey.Source != crypto.BTC {
 		return nil, crypto.ErrSourceNotMatch
 	}
+	var ekl crypto.EncryptedKeyJListV3
 	if priKey.SigType == crypto.Signature2PublicKey {
 		pk, err := parsePriKey(priKey.PriKey)
 		if err != nil {
@@ -327,9 +328,9 @@ func (e BEngine) EncryptKey(priKey *crypto.PrivateKey, pass string) ([]byte, err
 		if err != nil {
 			return nil, err
 		}
-		return json.Marshal(ekj)
+		ekl = append(ekl, ekj)
+
 	} else if priKey.SigType == crypto.MultipleSignatures {
-		var ekl crypto.EncryptedKeyJListV3
 		for _, v := range priKey.PriKey.([]interface{}) {
 			pk, err := parsePriKey(v)
 			if err != nil {
@@ -341,10 +342,9 @@ func (e BEngine) EncryptKey(priKey *crypto.PrivateKey, pass string) ([]byte, err
 			}
 			ekl = append(ekl, ekj)
 		}
-		return json.Marshal(ekl)
 
 	}
-	return nil, crypto.ErrSigTypeNotSupport
+	return json.Marshal(crypto.EncryptedPrivateKey{Source: crypto.BTC, SigType: priKey.SigType, EPK: ekl})
 
 }
 
@@ -372,11 +372,15 @@ func (e BEngine) encryptKey(priKey *ecdsa.PrivateKey, pass string) (*crypto.Encr
 
 // DecryptKey decrypt private key from file
 func (e BEngine) DecryptKey(keyJson []byte, pass string) (*crypto.PrivateKey, error) {
-
-	k := new(crypto.EncryptedKeyJSONV3)
-	var kl crypto.EncryptedKeyJListV3
-	if err := json.Unmarshal(keyJson, k); err == nil {
-		keyBytes, err := keystore.DecryptDataV3(k.Crypto, pass)
+	var k crypto.EncryptedPrivateKey
+	if err := json.Unmarshal(keyJson, &k); err != nil {
+		return nil, err
+	} else if k.Source != crypto.BTC {
+		return nil, crypto.ErrSourceNotMatch
+	}
+	var priKey []*ecdsa.PrivateKey
+	for _, v := range k.EPK {
+		keyBytes, err := keystore.DecryptDataV3(v.Crypto, pass)
 		if err != nil {
 			return nil, err
 		}
@@ -384,23 +388,13 @@ func (e BEngine) DecryptKey(keyJson []byte, pass string) (*crypto.PrivateKey, er
 		if err != nil {
 			return nil, err
 		}
-		return &crypto.PrivateKey{Source: crypto.BTC, SigType: crypto.Signature2PublicKey, PriKey: pk}, nil
-	} else if err := json.Unmarshal(keyJson, &kl); err == nil {
-		var priKey []*ecdsa.PrivateKey
-		for _, v := range kl {
-			keyBytes, err := keystore.DecryptDataV3(v.Crypto, pass)
-			if err != nil {
-				return nil, err
-			}
-			pk, err := parsePriKey(keyBytes)
-			if err != nil {
-				return nil, err
-			}
-			priKey = append(priKey, pk)
+		priKey = append(priKey, pk)
+		if k.SigType == crypto.Signature2PublicKey {
+			return &crypto.PrivateKey{Source: crypto.BTC, SigType: crypto.Signature2PublicKey, PriKey: pk}, nil
 		}
-		return &crypto.PrivateKey{Source: crypto.BTC, SigType: crypto.MultipleSignatures, PriKey: priKey}, nil
 	}
-	return nil, crypto.ErrKeyTypeNotSupport
+	return &crypto.PrivateKey{Source: crypto.BTC, SigType: crypto.MultipleSignatures, PriKey: priKey}, nil
+
 }
 
 func genKey() (*ecdsa.PrivateKey, error) {

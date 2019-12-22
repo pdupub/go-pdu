@@ -353,25 +353,24 @@ func (e PEngine) DecryptKey(keyJson []byte, pass string) (*crypto.PrivateKey, er
 		return nil, err
 	} else if k.Source != crypto.PDU {
 		return nil, crypto.ErrSourceNotMatch
-	} else {
-		var priKey []*ecdsa.PrivateKey
-		for _, v := range k.EPK {
-			keyBytes, err := keystore.DecryptDataV3(v.Crypto, pass)
-			if err != nil {
-				return nil, err
-			}
-			pk, err := parsePriKey(keyBytes)
-			if err != nil {
-				return nil, err
-			}
-			priKey = append(priKey, pk)
-			if k.SigType == crypto.Signature2PublicKey {
-				return &crypto.PrivateKey{Source: crypto.PDU, SigType: crypto.Signature2PublicKey, PriKey: pk}, nil
-			}
-		}
-		return &crypto.PrivateKey{Source: crypto.PDU, SigType: crypto.MultipleSignatures, PriKey: priKey}, nil
 	}
-	return nil, crypto.ErrKeyTypeNotSupport
+	var priKey []*ecdsa.PrivateKey
+	for _, v := range k.EPK {
+		keyBytes, err := keystore.DecryptDataV3(v.Crypto, pass)
+		if err != nil {
+			return nil, err
+		}
+		pk, err := parsePriKey(keyBytes)
+		if err != nil {
+			return nil, err
+		}
+		priKey = append(priKey, pk)
+		if k.SigType == crypto.Signature2PublicKey {
+			return &crypto.PrivateKey{Source: crypto.PDU, SigType: crypto.Signature2PublicKey, PriKey: pk}, nil
+		}
+	}
+	return &crypto.PrivateKey{Source: crypto.PDU, SigType: crypto.MultipleSignatures, PriKey: priKey}, nil
+
 }
 
 func genKey() (*ecdsa.PrivateKey, error) {

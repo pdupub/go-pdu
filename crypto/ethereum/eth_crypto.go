@@ -346,22 +346,21 @@ func (e EEngine) DecryptKey(keyJson []byte, pass string) (*crypto.PrivateKey, er
 		return nil, err
 	} else if k.Source != crypto.ETH {
 		return nil, crypto.ErrSourceNotMatch
-	} else {
-		var priKey []*ecdsa.PrivateKey
-		for _, v := range k.EPK {
-			keyBytes, err := keystore.DecryptDataV3(v.Crypto, pass)
-			if err != nil {
-				return nil, err
-			}
-			pk := eth.ToECDSAUnsafe(keyBytes)
-			priKey = append(priKey, pk)
-			if k.SigType == crypto.Signature2PublicKey {
-				return &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PriKey: pk}, nil
-			}
-		}
-		return &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.MultipleSignatures, PriKey: priKey}, nil
 	}
-	return nil, crypto.ErrKeyTypeNotSupport
+	var priKey []*ecdsa.PrivateKey
+	for _, v := range k.EPK {
+		keyBytes, err := keystore.DecryptDataV3(v.Crypto, pass)
+		if err != nil {
+			return nil, err
+		}
+		pk := eth.ToECDSAUnsafe(keyBytes)
+		priKey = append(priKey, pk)
+		if k.SigType == crypto.Signature2PublicKey {
+			return &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PriKey: pk}, nil
+		}
+	}
+	return &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.MultipleSignatures, PriKey: priKey}, nil
+
 }
 
 func signHash(data []byte) []byte {
