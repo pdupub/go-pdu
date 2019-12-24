@@ -41,6 +41,7 @@ func SelectEngine(source string) (crypto.Engine, error) {
 	return engine, nil
 }
 
+// DecryptKey decrypt private key from keyJson file
 func DecryptKey(keyjson []byte, passwd, source string) (*crypto.PrivateKey, error) {
 	var engine crypto.Engine
 	if source == "" {
