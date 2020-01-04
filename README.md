@@ -21,7 +21,7 @@ PDU is a decentralized identity-based social network, please read the WhitePaper
 ## Usage
 
 ```
-Parallel Digital Universe 
+Parallel Digital Universe
 A decentralized identity-based social network
 Website: https://pdu.pub
 
@@ -29,12 +29,13 @@ Usage:
   pdu [command]
 
 Available Commands:
+  account     Account generate or inspect
   create      Create a new PDU Universe
   help        Help about any command
   start       Start to run PDU Universe
 
 Flags:
-  -c, --config string   config file (default is $HOME/.pdu.yaml)
+  -c, --config string   config file
   -h, --help            help for pdu
 
 Use "pdu [command] --help" for more information about a command.
