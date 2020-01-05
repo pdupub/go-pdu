@@ -18,11 +18,15 @@ package main
 
 import (
 	"fmt"
+	"github.com/howeyc/gopass"
 	"github.com/mitchellh/go-homedir"
+	"github.com/pdupub/go-pdu/core"
+	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/db"
 	"github.com/pdupub/go-pdu/db/bolt"
 	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 	"os"
 	"path"
 )
@@ -38,7 +42,13 @@ var createCmd = &cobra.Command{
 		}
 		fmt.Println("Database initialized successfully", dataDir)
 
-		fmt.Println("Unlock root users")
+		priKey1, priKey2, err := unlockRootsKey()
+		if err != nil {
+			os.RemoveAll(dataDir)
+			return err
+		}
+		fmt.Println("Unlock root key", priKey1, priKey2)
+		fmt.Println("Create root users")
 
 		fmt.Println("Create universe and space-time")
 
@@ -48,6 +58,32 @@ var createCmd = &cobra.Command{
 		fmt.Println("Database closed successfully")
 		return nil
 	},
+}
+
+func unlockRootsKey() (priKey1 *crypto.PrivateKey, priKey2 *crypto.PrivateKey, err error) {
+	priKey1, err = unlockKey()
+	if err != nil {
+		return nil, nil, err
+	}
+	priKey2, err = unlockKey()
+	return priKey1, priKey2, err
+}
+
+func unlockKey() (*crypto.PrivateKey, error) {
+	var keyFile string
+	fmt.Print("keyfile path: ")
+	fmt.Scan(&keyFile)
+	keyJson, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Print("password: ")
+	passwd, err := gopass.GetPasswd()
+	if err != nil {
+		return nil, err
+	}
+
+	return core.DecryptKey(keyJson, string(passwd))
 }
 
 func initDB(dataDir string) (db.UDB, error) {
