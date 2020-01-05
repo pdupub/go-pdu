@@ -17,7 +17,6 @@
 package main
 
 import (
-	"crypto/ecdsa"
 	"fmt"
 	"github.com/howeyc/gopass"
 	"github.com/mitchellh/go-homedir"
@@ -72,28 +71,16 @@ var createCmd = &cobra.Command{
 func createRootUsers(priKeys []*crypto.PrivateKey) (users []*core.User, err error) {
 	for _, v := range priKeys {
 		for {
-
-			var pubKey crypto.PublicKey
-			if v.SigType == crypto.Signature2PublicKey {
-				pk := v.PriKey.(*ecdsa.PrivateKey)
-				pubKey = crypto.PublicKey{Source: v.Source, SigType: v.SigType, PubKey: pk.PublicKey}
-			} else if v.SigType == crypto.MultipleSignatures {
-				var pubKeys []interface{}
-				pks := v.PriKey.([]*ecdsa.PrivateKey)
-				for _, pk := range pks {
-					pubKeys = append(pubKeys, pk.PublicKey)
-				}
-				pubKey = crypto.PublicKey{Source: v.Source, SigType: v.SigType, PubKey: pubKeys}
-			} else {
-				return users, crypto.ErrSigTypeNotSupport
+			pubKey, err := core.DecryptPublicKey(v)
+			if err != nil {
+				return nil, err
 			}
-
 			var rootName, rootExtra, isSave string
 			fmt.Print("name: ")
 			fmt.Scan(&rootName)
 			fmt.Print("extra: ")
 			fmt.Scan(&rootExtra)
-			user := core.CreateRootUser(pubKey, rootName, rootExtra)
+			user := core.CreateRootUser(*pubKey, rootName, rootExtra)
 			fmt.Println("ID", common.Hash2String(user.ID()), "name", user.Name, "extra", user.DOBExtra, "gender", user.Gender())
 			fmt.Print("save new user (yes/no): ")
 			fmt.Scan(&isSave)
