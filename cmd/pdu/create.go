@@ -57,7 +57,19 @@ var createCmd = &cobra.Command{
 			return err
 		}
 		fmt.Println("Create root users successfully", users[0].Gender(), users[1].Gender())
+		universe, err := core.NewUniverse(users[0], users[1])
+		if err != nil {
+			os.RemoveAll(dataDir)
+			return err
+		}
 
+		root0 := universe.GetUserByID(users[0].ID())
+		root1 := universe.GetUserByID(users[1].ID())
+
+		if root0 != nil && root1 != nil {
+			fmt.Println("root0", common.Hash2String(root0.ID()))
+			fmt.Println("root1", common.Hash2String(root1.ID()))
+		}
 		fmt.Println("Create universe and space-time successfully")
 
 		if err := udb.Close(); err != nil {
