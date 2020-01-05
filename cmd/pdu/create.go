@@ -27,8 +27,6 @@ import (
 	"path"
 )
 
-var dataDir string
-
 // createCmd represents the create command
 var createCmd = &cobra.Command{
 	Use:   "create",
@@ -75,6 +73,5 @@ func initDB(dataDir string) (db.UDB, error) {
 }
 
 func init() {
-	createCmd.PersistentFlags().StringVar(&dataDir, "datadir", "", fmt.Sprintf("(default $HOME/%s)", params.DefaultPath))
 	rootCmd.AddCommand(createCmd)
 }
