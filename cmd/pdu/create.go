@@ -27,6 +27,7 @@ import (
 	"github.com/pdupub/go-pdu/db/bolt"
 	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
 	"path"
@@ -38,7 +39,16 @@ var createCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a new PDU Universe",
 	RunE: func(_ *cobra.Command, args []string) error {
-		udb, err := initDB(dataDir)
+
+		if err := initDir(); err != nil {
+			return err
+		}
+
+		if err := initConfig(); err != nil {
+			return err
+		}
+
+		udb, err := initDB()
 		if err != nil {
 			return err
 		}
@@ -134,15 +144,7 @@ func unlockKey() (*crypto.PrivateKey, error) {
 	return core.DecryptKey(keyJson, string(passwd))
 }
 
-func initDB(dataDir string) (db.UDB, error) {
-	if dataDir == "" {
-		home, _ := homedir.Dir()
-		dataDir = path.Join(home, params.DefaultPath)
-	}
-	err := os.Mkdir(dataDir, os.ModePerm)
-	if err != nil {
-		return nil, err
-	}
+func initDB() (db.UDB, error) {
 	dbFilePath := path.Join(dataDir, "u.db")
 	udb, err := bolt.NewDB(dbFilePath)
 	if err != nil {
@@ -156,6 +158,26 @@ func initDB(dataDir string) (db.UDB, error) {
 	return udb, nil
 }
 
+func initConfig() error {
+	viper.SetConfigType(params.DefaultConfigType)
+	viper.Set("CONFIG_NAME", "PDU")
+	return viper.WriteConfigAs(path.Join(dataDir, params.DefaultConfigFile))
+}
+
+func initDir() error {
+	if dataDir == "" {
+		home, _ := homedir.Dir()
+		dataDir = path.Join(home, params.DefaultPath)
+	}
+	err := os.Mkdir(dataDir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func init() {
+	createCmd.PersistentFlags().StringVar(&dataDir, "datadir", "", fmt.Sprintf("(default $HOME/%s)", params.DefaultPath))
 	rootCmd.AddCommand(createCmd)
 }

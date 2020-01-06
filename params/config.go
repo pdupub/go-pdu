@@ -19,4 +19,8 @@ package params
 const (
 	// DefaultPath is path of config and data of pdu
 	DefaultPath = ".pdu"
+	// DefaultConfigType is type of config file
+	DefaultConfigType = "yml"
+	// DefaultConfigFile is file name of config file
+	DefaultConfigFile = "config." + DefaultConfigType
 )
