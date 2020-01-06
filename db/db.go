@@ -29,8 +29,10 @@ const (
 	// BucketSTPrefix is used to save the prefix of the space-time bucket
 	BucketSTPrefix = "st_"
 
+	// ConfigRoot0 root user which gender is 0
 	ConfigRoot0 = "root0"
 
+	// ConfigRoot1 root user which gender is 1
 	ConfigRoot1 = "root1"
 )
 

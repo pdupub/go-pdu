@@ -69,19 +69,9 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		// save root users
-		if root0, err := json.Marshal(users[0]); err != nil {
+		if err := saveRootUsers(users, udb); err != nil {
 			os.RemoveAll(dataDir)
 			return err
-		} else {
-			udb.Set(db.BucketConfig, db.ConfigRoot0, root0)
-		}
-
-		if root1, err := json.Marshal(users[1]); err != nil {
-			os.RemoveAll(dataDir)
-			return err
-		} else {
-			udb.Set(db.BucketConfig, db.ConfigRoot1, root1)
 		}
 
 		fmt.Println("Create root users successfully", users[0].Gender(), users[1].Gender())
@@ -103,6 +93,22 @@ var createCmd = &cobra.Command{
 		fmt.Println("Database closed successfully")
 		return nil
 	},
+}
+
+func saveRootUsers(users []*core.User, udb db.UDB) error {
+	// save root users
+	if root0, err := json.Marshal(users[0]); err != nil {
+		return err
+	} else if err := udb.Set(db.BucketConfig, db.ConfigRoot0, root0); err != nil {
+		return err
+	}
+
+	if root1, err := json.Marshal(users[1]); err != nil {
+		return err
+	} else if err := udb.Set(db.BucketConfig, db.ConfigRoot1, root1); err != nil {
+		return err
+	}
+	return nil
 }
 
 func createRootUsers(pubKeys []*crypto.PublicKey) (users []*core.User, err error) {

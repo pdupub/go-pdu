@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/mitchellh/go-homedir"
-	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/db"
@@ -59,13 +58,9 @@ var startCmd = &cobra.Command{
 		}
 		if err := json.Unmarshal(root0, &user0); err != nil {
 			return err
-		} else {
-			log.Info(common.Hash2String(user0.ID()), user0.Gender())
 		}
 		if err := json.Unmarshal(root1, &user1); err != nil {
 			return err
-		} else {
-			log.Info(common.Hash2String(user1.ID()), user1.Gender())
 		}
 
 		universe, err := core.NewUniverse(&user0, &user1)
