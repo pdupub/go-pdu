@@ -339,27 +339,32 @@ func (e EEngine) encryptKey(priKey *ecdsa.PrivateKey, pass string) (*crypto.Encr
 }
 
 // DecryptKey decrypt private key from file
-func (e EEngine) DecryptKey(keyJson []byte, pass string) (*crypto.PrivateKey, error) {
+func (e EEngine) DecryptKey(keyJson []byte, pass string) (*crypto.PrivateKey, *crypto.PublicKey, error) {
 
 	var k crypto.EncryptedPrivateKey
 	if err := json.Unmarshal(keyJson, &k); err != nil {
-		return nil, err
+		return nil, nil, err
 	} else if k.Source != crypto.ETH {
-		return nil, crypto.ErrSourceNotMatch
+		return nil, nil, crypto.ErrSourceNotMatch
 	}
-	var priKey []*ecdsa.PrivateKey
+	var priKeys, pubKeys []interface{}
 	for _, v := range k.EPK {
 		keyBytes, err := keystore.DecryptDataV3(v.Crypto, pass)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		pk := eth.ToECDSAUnsafe(keyBytes)
-		priKey = append(priKey, pk)
+
+		pk.PublicKey.Curve = eth.S256()
+		pk.PublicKey.X, pk.PublicKey.Y = pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
+
+		priKeys = append(priKeys, pk)
+		pubKeys = append(pubKeys, pk.PublicKey)
 		if k.SigType == crypto.Signature2PublicKey {
-			return &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PriKey: pk}, nil
+			return &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PubKey: pk.PublicKey}, nil
 		}
 	}
-	return &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.MultipleSignatures, PriKey: priKey}, nil
+	return &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.MultipleSignatures, PriKey: priKeys}, &crypto.PublicKey{Source: crypto.ETH, SigType: crypto.MultipleSignatures, PubKey: pubKeys}, nil
 
 }
 

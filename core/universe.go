@@ -31,7 +31,7 @@ var (
 	errMsgNotFound            = errors.New("msg not found")
 	errTPAlreadyExist         = errors.New("time proof already exist")
 	errUserAlreadyExist       = errors.New("user already exist")
-	errNotSupportYet          = errors.New("not error, just not support ye")
+	errNotSupportYet          = errors.New("not error, just not support yet")
 	errNewUserAddFail         = errors.New("new user add fail")
 	errCreateSpaceTimeFail    = errors.New("create space time fail")
 	errAddUserToSpaceTimeFail = errors.New("add user to space time fail")

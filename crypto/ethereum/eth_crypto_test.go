@@ -329,7 +329,7 @@ func TestEEngine_EncryptKey(t *testing.T) {
 		t.Error("encrypt key fail", err)
 	}
 
-	newPrivateKey, err := E.DecryptKey(keyJson, "123")
+	newPrivateKey, newPublicKey, err := E.DecryptKey(keyJson, "123")
 	if err != nil {
 		t.Error("decrypt key fail")
 	}
@@ -343,6 +343,11 @@ func TestEEngine_EncryptKey(t *testing.T) {
 
 	if privateKey.PriKey.(*ecdsa.PrivateKey).D.Cmp(newPrivateKey.PriKey.(*ecdsa.PrivateKey).D) != 0 {
 		t.Error("private key not equal")
+	}
+
+	if pk.X.Cmp(newPublicKey.PubKey.(ecdsa.PublicKey).X) != 0 ||
+		pk.Y.Cmp(newPublicKey.PubKey.(ecdsa.PublicKey).Y) != 0 {
+		t.Error("public key not equal")
 	}
 
 }
@@ -371,7 +376,7 @@ func TestEEngine_EncryptKeyMS(t *testing.T) {
 		t.Error("encrypt key fail", err)
 	}
 
-	newPrivateKey, err := E.DecryptKey(keyJson, "123")
+	newPrivateKey, _, err := E.DecryptKey(keyJson, "123")
 	if err != nil {
 		t.Error("decrypt key fail")
 	}
@@ -383,7 +388,8 @@ func TestEEngine_EncryptKeyMS(t *testing.T) {
 		t.Error("sig type not equal")
 	}
 
-	for k, v := range newPrivateKey.PriKey.([]*ecdsa.PrivateKey) {
+	for k, item := range newPrivateKey.PriKey.([]interface{}) {
+		v := item.(*ecdsa.PrivateKey)
 		if v.D.Cmp(pks[k].(*ecdsa.PrivateKey).D) != 0 {
 			t.Error("private key not equal")
 		}

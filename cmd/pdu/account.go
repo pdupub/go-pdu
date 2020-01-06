@@ -124,11 +124,12 @@ func inspect() error {
 		return err
 	}
 
-	pk, err := core.DecryptKey(keyjson, string(passwd))
+	priKey, pubKey, err := core.DecryptKey(keyjson, string(passwd))
 	if err != nil {
 		return err
 	}
-	fmt.Println(pk.PriKey)
+	fmt.Println("private key: ", priKey.PriKey)
+	fmt.Println("publick key: ", pubKey.PubKey)
 	return nil
 }
 

@@ -90,7 +90,8 @@ func CreateNewUser(universe *Universe, msg *Message) (*User, error) {
 func (u User) ID() common.Hash {
 	hash := sha256.New()
 	hash.Reset()
-	auth := fmt.Sprintf("%v", u.Auth)
+
+	auth, _ := json.Marshal(u.Auth)
 	lifeTime := fmt.Sprintf("%v", u.LifeTime)
 	var dobMsg string
 	// todo : add init DOBMsg to rootUser

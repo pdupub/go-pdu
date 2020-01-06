@@ -84,7 +84,7 @@ type Engine interface {
 	UnmarshalJSON([]byte) (*PublicKey, error)
 	MarshalJSON(PublicKey) ([]byte, error)
 	EncryptKey(*PrivateKey, string) ([]byte, error)
-	DecryptKey([]byte, string) (*PrivateKey, error)
+	DecryptKey([]byte, string) (*PrivateKey, *PublicKey, error)
 }
 
 // EncryptedPrivateKey is encrypted private key in json

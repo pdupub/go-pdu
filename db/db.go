@@ -16,11 +16,29 @@
 
 package db
 
+const (
+	// BucketUser is used to save all users
+	BucketUser = "user"
+
+	// BucketMsg is used to save the msg
+	BucketMsg = "msg"
+
+	// BucketConfig is used to save config info when universe be created
+	BucketConfig = "config"
+
+	// BucketSTPrefix is used to save the prefix of the space-time bucket
+	BucketSTPrefix = "st_"
+
+	ConfigRoot0 = "root0"
+
+	ConfigRoot1 = "root1"
+)
+
 // UDB is a database interface for embed database, default db is bolt
 type UDB interface {
 	Close() error
-	CreateBucket([]byte) error
-	DeleteBucket([]byte) error
-	Set([]byte, []byte, []byte) error
-	Get([]byte, []byte) ([]byte, error)
+	CreateBucket(string) error
+	DeleteBucket(string) error
+	Set(string, string, []byte) error
+	Get(string, string) ([]byte, error)
 }

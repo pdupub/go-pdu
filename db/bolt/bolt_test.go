@@ -17,6 +17,7 @@
 package bolt
 
 import (
+	"fmt"
 	"math/big"
 	"os"
 	"path"
@@ -24,8 +25,8 @@ import (
 )
 
 func TestNewDB(t *testing.T) {
-	bucketName := []byte("testBucket")
-	keyPrefix := []byte("key")
+	bucketName := "testBucket"
+	keyPrefix := "key"
 	valPrefix := []byte("val")
 
 	dir, _ := os.Getwd()
@@ -43,17 +44,17 @@ func TestNewDB(t *testing.T) {
 	}
 	for i := int64(0); i < 10; i++ {
 		if err := u.Set(bucketName,
-			append(keyPrefix, big.NewInt(i).Bytes()...),
+			fmt.Sprintf("%s%s", keyPrefix, big.NewInt(i).Bytes()),
 			append(valPrefix, big.NewInt(i).Bytes()...)); err != nil {
 			t.Error(err)
 		}
 	}
 
-	val, err := u.Get(bucketName, append(keyPrefix, big.NewInt(5).Bytes()...))
+	val, err := u.Get(bucketName, fmt.Sprintf("%s%s", keyPrefix, big.NewInt(5).Bytes()))
 	if err != nil {
 		t.Error(err)
 	}
-	if string(val) != string(append(valPrefix, big.NewInt(5).Bytes()...)) {
+	if string(val) != fmt.Sprintf("%s%s", valPrefix, big.NewInt(5).Bytes()) {
 		t.Error("val not equal")
 	}
 

@@ -42,34 +42,34 @@ func (u *UBoltDB) Close() error {
 }
 
 // CreateBucket create new bucket by name
-func (u *UBoltDB) CreateBucket(bucketName []byte) error {
+func (u *UBoltDB) CreateBucket(bucketName string) error {
 	return u.db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucket(bucketName)
+		_, err := tx.CreateBucket([]byte(bucketName))
 		return err
 	})
 }
 
 // DeleteBucket delete the bucket by name
-func (u *UBoltDB) DeleteBucket(bucketName []byte) error {
+func (u *UBoltDB) DeleteBucket(bucketName string) error {
 	return u.db.Update(func(tx *bolt.Tx) error {
-		return tx.DeleteBucket(bucketName)
+		return tx.DeleteBucket([]byte(bucketName))
 	})
 }
 
 // Set key/val into bucket
-func (u *UBoltDB) Set(bucketName, key, val []byte) error {
+func (u *UBoltDB) Set(bucketName, key string, val []byte) error {
 	return u.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketName)
-		return b.Put(key, val)
+		b := tx.Bucket([]byte(bucketName))
+		return b.Put([]byte(key), val)
 	})
 }
 
 // Get val by key from bucket
-func (u *UBoltDB) Get(bucketName, key []byte) ([]byte, error) {
+func (u *UBoltDB) Get(bucketName, key string) ([]byte, error) {
 	var val []byte
 	err := u.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketName)
-		val = b.Get(key)
+		b := tx.Bucket([]byte(bucketName))
+		val = b.Get([]byte(key))
 		return nil
 	})
 	if err != nil {

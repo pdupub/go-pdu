@@ -17,6 +17,8 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/howeyc/gopass"
 	"github.com/mitchellh/go-homedir"
@@ -54,18 +56,34 @@ var createCmd = &cobra.Command{
 		}
 		fmt.Println("Database initialized successfully", dataDir)
 
-		priKeys, err := unlockRootsKeys(2)
+		pubKeys, err := unlockRootsKeys(2)
 		if err != nil {
 			os.RemoveAll(dataDir)
 			return err
 		}
 		fmt.Println("Unlock root key successfully")
 
-		users, err := createRootUsers(priKeys)
+		users, err := createRootUsers(pubKeys)
 		if err != nil {
 			os.RemoveAll(dataDir)
 			return err
 		}
+
+		// save root users
+		if root0, err := json.Marshal(users[0]); err != nil {
+			os.RemoveAll(dataDir)
+			return err
+		} else {
+			udb.Set(db.BucketConfig, db.ConfigRoot0, root0)
+		}
+
+		if root1, err := json.Marshal(users[1]); err != nil {
+			os.RemoveAll(dataDir)
+			return err
+		} else {
+			udb.Set(db.BucketConfig, db.ConfigRoot1, root1)
+		}
+
 		fmt.Println("Create root users successfully", users[0].Gender(), users[1].Gender())
 		universe, err := core.NewUniverse(users[0], users[1])
 		if err != nil {
@@ -73,12 +91,9 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		root0 := universe.GetUserByID(users[0].ID())
-		root1 := universe.GetUserByID(users[1].ID())
-
-		if root0 != nil && root1 != nil {
-			fmt.Println("root0", common.Hash2String(root0.ID()))
-			fmt.Println("root1", common.Hash2String(root1.ID()))
+		if universe.GetUserByID(users[0].ID()).ID() != users[0].ID() || universe.GetUserByID(users[1].ID()).ID() != users[1].ID() {
+			os.RemoveAll(dataDir)
+			return errors.New("root users miss match")
 		}
 		fmt.Println("Create universe and space-time successfully")
 
@@ -90,13 +105,9 @@ var createCmd = &cobra.Command{
 	},
 }
 
-func createRootUsers(priKeys []*crypto.PrivateKey) (users []*core.User, err error) {
-	for _, v := range priKeys {
+func createRootUsers(pubKeys []*crypto.PublicKey) (users []*core.User, err error) {
+	for _, pubKey := range pubKeys {
 		for {
-			pubKey, err := core.DecryptPublicKey(v)
-			if err != nil {
-				return nil, err
-			}
 			var rootName, rootExtra, isSave string
 			fmt.Print("name: ")
 			fmt.Scan(&rootName)
@@ -111,34 +122,33 @@ func createRootUsers(priKeys []*crypto.PrivateKey) (users []*core.User, err erro
 				break
 			}
 		}
-
 	}
 	return users, err
 }
 
-func unlockRootsKeys(cnt int) (priKeys []*crypto.PrivateKey, err error) {
+func unlockRootsKeys(cnt int) (pubKeys []*crypto.PublicKey, err error) {
 	for i := 0; i < cnt; i++ {
-		priKey, err := unlockKey()
+		_, pubKey, err := unlockKey()
 		if err != nil {
-			return priKeys, err
+			return pubKeys, err
 		}
-		priKeys = append(priKeys, priKey)
+		pubKeys = append(pubKeys, pubKey)
 	}
-	return priKeys, err
+	return pubKeys, err
 }
 
-func unlockKey() (*crypto.PrivateKey, error) {
+func unlockKey() (*crypto.PrivateKey, *crypto.PublicKey, error) {
 	var keyFile string
 	fmt.Print("keyfile path: ")
 	fmt.Scan(&keyFile)
 	keyJson, err := ioutil.ReadFile(keyFile)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	fmt.Print("password: ")
 	passwd, err := gopass.GetPasswd()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	return core.DecryptKey(keyJson, string(passwd))
@@ -151,8 +161,13 @@ func initDB() (db.UDB, error) {
 		return nil, err
 	}
 
-	bucketName := []byte("universe")
-	if err := udb.CreateBucket(bucketName); err != nil {
+	if err := udb.CreateBucket(db.BucketConfig); err != nil {
+		return nil, err
+	}
+	if err := udb.CreateBucket(db.BucketUser); err != nil {
+		return nil, err
+	}
+	if err := udb.CreateBucket(db.BucketMsg); err != nil {
 		return nil, err
 	}
 	return udb, nil

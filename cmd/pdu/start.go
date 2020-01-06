@@ -17,9 +17,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/mitchellh/go-homedir"
+	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/common/log"
+	"github.com/pdupub/go-pdu/core"
+	"github.com/pdupub/go-pdu/db"
+	"github.com/pdupub/go-pdu/db/bolt"
 	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -30,36 +35,62 @@ import (
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start to run PDU Universe",
-	//SilenceUsage:  true,
-	//SilenceErrors: true,
 	RunE: func(_ *cobra.Command, args []string) error {
-		err := initLoad()
+		err := initConfigLoad()
 		if err != nil {
 			return err
 		}
 
 		log.Info("Starting p2p node")
 		log.Info("CONFIG_NAME", viper.GetString("CONFIG_NAME"))
+
+		udb, err := initDBLoad()
+		if err != nil {
+			return err
+		}
+		var user0, user1 core.User
+		root0, err := udb.Get(db.BucketConfig, db.ConfigRoot0)
+		if err != nil {
+			return err
+		}
+		root1, err := udb.Get(db.BucketConfig, db.ConfigRoot1)
+		if err != nil {
+			return err
+		}
+		if err := json.Unmarshal(root0, &user0); err != nil {
+			return err
+		} else {
+			log.Info(common.Hash2String(user0.ID()), user0.Gender())
+		}
+		if err := json.Unmarshal(root1, &user1); err != nil {
+			return err
+		} else {
+			log.Info(common.Hash2String(user1.ID()), user1.Gender())
+		}
+
+		universe, err := core.NewUniverse(&user0, &user1)
+		if err != nil {
+			return err
+		}
+
+		log.Info("Create universe and space-time successfully", universe.GetSpaceTimeIDs())
 		return nil
 	},
 }
 
-// initLoad reads in config file and ENV variables if set.
-func initLoad() error {
-	if dataDir != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(path.Join(dataDir, params.DefaultConfigFile))
-	} else {
+// initConfigLoad reads in config file and ENV variables if set.
+func initConfigLoad() error {
+	if dataDir == "" {
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
 			return err
 		}
-		// Search config in $HOME/.pdu directory with name "config" (without extension).
 		dataDir = path.Join(home, params.DefaultPath)
-		viper.AddConfigPath(dataDir)
-		viper.SetConfigName(params.DefaultConfigFile)
+
 	}
+
+	viper.SetConfigFile(path.Join(dataDir, params.DefaultConfigFile))
 	viper.SetConfigType("yml")
 	viper.AutomaticEnv() // read in environment variables that match
 	// If a config file is found, read it in.
@@ -68,6 +99,15 @@ func initLoad() error {
 		return err
 	}
 	return nil
+}
+
+func initDBLoad() (db.UDB, error) {
+	dbFilePath := path.Join(dataDir, "u.db")
+	udb, err := bolt.NewDB(dbFilePath)
+	if err != nil {
+		return nil, err
+	}
+	return udb, nil
 }
 
 func init() {

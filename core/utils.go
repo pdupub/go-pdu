@@ -17,7 +17,6 @@
 package core
 
 import (
-	"crypto/ecdsa"
 	"encoding/json"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/crypto/bitcoin"
@@ -43,41 +42,19 @@ func SelectEngine(source string) (crypto.Engine, error) {
 }
 
 // DecryptKey decrypt private key from keyJson file
-func DecryptKey(keyjson []byte, passwd string) (*crypto.PrivateKey, error) {
+func DecryptKey(keyjson []byte, passwd string) (*crypto.PrivateKey, *crypto.PublicKey, error) {
 	var engine crypto.Engine
 
 	keyJM := make(map[string]interface{})
 	if err := json.Unmarshal(keyjson, &keyJM); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	source := keyJM["source"].(string)
 
 	engine, err := SelectEngine(source)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	pk, err := engine.DecryptKey(keyjson, passwd)
-	if err != nil {
-		return nil, err
-	}
-	return pk, nil
-}
-
-// DecryptPublicKey get public key from private key
-func DecryptPublicKey(priKey *crypto.PrivateKey) (pubKey *crypto.PublicKey, err error) {
-	if priKey.SigType == crypto.Signature2PublicKey {
-		pk := priKey.PriKey.(*ecdsa.PrivateKey)
-		pubKey = &crypto.PublicKey{Source: priKey.Source, SigType: priKey.SigType, PubKey: pk.PublicKey}
-	} else if priKey.SigType == crypto.MultipleSignatures {
-		var pubKeys []interface{}
-		pks := priKey.PriKey.([]*ecdsa.PrivateKey)
-		for _, pk := range pks {
-			pubKeys = append(pubKeys, pk.PublicKey)
-		}
-		pubKey = &crypto.PublicKey{Source: priKey.Source, SigType: priKey.SigType, PubKey: pubKeys}
-	} else {
-		return nil, crypto.ErrSigTypeNotSupport
-	}
-	return pubKey, nil
+	return engine.DecryptKey(keyjson, passwd)
 }
