@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/mitchellh/go-homedir"
+	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/db"
@@ -28,7 +29,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"path"
-	"github.com/pdupub/go-pdu/common"
 )
 
 // startCmd represents the start command
