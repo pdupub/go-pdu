@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"path"
+	"github.com/pdupub/go-pdu/common"
 )
 
 // startCmd represents the start command
@@ -62,7 +63,8 @@ var startCmd = &cobra.Command{
 		if err := json.Unmarshal(root1, &user1); err != nil {
 			return err
 		}
-
+		log.Info("root0", common.Hash2String(user0.ID()))
+		log.Info("root1", common.Hash2String(user1.ID()))
 		universe, err := core.NewUniverse(&user0, &user1)
 		if err != nil {
 			return err
