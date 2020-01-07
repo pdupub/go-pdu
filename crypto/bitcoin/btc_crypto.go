@@ -279,23 +279,26 @@ func (e BEngine) MarshalJSON(a crypto.PublicKey) ([]byte, error) {
 	aMap["sigType"] = a.SigType
 	if a.Source == e.name {
 		if a.SigType == crypto.Signature2PublicKey {
-			pk := a.PubKey.(btc.PublicKey)
-			aMap["pubKey"] = hex.EncodeToString(pk.SerializeUncompressed())
+			pk := a.PubKey.(ecdsa.PublicKey)
+			bpk := (btc.PublicKey)(pk)
+			aMap["pubKey"] = hex.EncodeToString(bpk.SerializeUncompressed())
 		} else if a.SigType == crypto.MultipleSignatures {
 			switch a.PubKey.(type) {
-			case []btc.PublicKey:
-				pks := a.PubKey.([]btc.PublicKey)
+			case []ecdsa.PublicKey:
+				pks := a.PubKey.([]ecdsa.PublicKey)
 				pubKey := make([]string, len(pks))
 				for i, pk := range pks {
-					pubKey[i] = hex.EncodeToString(pk.SerializeUncompressed())
+					bpk := (btc.PublicKey)(pk)
+					pubKey[i] = hex.EncodeToString(bpk.SerializeUncompressed())
 				}
 				aMap["pubKey"] = pubKey
 			case []interface{}:
 				pks := a.PubKey.([]interface{})
 				pubKey := make([]string, len(pks))
 				for i, v := range pks {
-					pk := v.(btc.PublicKey)
-					pubKey[i] = hex.EncodeToString(pk.SerializeUncompressed())
+					pk := v.(ecdsa.PublicKey)
+					bpk := (btc.PublicKey)(pk)
+					pubKey[i] = hex.EncodeToString(bpk.SerializeUncompressed())
 				}
 				aMap["pubKey"] = pubKey
 			}
