@@ -56,8 +56,7 @@ func (e BEngine) GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.Publ
 		if err != nil {
 			return nil, nil, err
 		}
-		_, pubKey := btc.PrivKeyFromBytes(btc.S256(), pk.D.Bytes())
-		return &crypto.PrivateKey{Source: e.name, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: e.name, SigType: crypto.Signature2PublicKey, PubKey: *pubKey}, nil
+		return &crypto.PrivateKey{Source: e.name, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: e.name, SigType: crypto.Signature2PublicKey, PubKey: pk.PublicKey}, nil
 
 	case crypto.MultipleSignatures:
 		if len(params) == 1 {
@@ -69,9 +68,8 @@ func (e BEngine) GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.Publ
 			if err != nil {
 				return nil, nil, err
 			}
-			_, pubKey := btc.PrivKeyFromBytes(btc.S256(), pk.D.Bytes())
 			privKeys = append(privKeys, pk)
-			pubKeys = append(pubKeys, *pubKey)
+			pubKeys = append(pubKeys, pk.PublicKey)
 		}
 		return &crypto.PrivateKey{Source: e.name, SigType: crypto.MultipleSignatures, PriKey: privKeys}, &crypto.PublicKey{Source: e.name, SigType: crypto.MultipleSignatures, PubKey: pubKeys}, nil
 	default:
@@ -80,19 +78,19 @@ func (e BEngine) GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.Publ
 }
 
 // parsePriKey parse the private key
-func parsePriKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
-	pk := new(ecdsa.PrivateKey)
+func parsePriKey(priKey interface{}) (*btc.PrivateKey, error) {
+	pk := new(btc.PrivateKey)
 	switch priKey.(type) {
-	case *ecdsa.PrivateKey:
-		pk = priKey.(*ecdsa.PrivateKey)
-	case ecdsa.PrivateKey:
-		*pk = priKey.(ecdsa.PrivateKey)
+	case *btc.PrivateKey:
+		pk = priKey.(*btc.PrivateKey)
+	case btc.PrivateKey:
+		*pk = priKey.(btc.PrivateKey)
 	case []byte:
 		privateKey, _ := btc.PrivKeyFromBytes(btc.S256(), priKey.([]byte))
-		return privateKey.ToECDSA(), nil
+		return privateKey, nil
 	case *big.Int:
 		privateKey, _ := btc.PrivKeyFromBytes(btc.S256(), priKey.(*big.Int).Bytes())
-		return privateKey.ToECDSA(), nil
+		return privateKey, nil
 	default:
 		return nil, crypto.ErrKeyTypeNotSupport
 	}
@@ -136,8 +134,7 @@ func (e BEngine) Sign(hash []byte, priKey *crypto.PrivateKey) (*crypto.Signature
 		if err != nil {
 			return nil, err
 		}
-		privateKey, _ := btc.PrivKeyFromBytes(btc.S256(), pk.D.Bytes())
-		signature, err := privateKey.Sign(hash)
+		signature, err := pk.Sign(hash)
 		if err != nil {
 			return nil, err
 		}
@@ -154,8 +151,7 @@ func (e BEngine) Sign(hash []byte, priKey *crypto.PrivateKey) (*crypto.Signature
 			if err != nil {
 				return nil, err
 			}
-			privateKey, _ := btc.PrivKeyFromBytes(btc.S256(), pk.D.Bytes())
-			signature, err := privateKey.Sign(hash)
+			signature, err := pk.Sign(hash)
 			if err != nil {
 				return nil, err
 			}
@@ -324,7 +320,7 @@ func (e BEngine) EncryptKey(priKey *crypto.PrivateKey, pass string) ([]byte, err
 		if err != nil {
 			return nil, err
 		}
-		ekj, err := e.encryptKey(pk, pass)
+		ekj, err := e.encryptKey(pk.ToECDSA(), pass)
 		if err != nil {
 			return nil, err
 		}
@@ -336,7 +332,7 @@ func (e BEngine) EncryptKey(priKey *crypto.PrivateKey, pass string) ([]byte, err
 			if err != nil {
 				return nil, err
 			}
-			ekj, err := e.encryptKey(pk, pass)
+			ekj, err := e.encryptKey(pk.ToECDSA(), pass)
 			if err != nil {
 				return nil, err
 			}
@@ -388,20 +384,16 @@ func (e BEngine) DecryptKey(keyJson []byte, pass string) (*crypto.PrivateKey, *c
 		if err != nil {
 			return nil, nil, err
 		}
-
-		_, pubKey := btc.PrivKeyFromBytes(btc.S256(), pk.D.Bytes())
-
 		priKeys = append(priKeys, pk)
-		pubKeys = append(pubKeys, *pubKey)
+		pubKeys = append(pubKeys, pk.PublicKey)
 		if k.SigType == crypto.Signature2PublicKey {
-			return &crypto.PrivateKey{Source: crypto.BTC, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: crypto.BTC, SigType: crypto.Signature2PublicKey, PubKey: *pubKey}, nil
+			return &crypto.PrivateKey{Source: crypto.BTC, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: crypto.BTC, SigType: crypto.Signature2PublicKey, PubKey: pk.PublicKey}, nil
 		}
 	}
 	return &crypto.PrivateKey{Source: crypto.BTC, SigType: crypto.MultipleSignatures, PriKey: priKeys}, &crypto.PublicKey{Source: crypto.BTC, SigType: crypto.MultipleSignatures, PubKey: pubKeys}, nil
 
 }
 
-func genKey() (*ecdsa.PrivateKey, error) {
-	pk, err := btc.NewPrivateKey(btc.S256())
-	return (*ecdsa.PrivateKey)(pk), err
+func genKey() (*btc.PrivateKey, error) {
+	return btc.NewPrivateKey(btc.S256())
 }
