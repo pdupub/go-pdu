@@ -38,7 +38,7 @@ const (
 	// ConfigRoot1 root user which gender is 1
 	ConfigRoot1 = "root1"
 
-	// ConfigMsgCount
+	// ConfigMsgCount is the current message count in the universe
 	ConfigMsgCount = "msg_count"
 )
 

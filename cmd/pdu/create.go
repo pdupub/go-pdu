@@ -96,9 +96,8 @@ func initUniverseAndSave(udb db.UDB) error {
 	msg, err := createFirstMsg(users, priKeys)
 	if err != nil {
 		return err
-	} else {
-		fmt.Println("First msg ID is ", common.Hash2String(msg.ID()))
 	}
+	fmt.Println("First msg ID is ", common.Hash2String(msg.ID()))
 
 	if err := universe.AddMsg(msg); err != nil {
 		return err
