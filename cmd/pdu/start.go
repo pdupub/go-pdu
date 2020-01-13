@@ -28,6 +28,7 @@ import (
 	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"math/big"
 	"path"
 )
 
@@ -70,7 +71,33 @@ var startCmd = &cobra.Command{
 			return err
 		}
 
-		log.Info("Create universe and space-time successfully", universe.GetSpaceTimeIDs())
+		cntBytes, err := udb.Get(db.BucketConfig, db.ConfigMsgCount)
+		if err != nil {
+			return err
+		}
+		msgCount := new(big.Int).SetBytes(cntBytes).Uint64()
+		for i := uint64(0); i < msgCount; i++ {
+			mid, err := udb.Get(db.BucketMID, new(big.Int).SetUint64(i).String())
+			if err != nil {
+				return err
+			}
+			msgBytes, err := udb.Get(db.BucketMsg, string(mid))
+			if err != nil {
+				return err
+			}
+			var msg core.Message
+			json.Unmarshal(msgBytes, &msg)
+			err = universe.AddMsg(&msg)
+			if err != nil {
+				return err
+			}
+			if i == uint64(0) {
+				log.Info("First msg ID", common.Hash2String(msg.ID()))
+				log.Info("First msg Content", string(msg.Value.Content))
+			}
+		}
+
+		log.Info("Create universe and space-time successfully")
 		return nil
 	},
 }

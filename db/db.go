@@ -20,8 +20,11 @@ const (
 	// BucketUser is used to save all users
 	BucketUser = "user"
 
-	// BucketMsg is used to save the msg
+	// BucketMsg is used to save the msg (msg.ID/ msg)
 	BucketMsg = "msg"
+
+	// BucketMID is used to save msg.ID() by order (order/msg.ID)
+	BucketMID = "mid"
 
 	// BucketConfig is used to save config info when universe be created
 	BucketConfig = "config"
@@ -34,6 +37,9 @@ const (
 
 	// ConfigRoot1 root user which gender is 1
 	ConfigRoot1 = "root1"
+
+	// ConfigMsgCount
+	ConfigMsgCount = "msg_count"
 )
 
 // UDB is a database interface for embed database, default db is bolt

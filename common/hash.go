@@ -25,10 +25,10 @@ type Hash [HashLength]byte
 const HashLength = 32
 
 // Hash2String is transform Hash to string
-func Hash2String(b Hash) (s string) {
+func Hash2String(h Hash) (s string) {
 	s = ""
 	for i := 0; i < HashLength; i++ {
-		s += fmt.Sprintf("%02X", b[i])
+		s += fmt.Sprintf("%02X", h[i])
 	}
 	return s
 }
