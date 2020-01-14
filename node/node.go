@@ -37,6 +37,7 @@ func New() (node *Node, err error) {
 	return node, nil
 }
 
+// SetTPEnable set the time proof settings
 func (n *Node) SetTPEnable(enable bool, val uint64) error {
 
 	if enable {

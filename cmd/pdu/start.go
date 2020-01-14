@@ -65,15 +65,14 @@ var startCmd = &cobra.Command{
 
 		c := make(chan os.Signal)
 		signal.Notify(c, os.Interrupt, os.Kill)
-
-		if pn, err := node.New(); err != nil {
+		pn, err := node.New()
+		if err != nil {
 			return err
-		} else {
-			if err := pn.SetTPEnable(true, 2); err != nil {
-				return err
-			}
-			pn.Run(c)
 		}
+		if err := pn.SetTPEnable(true, 2); err != nil {
+			return err
+		}
+		pn.Run(c)
 
 		return nil
 	},
