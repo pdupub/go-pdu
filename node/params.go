@@ -17,9 +17,9 @@
 package node
 
 const (
-	// TypeNormal
+	// TypeNormal is
 	TypeNormal = "normal"
 
-	// TypeTimeProof
+	// TypeTimeProof is
 	TypeTimeProof = "time"
 )
