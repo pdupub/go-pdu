@@ -41,9 +41,6 @@ var (
 	errKeyFileMissing   = errors.New("key file missing")
 )
 
-var crypt, output, keyFile, sigType string
-var msCount int
-
 // accountCmd represents the create command
 var accountCmd = &cobra.Command{
 	Use:   "account [generate/inspect]",
@@ -77,22 +74,22 @@ func generate() error {
 	if string(passwd) != string(passwd2) {
 		return errPasswordNotMatch
 	}
-	if _, err := os.Stat(output); err == nil {
-		return fmt.Errorf("keyfile already exists at %s", output)
+	if _, err := os.Stat(accOutput); err == nil {
+		return fmt.Errorf("keyfile already exists at %s", accOutput)
 	} else if !os.IsNotExist(err) {
 		return err
 	}
 
-	if strings.ToUpper(sigType) != crypto.Signature2PublicKey && strings.ToUpper(sigType) != crypto.MultipleSignatures {
+	if strings.ToUpper(accSigType) != crypto.Signature2PublicKey && strings.ToUpper(accSigType) != crypto.MultipleSignatures {
 		return crypto.ErrSigTypeNotSupport
 	}
 
-	engine, err = core.SelectEngine(crypt)
+	engine, err = core.SelectEngine(accCrypt)
 	if err != nil {
 		return err
 	}
 
-	privateKey, _, err := engine.GenKey(strings.ToUpper(sigType), msCount)
+	privateKey, _, err := engine.GenKey(strings.ToUpper(accSigType), accMSCount)
 	if err != nil {
 		return err
 	}
@@ -100,21 +97,21 @@ func generate() error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(output), 0700); err != nil {
-		return fmt.Errorf("could not create directory %s", filepath.Dir(output))
+	if err := os.MkdirAll(filepath.Dir(accOutput), 0700); err != nil {
+		return fmt.Errorf("could not create directory %s", filepath.Dir(accOutput))
 	}
-	if err := ioutil.WriteFile(output, keyJson, 0600); err != nil {
-		return fmt.Errorf("failed to write keyfile to %s: %v", output, err)
+	if err := ioutil.WriteFile(accOutput, keyJson, 0600); err != nil {
+		return fmt.Errorf("failed to write keyfile to %s: %v", accOutput, err)
 	}
-	fmt.Println(output, "is created success.")
+	fmt.Println(accOutput, "is created success.")
 	return nil
 }
 
 func inspect() error {
-	if keyFile == "" {
+	if accKeyFile == "" {
 		return errKeyFileMissing
 	}
-	keyjson, err := ioutil.ReadFile(keyFile)
+	keyjson, err := ioutil.ReadFile(accKeyFile)
 	if err != nil {
 		return err
 	}
@@ -135,10 +132,10 @@ func inspect() error {
 
 func init() {
 
-	accountCmd.PersistentFlags().StringVar(&sigType, "sigType", crypto.Signature2PublicKey, "S2PK or MS")
-	accountCmd.PersistentFlags().IntVar(&msCount, "msCount", 3, "number of private key if sigType is MS")
-	accountCmd.PersistentFlags().StringVar(&keyFile, "key", "", "key file")
-	accountCmd.PersistentFlags().StringVar(&crypt, "crypt", crypto.PDU, "type of crypt")
-	accountCmd.PersistentFlags().StringVarP(&output, "output", "o", "key.json", "output file")
+	accountCmd.PersistentFlags().StringVar(&accSigType, "sigType", crypto.Signature2PublicKey, "S2PK or MS")
+	accountCmd.PersistentFlags().IntVar(&accMSCount, "msCount", 3, "number of private key if sigType is MS")
+	accountCmd.PersistentFlags().StringVar(&accKeyFile, "key", "", "key file")
+	accountCmd.PersistentFlags().StringVar(&accCrypt, "crypt", crypto.PDU, "type of crypt")
+	accountCmd.PersistentFlags().StringVarP(&accOutput, "output", "o", "key.json", "output file")
 	rootCmd.AddCommand(accountCmd)
 }

@@ -14,35 +14,9 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package node
 
-import (
-	"github.com/pdupub/go-pdu/params"
-	"github.com/spf13/cobra"
-	"os"
+const (
+	TypeNormal    = "normal"
+	TypeTimeProof = "time"
 )
-
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "pdu",
-	Short: "PDU command line interface (" + params.Version + ")",
-	Long: `Parallel Digital Universe 
-A decentralized identity-based social network
-Website: https://pdu.pub`,
-	/*
-		Run: func(cmd *cobra.Command, args []string) {
-			log.Info("pdu running ...")
-		},
-	*/
-}
-
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
-}
-
-func init() {
-}
