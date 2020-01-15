@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/howeyc/gopass"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/core"
@@ -31,7 +30,6 @@ import (
 	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path"
@@ -205,7 +203,7 @@ func saveRootUsers(users []*core.User, udb db.UDB) (err error) {
 func createRootUsers() (users []*core.User, priKeys []*crypto.PrivateKey, err error) {
 
 	for i := 0; i < 2; i++ {
-		priKey, pubKey, err := unlockKey()
+		priKey, pubKey, err := unlockKeyByCmd()
 		if err != nil {
 			return nil, nil, err
 		}
@@ -228,23 +226,6 @@ func createRootUsers() (users []*core.User, priKeys []*crypto.PrivateKey, err er
 		}
 	}
 	return users, priKeys, err
-}
-
-func unlockKey() (*crypto.PrivateKey, *crypto.PublicKey, error) {
-	var keyFile string
-	fmt.Print("KeyFile path: ")
-	fmt.Scan(&keyFile)
-	keyJson, err := ioutil.ReadFile(keyFile)
-	if err != nil {
-		return nil, nil, err
-	}
-	fmt.Print("Password: ")
-	passwd, err := gopass.GetPasswd()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return core.DecryptKey(keyJson, string(passwd))
 }
 
 func initDB() (db.UDB, error) {

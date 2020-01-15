@@ -16,10 +16,7 @@
 
 package node
 
-const (
-	// TypeNormal is
-	TypeNormal = "normal"
-
-	// TypeTimeProof is
-	TypeTimeProof = "time"
+var (
+	// DefaultTimeProofInterval is the default interval for time proof message
+	DefaultTimeProofInterval = uint64(1) // 1 seconds
 )

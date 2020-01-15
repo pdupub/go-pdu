@@ -18,14 +18,18 @@ package node
 
 import (
 	"github.com/pdupub/go-pdu/common/log"
+	"github.com/pdupub/go-pdu/core"
+	"github.com/pdupub/go-pdu/crypto"
 	"os"
 	"time"
 )
 
 // Node is struct of node
 type Node struct {
-	tpEnable   bool
-	tpInterval uint64
+	tpEnable             bool
+	tpInterval           uint64
+	tpUnlockedUser       *core.User
+	tpUnlockedPrivateKey *crypto.PrivateKey
 }
 
 // New is used to create new node
@@ -37,16 +41,12 @@ func New() (node *Node, err error) {
 	return node, nil
 }
 
-// SetTPEnable set the time proof settings
-func (n *Node) SetTPEnable(enable bool, val uint64) error {
-
-	if enable {
-		n.tpEnable = true
-		n.tpInterval = val
-	} else {
-		n.tpEnable = false
-		n.tpInterval = 0
-	}
+// EnableTP set the time proof settings
+func (n *Node) EnableTP(user *core.User, priKey *crypto.PrivateKey, val uint64) error {
+	n.tpEnable = true
+	n.tpUnlockedUser = user
+	n.tpUnlockedPrivateKey = priKey
+	n.tpInterval = val
 
 	return nil
 }
@@ -100,7 +100,7 @@ func (n *Node) runTimeProof(sig <-chan struct{}, wait chan<- struct{}) {
 			close(wait)
 			return
 		case <-time.After(time.Second * time.Duration(n.tpInterval)):
-			log.Info("Broadcast a new message")
+			log.Info("A new message just be created and broadcast, which cloud be used as time proof")
 		}
 	}
 }

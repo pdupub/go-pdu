@@ -42,6 +42,12 @@ const (
 	ConfigMsgCount = "msg_count"
 )
 
+// Row is the key/value pair from db
+type Row struct {
+	K string
+	V []byte
+}
+
 // UDB is a database interface for embed database, default db is bolt
 type UDB interface {
 	Close() error
@@ -49,4 +55,5 @@ type UDB interface {
 	DeleteBucket(string) error
 	Set(string, string, []byte) error
 	Get(string, string) ([]byte, error)
+	Find(string, string, ...int) ([]*Row, error)
 }

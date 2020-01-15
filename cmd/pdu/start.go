@@ -18,11 +18,13 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/core"
+	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/db"
 	"github.com/pdupub/go-pdu/db/bolt"
 	"github.com/pdupub/go-pdu/node"
@@ -69,9 +71,56 @@ var startCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if err := pn.SetTPEnable(true, 2); err != nil {
-			return err
+
+		// for all node mode need to unlock account
+		var unlockedUser core.User
+		var unlockedPrivateKey *crypto.PrivateKey
+		if nodeTPEnable {
+			var unlockedPublicKey *crypto.PublicKey
+			unlockedPrivateKey, unlockedPublicKey, err = unlockKeyByFile(unlockKeyFile, unlockPassFile)
+			if err != nil {
+				return err
+			}
+
+			if len(unlockUserIDPrefix) < 5 {
+				return errors.New("user ID not have enough prefix")
+			}
+
+			rows, err := udb.Find(db.BucketUser, unlockUserIDPrefix, 2)
+			if len(rows) == 0 {
+				return errors.New("user ID can not be found")
+			}
+			if len(rows) > 1 {
+				return errors.New("user ID which has this prefix are not unique")
+			}
+
+			// check public key match
+			unlockUserBytes, err := udb.Get(db.BucketUser, rows[0].K)
+			json.Unmarshal(unlockUserBytes, &unlockedUser)
+
+			p1, err := json.Marshal(unlockedUser.Auth.PubKey)
+			if err != nil {
+				return err
+			}
+			p2, err := json.Marshal(unlockedPublicKey.PubKey)
+			if err != nil {
+				return err
+			}
+			if unlockedUser.Auth.Source != unlockedPublicKey.Source ||
+				unlockedUser.Auth.SigType != unlockedPublicKey.SigType ||
+				common.Bytes2String(p1) != common.Bytes2String(p2) {
+				return errors.New("public key not match")
+			}
+
+			log.Info("Account unlocked success", rows[0].K)
 		}
+
+		if nodeTPEnable {
+			if err := pn.EnableTP(&unlockedUser, unlockedPrivateKey, nodeTPInterval); err != nil {
+				return err
+			}
+		}
+
 		pn.Run(c)
 
 		return nil
@@ -181,6 +230,11 @@ func initDBLoad() (db.UDB, error) {
 
 func init() {
 	startCmd.PersistentFlags().StringVar(&dataDir, "datadir", "", fmt.Sprintf("(default $HOME/%s)", params.DefaultPath))
-	startCmd.PersistentFlags().StringVar(&startNodeType, "nodeType", node.TypeNormal, fmt.Sprintf("node type [%s/%s]", node.TypeNormal, node.TypeTimeProof))
+	startCmd.PersistentFlags().BoolVar(&nodeTPEnable, "tp", false, "time proof enable")
+	startCmd.PersistentFlags().Uint64Var(&nodeTPInterval, "tpInterval", node.DefaultTimeProofInterval, "time proof interval")
+
+	startCmd.PersistentFlags().StringVar(&unlockUserIDPrefix, "user", "", "user ID prefix")
+	startCmd.PersistentFlags().StringVar(&unlockKeyFile, "key", "", "key file")
+	startCmd.PersistentFlags().StringVar(&unlockPassFile, "pass", "", "pass file")
 	rootCmd.AddCommand(startCmd)
 }

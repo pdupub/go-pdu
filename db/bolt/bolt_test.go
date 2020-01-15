@@ -17,6 +17,7 @@
 package bolt
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -56,6 +57,15 @@ func TestNewDB(t *testing.T) {
 	}
 	if string(val) != fmt.Sprintf("%s%s", valPrefix, big.NewInt(5).Bytes()) {
 		t.Error("val not equal")
+	}
+
+	rows, err := u.Find(bucketName, keyPrefix, 3)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(rows) != 3 {
+		t.Error(errors.New("result number not match"))
 	}
 
 	if err := u.DeleteBucket(bucketName); err != nil {

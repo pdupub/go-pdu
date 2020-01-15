@@ -23,13 +23,15 @@ var dataDir string
 var (
 	accCrypt   string
 	accOutput  string
-	accKeyFile string
 	accSigType string
 	accMSCount int
 )
 
 // start
-
 var (
-	startNodeType string
+	nodeTPEnable       bool
+	nodeTPInterval     uint64
+	unlockKeyFile      string
+	unlockPassFile     string
+	unlockUserIDPrefix string
 )

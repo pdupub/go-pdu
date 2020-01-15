@@ -108,20 +108,7 @@ func generate() error {
 }
 
 func inspect() error {
-	if accKeyFile == "" {
-		return errKeyFileMissing
-	}
-	keyjson, err := ioutil.ReadFile(accKeyFile)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("password: ")
-	passwd, err := gopass.GetPasswd()
-	if err != nil {
-		return err
-	}
-
-	priKey, pubKey, err := core.DecryptKey(keyjson, string(passwd))
+	priKey, pubKey, err := unlockKeyByCmd()
 	if err != nil {
 		return err
 	}
@@ -134,7 +121,6 @@ func init() {
 
 	accountCmd.PersistentFlags().StringVar(&accSigType, "sigType", crypto.Signature2PublicKey, "S2PK or MS")
 	accountCmd.PersistentFlags().IntVar(&accMSCount, "msCount", 3, "number of private key if sigType is MS")
-	accountCmd.PersistentFlags().StringVar(&accKeyFile, "key", "", "key file")
 	accountCmd.PersistentFlags().StringVar(&accCrypt, "crypt", crypto.PDU, "type of crypt")
 	accountCmd.PersistentFlags().StringVarP(&accOutput, "output", "o", "key.json", "output file")
 	rootCmd.AddCommand(accountCmd)

@@ -17,9 +17,17 @@
 package bolt
 
 import (
+	"bytes"
+	"errors"
+	"github.com/pdupub/go-pdu/db"
 	"time"
 
 	"github.com/boltdb/bolt"
+)
+
+var (
+	errFindMissingLimit         = errors.New("find operate missing limit")
+	errFindArgsNumberNotCorrect = errors.New("find operate number not correct")
 )
 
 // UBoltDB is the db struct by bolt
@@ -65,15 +73,45 @@ func (u *UBoltDB) Set(bucketName, key string, val []byte) error {
 }
 
 // Get val by key from bucket
-func (u *UBoltDB) Get(bucketName, key string) ([]byte, error) {
-	var val []byte
-	err := u.db.View(func(tx *bolt.Tx) error {
+func (u *UBoltDB) Get(bucketName, key string) (val []byte, err error) {
+	err = u.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketName))
 		val = b.Get([]byte(key))
 		return nil
 	})
-	if err != nil {
-		return nil, err
+	return val, err
+}
+
+// Find the rows from bucket by prefix
+func (u *UBoltDB) Find(bucketName, prefix string, args ...int) (rows []*db.Row, err error) {
+	var skip, limit int
+	if len(args) == 0 {
+		return rows, errFindMissingLimit
+	} else if len(args) == 1 {
+		skip = 0
+		limit = args[0]
+	} else if len(args) == 2 {
+		skip = args[0]
+		limit = args[1]
+	} else {
+		return rows, errFindArgsNumberNotCorrect
 	}
-	return val, nil
+
+	err = u.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bucketName))
+		c := b.Cursor()
+		prefixBytes := []byte(prefix)
+		count := 0
+		for k, v := c.Seek(prefixBytes); k != nil && bytes.HasPrefix(k, prefixBytes); k, v = c.Next() {
+			if count >= skip+limit {
+				break
+			}
+			if count >= skip {
+				rows = append(rows, &db.Row{K: string(k), V: v})
+			}
+			count++
+		}
+		return nil
+	})
+	return rows, err
 }
