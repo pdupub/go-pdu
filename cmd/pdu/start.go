@@ -87,6 +87,9 @@ var startCmd = &cobra.Command{
 			}
 
 			rows, err := udb.Find(db.BucketUser, unlockUserIDPrefix, 2)
+			if err != nil {
+				return err
+			}
 			if len(rows) == 0 {
 				return errors.New("user ID can not be found")
 			}
@@ -96,6 +99,9 @@ var startCmd = &cobra.Command{
 
 			// check public key match
 			unlockUserBytes, err := udb.Get(db.BucketUser, rows[0].K)
+			if err != nil {
+				return err
+			}
 			json.Unmarshal(unlockUserBytes, &unlockedUser)
 
 			p1, err := json.Marshal(unlockedUser.Auth.PubKey)
