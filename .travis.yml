@@ -4,9 +4,6 @@ go:
 before_install:
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
-script:
-  - go test -v -covermode=count -coverprofile=coverage.out
-  - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken OtaVjZWgbWWgNkhlFMdlePbFZGogdkiFQ
 go_import_path: github.com/pdupub/go-pdu
 sudo: false
 matrix:
@@ -16,6 +13,7 @@ matrix:
       sudo: required
       go: 1.12.x
       script:
+        - goveralls -repotoken OtaVjZWgbWWgNkhlFMdlePbFZGogdkiFQ
         - make install
         - GO111MODULE=on
         - go test ./crypto/pdu
