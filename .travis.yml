@@ -13,9 +13,9 @@ matrix:
       sudo: required
       go: 1.12.x
       script:
-        - goveralls -repotoken OtaVjZWgbWWgNkhlFMdlePbFZGogdkiFQ
         - make install
         - GO111MODULE=on
+        - goveralls -repotoken OtaVjZWgbWWgNkhlFMdlePbFZGogdkiFQ
         - go test ./crypto/pdu
         - go test ./crypto/ethereum
         - go test ./crypto/bitcoin
