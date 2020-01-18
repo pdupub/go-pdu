@@ -31,8 +31,6 @@ import (
 	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"math"
-	"math/big"
 	"os"
 	"os/signal"
 	"path"
@@ -56,18 +54,7 @@ var startCmd = &cobra.Command{
 			return err
 		}
 
-		universe, err := loadUniverse(udb)
-		if err != nil {
-			return err
-		}
-
-		if err = loadMsg(udb, universe); err != nil {
-			return err
-		}
-
-		c := make(chan os.Signal)
-		signal.Notify(c, os.Interrupt, os.Kill)
-		pn, err := node.New()
+		pn, err := node.New(udb)
 		if err != nil {
 			return err
 		}
@@ -102,7 +89,10 @@ var startCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			json.Unmarshal(unlockUserBytes, &unlockedUser)
+			err = json.Unmarshal(unlockUserBytes, &unlockedUser)
+			if err != nil {
+				return err
+			}
 
 			p1, err := json.Marshal(unlockedUser.Auth.PubKey)
 			if err != nil {
@@ -127,79 +117,12 @@ var startCmd = &cobra.Command{
 			}
 		}
 
+		c := make(chan os.Signal)
+		signal.Notify(c, os.Interrupt, os.Kill)
 		pn.Run(c)
 
 		return nil
 	},
-}
-
-func loadUniverse(udb db.UDB) (*core.Universe, error) {
-	var user0, user1 core.User
-
-	root0, err := udb.Get(db.BucketConfig, db.ConfigRoot0)
-	if err != nil {
-		return nil, err
-	}
-	root1, err := udb.Get(db.BucketConfig, db.ConfigRoot1)
-	if err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(root0, &user0); err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(root1, &user1); err != nil {
-		return nil, err
-	}
-	log.Info("root0", common.Hash2String(user0.ID()))
-	log.Info("root1", common.Hash2String(user1.ID()))
-	return core.NewUniverse(&user0, &user1)
-}
-
-func loadMsg(udb db.UDB, universe *core.Universe) error {
-
-	cntBytes, err := udb.Get(db.BucketConfig, db.ConfigMsgCount)
-	if err != nil {
-		return err
-	}
-	msgCount := new(big.Int).SetBytes(cntBytes).Uint64()
-	displayGap := getDisplayGap(msgCount)
-	for i := uint64(0); i < msgCount; i++ {
-		mid, err := udb.Get(db.BucketMID, new(big.Int).SetUint64(i).String())
-		if err != nil {
-			return err
-		}
-		msgBytes, err := udb.Get(db.BucketMsg, string(mid))
-		if err != nil {
-			return err
-		}
-		var msg core.Message
-		json.Unmarshal(msgBytes, &msg)
-		err = universe.AddMsg(&msg)
-		if err != nil {
-			return err
-		}
-		if i == uint64(0) {
-			log.Info("First msg ID", common.Hash2String(msg.ID()))
-			log.Info("First msg Content", string(msg.Value.Content))
-		}
-
-		if i%displayGap == 0 {
-			log.Info(i+1, "messages be loaded")
-		}
-
-	}
-	log.Info("All", msgCount, "messages already be loaded")
-	log.Info("Create universe and space-time successfully")
-	return nil
-}
-
-func getDisplayGap(msgCount uint64) uint64 {
-	for i := 1; i <= 5; i++ {
-		if msgCount/uint64(math.Pow10(i))/2 < 1 {
-			return uint64(math.Pow10(i - 1))
-		}
-	}
-	return uint64(math.Pow10(5))
 }
 
 // initConfigLoad reads in config file and ENV variables if set.

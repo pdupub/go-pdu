@@ -169,6 +169,11 @@ func saveMsg(msg *core.Message, udb db.UDB) error {
 	if err != nil {
 		return err
 	}
+
+	err = udb.Set(db.BucketLastMID, common.Hash2String(msg.SenderID), []byte(common.Hash2String(msg.ID())))
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -251,6 +256,10 @@ func initDB() (db.UDB, error) {
 	if err := udb.CreateBucket(db.BucketMID); err != nil {
 		return nil, err
 	}
+	if err := udb.CreateBucket(db.BucketLastMID); err != nil {
+		return nil, err
+	}
+
 	return udb, nil
 }
 

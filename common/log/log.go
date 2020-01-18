@@ -47,7 +47,7 @@ func alignedString(lvl int) string {
 	case LvlError:
 		return "ERROR"
 	default:
-		panic("bad level")
+		return alignedString(LvlWarn)
 	}
 }
 
@@ -64,7 +64,7 @@ func msgColor(lvl int) (color int) {
 	case LvlTrace:
 		color = 34
 	default:
-		panic("bad level")
+		color = msgColor(LvlWarn)
 	}
 	return
 }

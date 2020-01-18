@@ -23,8 +23,11 @@ const (
 	// BucketMsg is used to save the msg (msg.ID/ msg)
 	BucketMsg = "msg"
 
-	// BucketMID is used to save msg.ID() by order (order/msg.ID)
+	// BucketMID is used to save msg.ID by order (order/msg.ID)
 	BucketMID = "mid"
+
+	// BucketLastMID is used to save last msg.ID by user.ID
+	BucketLastMID = "lmid"
 
 	// BucketConfig is used to save config info when universe be created
 	BucketConfig = "config"
