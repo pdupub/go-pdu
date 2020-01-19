@@ -16,7 +16,13 @@
 
 package node
 
-var (
+const (
 	// DefaultTimeProofInterval is the default interval for time proof message
-	DefaultTimeProofInterval = uint64(1) // 1 seconds
+	DefaultTimeProofInterval = 1 // 1 seconds
+
+	// DefaultLocalPort is the default port of local serve
+	DefaultLocalPort = 8341
+
+	// DefaultLocalNodeKey is the default node key
+	DefaultLocalNodeKey = "a64596fe3ce097c8ea79c458bbc9d74413fd4f1c"
 )

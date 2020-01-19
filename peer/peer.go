@@ -15,3 +15,49 @@
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
 package peer
+
+import (
+	"fmt"
+	"golang.org/x/net/websocket"
+)
+
+// Peer contain the info of websocket connection
+type Peer struct {
+	ip      string
+	port    uint64
+	nodeKey string
+	conn    *websocket.Conn
+}
+
+// New create new Peer
+func New(ip string, port uint64, nodeKey string) (*Peer, error) {
+	return &Peer{ip: ip, port: port, nodeKey: nodeKey}, nil
+}
+
+// Dial build ws connection
+func (p *Peer) Dial() error {
+	conn, err := websocket.Dial(p.Url(), "", p.origin())
+	if err != nil {
+		return err
+	}
+	p.conn = conn
+	return nil
+}
+
+// Close the ws connection,
+func (p *Peer) Close() error {
+	if p.conn != nil {
+		return p.conn.Close()
+	}
+	return nil
+}
+
+// Url show the Peer ws url address
+func (p Peer) Url() string {
+	return fmt.Sprintf("ws://%s:%d/%s", p.ip, p.port, p.nodeKey)
+}
+
+// origin used when peer dial
+func (p Peer) origin() string {
+	return fmt.Sprintf("http://%s:%d/", p.ip, p.port)
+}

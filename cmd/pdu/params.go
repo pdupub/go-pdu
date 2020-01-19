@@ -31,6 +31,7 @@ var (
 var (
 	nodeTPEnable       bool
 	nodeTPInterval     uint64
+	localPort          uint64
 	unlockKeyFile      string
 	unlockPassFile     string
 	unlockUserIDPrefix string

@@ -18,13 +18,16 @@ package node
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/db"
+	"golang.org/x/net/websocket"
 	"math/big"
 	"math/rand"
+	"net/http"
 	"os"
 	"time"
 )
@@ -41,13 +44,17 @@ type Node struct {
 	universe             *core.Universe
 	tpUnlockedUser       *core.User
 	tpUnlockedPrivateKey *crypto.PrivateKey
+	localPort            uint64
+	localNodeKey         string
 }
 
 // New is used to create new node
 func New(udb db.UDB) (node *Node, err error) {
 	node = &Node{
-		udb:        udb,
-		tpInterval: uint64(1),
+		udb:          udb,
+		tpInterval:   uint64(1),
+		localPort:    DefaultLocalPort,
+		localNodeKey: DefaultLocalNodeKey,
 	}
 	if err := node.initUniverse(); err != nil {
 		return nil, err
@@ -57,6 +64,16 @@ func New(udb db.UDB) (node *Node, err error) {
 		return nil, err
 	}
 	return node, nil
+}
+
+// SetLocalPort set local listen port
+func (n *Node) SetLocalPort(port uint64) {
+	n.localPort = port
+}
+
+// SetLocalNodeKey set the local node key
+func (n *Node) SetLocalNodeKey(nodeKey string) {
+	n.localNodeKey = nodeKey
 }
 
 // EnableTP set the time proof settings
@@ -75,6 +92,8 @@ func (n *Node) Run(c <-chan os.Signal) {
 	sigTP, waitTP := make(chan struct{}), make(chan struct{})
 	go n.runNode(sigN, waitN)
 	log.Info("Start node server")
+	go n.runLocalServe()
+	log.Info("Start listen on port", n.localPort)
 
 	if n.tpEnable {
 		go n.runTimeProof(sigTP, waitTP)
@@ -96,6 +115,42 @@ func (n *Node) Run(c <-chan os.Signal) {
 			return
 
 		}
+	}
+}
+
+func (n Node) wsHandler(ws *websocket.Conn) {
+	var err error
+	var msg string
+	for {
+		if err = websocket.Message.Receive(ws, &msg); err != nil {
+			break
+		}
+		if err = websocket.Message.Send(ws, msg); err != nil {
+			break
+		}
+	}
+}
+
+func (n Node) nodeHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		w.Write([]byte(r.Method))
+	case "POST":
+		w.Write([]byte(r.Method))
+	case "PUT":
+		w.Write([]byte(r.Method))
+	case "DELETE":
+		w.Write([]byte(r.Method))
+	default:
+		w.Write([]byte(""))
+	}
+}
+
+func (n *Node) runLocalServe() {
+	http.Handle("/"+n.localNodeKey, websocket.Handler(n.wsHandler))
+	http.HandleFunc("/node", n.nodeHandler)
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", n.localPort), nil); err != nil {
+		log.Error("Start local ws serve fail", err)
 	}
 }
 
