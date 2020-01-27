@@ -17,6 +17,7 @@
 package node
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"github.com/pdupub/go-pdu/common"
@@ -53,12 +54,16 @@ type Node struct {
 // New is used to create new node
 func New(udb db.UDB) (node *Node, err error) {
 	node = &Node{
-		udb:          udb,
-		tpInterval:   uint64(1),
-		localPort:    DefaultLocalPort,
-		localNodeKey: DefaultLocalNodeKey,
-		peers:        make(map[common.Hash]*peer.Peer),
+		udb:        udb,
+		tpInterval: uint64(1),
+		localPort:  DefaultLocalPort,
+		peers:      make(map[common.Hash]*peer.Peer),
 	}
+
+	if err := node.setLocalNodeKey(); err != nil {
+		return nil, err
+	}
+
 	if err := node.initUniverse(); err != nil {
 		return nil, err
 	}
@@ -74,9 +79,26 @@ func (n *Node) SetLocalPort(port uint64) {
 	n.localPort = port
 }
 
-// SetLocalNodeKey set the local node key
-func (n *Node) SetLocalNodeKey(nodeKey string) {
-	n.localNodeKey = nodeKey
+// setLocalNodeKey set the local node key
+func (n *Node) setLocalNodeKey() error {
+	nodeKey, err := n.udb.Get(db.BucketConfig, db.ConfigLocalNodeKey)
+	if err != nil {
+		return err
+	}
+
+	if nodeKey == nil {
+		h := md5.New()
+		currentTimestamp := time.Now().UnixNano()
+		h.Write([]byte(fmt.Sprintf("%d", currentTimestamp)))
+		newNodeKey := h.Sum(nil)
+		n.localNodeKey = common.Bytes2String(newNodeKey)
+		n.udb.Set(db.BucketConfig, db.ConfigLocalNodeKey, newNodeKey)
+		log.Info("Create new local node key", n.localNodeKey)
+	} else {
+		n.localNodeKey = common.Bytes2String(nodeKey)
+		log.Info("Load local node key", n.localNodeKey)
+	}
+	return nil
 }
 
 // EnableTP set the time proof settings

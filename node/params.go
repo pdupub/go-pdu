@@ -22,7 +22,4 @@ const (
 
 	// DefaultLocalPort is the default port of local serve
 	DefaultLocalPort = 8341
-
-	// DefaultLocalNodeKey is the default node key
-	DefaultLocalNodeKey = "a64596fe3ce097c8ea79c458bbc9d74413fd4f1c"
 )

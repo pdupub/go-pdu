@@ -43,6 +43,9 @@ const (
 
 	// ConfigMsgCount is the current message count in the universe
 	ConfigMsgCount = "msg_count"
+
+	// ConfigLocalNodeKey is the local node key
+	ConfigLocalNodeKey = "local_node_key"
 )
 
 // Row is the key/value pair from db
