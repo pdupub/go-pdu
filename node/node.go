@@ -24,6 +24,7 @@ import (
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/db"
+	"github.com/pdupub/go-pdu/peer"
 	"golang.org/x/net/websocket"
 	"math/big"
 	"math/rand"
@@ -46,6 +47,7 @@ type Node struct {
 	tpUnlockedPrivateKey *crypto.PrivateKey
 	localPort            uint64
 	localNodeKey         string
+	peers                map[common.Hash]*peer.Peer
 }
 
 // New is used to create new node
@@ -55,6 +57,7 @@ func New(udb db.UDB) (node *Node, err error) {
 		tpInterval:   uint64(1),
 		localPort:    DefaultLocalPort,
 		localNodeKey: DefaultLocalNodeKey,
+		peers:        make(map[common.Hash]*peer.Peer),
 	}
 	if err := node.initUniverse(); err != nil {
 		return nil, err
@@ -203,10 +206,21 @@ func (n *Node) runTimeProof(sig <-chan struct{}, wait chan<- struct{}) {
 				continue
 			}
 			// 5. broadcast the new msg
+			if err := n.broadcastMsg(tpMsg); err != nil {
+				log.Error(err)
+				continue
+			}
 
 			log.Info("A new message", common.Hash2String(tpMsg.ID()), "just be created and broadcast")
 		}
 	}
+}
+
+func (n Node) broadcastMsg(msg *core.Message) error {
+	for pid, peer := range n.peers {
+		log.Info("peer id", common.Hash2String(pid), "url", peer.Url())
+	}
+	return nil
 }
 
 func (n Node) saveMsg(msg *core.Message) error {
