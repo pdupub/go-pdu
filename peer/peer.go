@@ -23,15 +23,15 @@ import (
 
 // Peer contain the info of websocket connection
 type Peer struct {
-	ip      string
-	port    uint64
-	nodeKey string
+	IP      string `json:"ip"`
+	Port    uint64 `json:"port"`
+	NodeKey string `json:"nodeKey"`
 	conn    *websocket.Conn
 }
 
 // New create new Peer
 func New(ip string, port uint64, nodeKey string) (*Peer, error) {
-	return &Peer{ip: ip, port: port, nodeKey: nodeKey}, nil
+	return &Peer{IP: ip, Port: port, NodeKey: nodeKey}, nil
 }
 
 // Dial build ws connection
@@ -54,10 +54,10 @@ func (p *Peer) Close() error {
 
 // Url show the Peer ws url address
 func (p Peer) Url() string {
-	return fmt.Sprintf("ws://%s:%d/%s", p.ip, p.port, p.nodeKey)
+	return fmt.Sprintf("ws://%s:%d/%s", p.IP, p.Port, p.NodeKey)
 }
 
 // origin used when peer dial
 func (p Peer) origin() string {
-	return fmt.Sprintf("http://%s:%d/", p.ip, p.port)
+	return fmt.Sprintf("http://%s:%d/", p.IP, p.Port)
 }

@@ -28,6 +28,7 @@ import (
 var (
 	errFindMissingLimit         = errors.New("find operate missing limit")
 	errFindArgsNumberNotCorrect = errors.New("find operate number not correct")
+	errBucketNotExist           = errors.New("bucket not exist")
 )
 
 // UBoltDB is the db struct by bolt
@@ -68,6 +69,9 @@ func (u *UBoltDB) DeleteBucket(bucketName string) error {
 func (u *UBoltDB) Set(bucketName, key string, val []byte) error {
 	return u.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketName))
+		if b == nil {
+			return errBucketNotExist
+		}
 		return b.Put([]byte(key), val)
 	})
 }
@@ -76,6 +80,9 @@ func (u *UBoltDB) Set(bucketName, key string, val []byte) error {
 func (u *UBoltDB) Get(bucketName, key string) (val []byte, err error) {
 	err = u.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketName))
+		if b == nil {
+			return errBucketNotExist
+		}
 		val = b.Get([]byte(key))
 		return nil
 	})
@@ -99,6 +106,9 @@ func (u *UBoltDB) Find(bucketName, prefix string, args ...int) (rows []*db.Row, 
 
 	err = u.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(bucketName))
+		if b == nil {
+			return errBucketNotExist
+		}
 		c := b.Cursor()
 		prefixBytes := []byte(prefix)
 		count := 0

@@ -35,7 +35,8 @@ import (
 )
 
 const (
-	displayInterval = 1000
+	displayInterval   = 1000
+	maxLoadPeersCount = 1000
 )
 
 // Node is struct of node
@@ -60,10 +61,6 @@ func New(udb db.UDB) (node *Node, err error) {
 		peers:      make(map[common.Hash]*peer.Peer),
 	}
 
-	if err := node.setLocalNodeKey(); err != nil {
-		return nil, err
-	}
-
 	if err := node.initUniverse(); err != nil {
 		return nil, err
 	}
@@ -71,12 +68,47 @@ func New(udb db.UDB) (node *Node, err error) {
 	if err := node.loadMessage(); err != nil {
 		return nil, err
 	}
+
+	if err := node.initNetwork(); err != nil {
+		return nil, err
+	}
+
 	return node, nil
 }
 
 // SetLocalPort set local listen port
 func (n *Node) SetLocalPort(port uint64) {
 	n.localPort = port
+}
+
+func (n *Node) initNetwork() error {
+	// set local node key
+	if err := n.setLocalNodeKey(); err != nil {
+		return err
+	}
+
+	// load peers from db
+	if err := n.loadPeers(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (n *Node) loadPeers() error {
+	rows, err := n.udb.Find(db.BucketPeer, "", maxLoadPeersCount)
+	if err != nil {
+		return err
+	}
+
+	for _, row := range rows {
+		var newPeer peer.Peer
+		if err := json.Unmarshal(row.V, &newPeer); err != nil {
+			return err
+		}
+		n.peers[common.Bytes2Hash([]byte(row.K))] = &newPeer
+	}
+	return nil
 }
 
 // setLocalNodeKey set the local node key
@@ -157,14 +189,11 @@ func (n Node) wsHandler(ws *websocket.Conn) {
 }
 
 func (n Node) nodeHandler(w http.ResponseWriter, r *http.Request) {
+	// todo: w.Write return the basic information of local node
 	switch r.Method {
 	case "GET":
 		w.Write([]byte(r.Method))
 	case "POST":
-		w.Write([]byte(r.Method))
-	case "PUT":
-		w.Write([]byte(r.Method))
-	case "DELETE":
 		w.Write([]byte(r.Method))
 	default:
 		w.Write([]byte(""))

@@ -32,8 +32,8 @@ const (
 	// BucketConfig is used to save config info when universe be created
 	BucketConfig = "config"
 
-	// BucketSTPrefix is used to save the prefix of the space-time bucket
-	BucketSTPrefix = "st_"
+	// BucketPeer is used to save the peer information
+	BucketPeer = "peer"
 
 	// ConfigRoot0 root user which gender is 0
 	ConfigRoot0 = "root0"

@@ -260,6 +260,10 @@ func initDB() (db.UDB, error) {
 		return nil, err
 	}
 
+	if err := udb.CreateBucket(db.BucketPeer); err != nil {
+		return nil, err
+	}
+
 	return udb, nil
 }
 
