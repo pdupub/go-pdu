@@ -268,8 +268,10 @@ func (n *Node) runTimeProof(sig <-chan struct{}, wait chan<- struct{}) {
 }
 
 func (n Node) broadcastMsg(msg *core.Message) error {
-	for pid, peer := range n.peers {
-		log.Info("peer id", common.Hash2String(pid), "url", peer.Url())
+	for _, peer := range n.peers {
+		if err := peer.SendMsg(msg); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -17,8 +17,15 @@
 package peer
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/pdupub/go-pdu/core"
 	"golang.org/x/net/websocket"
+)
+
+var (
+	errPeerNotReachable = errors.New("this peer not reachable right now")
 )
 
 // Peer contain the info of websocket connection
@@ -55,6 +62,31 @@ func (p *Peer) Close() error {
 // Url show the Peer ws url address
 func (p Peer) Url() string {
 	return fmt.Sprintf("ws://%s:%d/%s", p.IP, p.Port, p.NodeKey)
+}
+
+// Connected return true if this peer is connected right now
+func (p *Peer) Connected() bool {
+	if p.conn != nil {
+		return true
+	}
+	return false
+}
+
+// SendMsg is used to send msg to this peer
+func (p *Peer) SendMsg(msg *core.Message) error {
+	if !p.Connected() {
+		return errPeerNotReachable
+	}
+
+	msgBytes, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	_, err = p.conn.Write(msgBytes)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // origin used when peer dial
