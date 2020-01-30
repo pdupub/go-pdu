@@ -120,6 +120,9 @@ var startCmd = &cobra.Command{
 		c := make(chan os.Signal)
 		signal.Notify(c, os.Interrupt, os.Kill)
 		pn.SetLocalPort(localPort)
+		if nodeAddressList != "" {
+			pn.SetNodes(nodeAddressList)
+		}
 		pn.Run(c)
 
 		return nil
@@ -160,12 +163,17 @@ func initDBLoad() (db.UDB, error) {
 
 func init() {
 	startCmd.PersistentFlags().StringVar(&dataDir, "datadir", "", fmt.Sprintf("(default $HOME/%s)", params.DefaultPath))
-	startCmd.PersistentFlags().BoolVar(&nodeTPEnable, "tp", false, "time proof enable")
-	startCmd.PersistentFlags().Uint64Var(&nodeTPInterval, "tpInterval", node.DefaultTimeProofInterval, "time proof interval")
+	startCmd.PersistentFlags().StringVar(&nodeAddressList, "nodes", "", "pdu nodes list, split by comma [userid@ip:port/nodeKey]")
 	startCmd.PersistentFlags().Uint64Var(&localPort, "localPort", node.DefaultLocalPort, "local port")
 
+	// time proof
+	startCmd.PersistentFlags().BoolVar(&nodeTPEnable, "tp", false, "time proof enable")
+	startCmd.PersistentFlags().Uint64Var(&nodeTPInterval, "tpInterval", node.DefaultTimeProofInterval, "time proof interval")
+
+	// unlock account
 	startCmd.PersistentFlags().StringVar(&unlockUserIDPrefix, "user", "", "user ID prefix")
 	startCmd.PersistentFlags().StringVar(&unlockKeyFile, "key", "", "key file")
 	startCmd.PersistentFlags().StringVar(&unlockPassFile, "pass", "", "pass file")
+
 	rootCmd.AddCommand(startCmd)
 }

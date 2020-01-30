@@ -29,6 +29,7 @@ var (
 
 // start
 var (
+	nodeAddressList    string
 	nodeTPEnable       bool
 	nodeTPInterval     uint64
 	localPort          uint64

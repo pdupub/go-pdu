@@ -19,6 +19,7 @@ package node
 import (
 	"crypto/md5"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/common/log"
@@ -31,12 +32,18 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
 const (
 	displayInterval   = 1000
 	maxLoadPeersCount = 1000
+)
+
+var (
+	errParseNodeAddressFail = errors.New("parse node address fail")
 )
 
 // Node is struct of node
@@ -79,6 +86,44 @@ func New(udb db.UDB) (node *Node, err error) {
 // SetLocalPort set local listen port
 func (n *Node) SetLocalPort(port uint64) {
 	n.localPort = port
+}
+
+// SetNodes set the target nodes [userid@ip:port/nodeKey]
+func (n *Node) SetNodes(nodes string) error {
+	for _, nodeStr := range strings.Split(nodes, ",") {
+		var userID, ip, nodeKey string
+		res := strings.Split(nodeStr, "@")
+		if len(res) != 2 {
+			return errParseNodeAddressFail
+		}
+		userID = res[0]
+		res = strings.Split(res[1], ":")
+		if len(res) != 2 {
+			return errParseNodeAddressFail
+		}
+		ip = res[0]
+		res = strings.Split(res[1], "/")
+		if len(res) != 2 {
+			return errParseNodeAddressFail
+		}
+		nodeKey = res[1]
+		port, err := strconv.ParseUint(res[0], 10, 64)
+		if err != nil {
+			return err
+		}
+		currentPeer := peer.Peer{IP: ip, Port: port, NodeKey: nodeKey}
+		peerBytes, err := json.Marshal(currentPeer)
+		if err != nil {
+			return err
+		}
+		err = n.udb.Set(db.BucketPeer, userID, peerBytes)
+		if err != nil {
+			return err
+		}
+		n.peers[common.Bytes2Hash([]byte(userID))] = &currentPeer
+	}
+
+	return nil
 }
 
 func (n *Node) initNetwork() error {
@@ -269,6 +314,9 @@ func (n *Node) runTimeProof(sig <-chan struct{}, wait chan<- struct{}) {
 
 func (n Node) broadcastMsg(msg *core.Message) error {
 	for _, peer := range n.peers {
+		if !peer.Connected() {
+			continue
+		}
 		if err := peer.SendMsg(msg); err != nil {
 			return err
 		}
