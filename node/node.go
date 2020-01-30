@@ -40,6 +40,7 @@ import (
 const (
 	displayInterval   = 1000
 	maxLoadPeersCount = 1000
+	checkPeerInterval = 20
 )
 
 var (
@@ -111,7 +112,10 @@ func (n *Node) SetNodes(nodes string) error {
 		if err != nil {
 			return err
 		}
-		currentPeer := peer.Peer{IP: ip, Port: port, NodeKey: nodeKey}
+		currentPeer, err := peer.New(ip, port, nodeKey)
+		if err != nil {
+			return err
+		}
 		peerBytes, err := json.Marshal(currentPeer)
 		if err != nil {
 			return err
@@ -120,7 +124,7 @@ func (n *Node) SetNodes(nodes string) error {
 		if err != nil {
 			return err
 		}
-		n.peers[common.Bytes2Hash([]byte(userID))] = &currentPeer
+		n.peers[common.Bytes2Hash([]byte(userID))] = currentPeer
 	}
 
 	return nil
@@ -256,10 +260,23 @@ func (n *Node) runLocalServe() {
 func (n *Node) runNode(sig <-chan struct{}, wait chan<- struct{}) {
 	for {
 		select {
+		case <-time.After(time.Second * time.Duration(checkPeerInterval)):
+			log.Info("Update peers status")
+			n.updatePeersStatus()
 		case <-sig:
 			log.Info("Stop server")
 			close(wait)
 			return
+		}
+	}
+}
+
+func (n *Node) updatePeersStatus() {
+	for _, peer := range n.peers {
+		if !peer.Connected() {
+			if err := peer.Dial(); err != nil {
+				log.Error(err)
+			}
 		}
 	}
 }
