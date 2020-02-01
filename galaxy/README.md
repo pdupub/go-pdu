@@ -1,4 +1,4 @@
-pdu
+galaxy
 ====
 
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/pdupub/go-pdu)
@@ -8,7 +8,7 @@ pdu
 [![Chat](https://img.shields.io/badge/gitter-Docs%20chat-4AB495.svg)](https://gitter.im/pdupub/go-pdu)
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go#distributed-systems)
 
-Package pdu provides ...
+Package galaxy provides ...
 
 ## Overview
 
