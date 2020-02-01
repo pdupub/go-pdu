@@ -244,16 +244,17 @@ func (n Node) wsHandler(ws *websocket.Conn) {
 			break
 		}
 		if err = json.Unmarshal([]byte(content), &msg); err != nil {
-			log.Error("decode message fail", err)
+			log.Error("Decode message fail", err)
 		}
 		log.Info("Msg received", common.Hash2String(msg.ID()))
-
+		if err = websocket.Message.Send(ws, resByte); err != nil {
+			log.Error("Send fail", err)
+		}
+		// save msg (universe & udb)
 		if err = n.saveMsg(&msg); err != nil {
 			log.Error("Add new msg fail", err)
-		}
-
-		if err = websocket.Message.Send(ws, resByte); err != nil {
-			log.Error("send fail", err)
+		} else if err = n.broadcastMsg(&msg); err != nil {
+			log.Error("Broadcast", common.Hash2String(msg.ID()))
 		}
 	}
 }
