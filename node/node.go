@@ -34,6 +34,7 @@ import (
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/db"
+	"github.com/pdupub/go-pdu/galaxy"
 	"github.com/pdupub/go-pdu/peer"
 	"golang.org/x/net/websocket"
 )
@@ -226,35 +227,27 @@ func (n *Node) Run(c <-chan os.Signal) {
 }
 
 func (n Node) wsHandler(ws *websocket.Conn) {
-	var err error
-	var content string
-	var msg core.Message
-
-	// todo: move into galaxy
-	type Response struct {
-		Result string `json:"result"`
-	}
-	resByte, err := json.Marshal(Response{Result: "OK"})
-	if err != nil {
-		log.Error(err)
-	}
-
 	for {
-		if err = websocket.Message.Receive(ws, &content); err != nil {
+		w, err := galaxy.ReceiveWave(ws)
+		if err != nil {
+			log.Error(err)
 			break
 		}
-		if err = json.Unmarshal([]byte(content), &msg); err != nil {
-			log.Error("Decode message fail", err)
-		}
-		log.Info("Msg received", common.Hash2String(msg.ID()))
-		if err = websocket.Message.Send(ws, resByte); err != nil {
-			log.Error("Send fail", err)
-		}
-		// save msg (universe & udb)
-		if err = n.saveMsg(&msg); err != nil {
-			log.Error("Add new msg fail", err)
-		} else if err = n.broadcastMsg(&msg); err != nil {
-			log.Error("Broadcast", common.Hash2String(msg.ID()))
+		if w.Command() == galaxy.CmdMessages {
+			var msg core.Message
+			wm := w.(*galaxy.WaveMessages)
+			for _, wmsg := range wm.Msgs {
+				if err = json.Unmarshal(wmsg, &msg); err != nil {
+					log.Error("Decode message fail", err)
+				}
+				log.Info("Msg received", common.Hash2String(msg.ID()))
+			}
+			// save msg (universe & udb)
+			if err = n.saveMsg(&msg); err != nil {
+				log.Error("Add new msg fail", err)
+			} else if err = n.broadcastMsg(&msg); err != nil {
+				log.Error("Broadcast", common.Hash2String(msg.ID()))
+			}
 		}
 	}
 }

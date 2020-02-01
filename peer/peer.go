@@ -20,7 +20,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/pdupub/go-pdu/core"
+	"github.com/pdupub/go-pdu/galaxy"
 	"golang.org/x/net/websocket"
 )
 
@@ -78,11 +80,17 @@ func (p *Peer) SendMsg(msg *core.Message) error {
 		return errPeerNotReachable
 	}
 
+	var msgs [][]byte
 	msgBytes, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
-	_, err = p.conn.Write(msgBytes)
+	msgs = append(msgs, msgBytes)
+	wave := &galaxy.WaveMessages{
+		Msgs: msgs,
+	}
+
+	_, err = galaxy.SendWave(p.conn, wave)
 	if err != nil {
 		return err
 	}
