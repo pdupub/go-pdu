@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/core/rule"
 	"github.com/pdupub/go-pdu/dag"
@@ -68,9 +69,9 @@ type SpaceTime struct {
 
 // Universe contain many space time on different time line
 type Universe struct {
-	msgD  *dag.DAG `json:"messageDAG"`   // contain all messages valid in any universe (time proof)
-	userD *dag.DAG `json:"userDAG"`      // contain all users valid in any universe (time proof)
-	stD   *dag.DAG `json:"spaceTimeDAG"` // contain all space time, which is the origin thought of PDU
+	msgD  *dag.DAG // contain all messages valid in any universe (time proof)
+	userD *dag.DAG // contain all users valid in any universe (time proof)
+	stD   *dag.DAG // contain all space time, which is the origin thought of PDU
 }
 
 // NewUniverse create Universe from two user with diff gender
