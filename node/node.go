@@ -21,13 +21,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/pdupub/go-pdu/common"
-	"github.com/pdupub/go-pdu/common/log"
-	"github.com/pdupub/go-pdu/core"
-	"github.com/pdupub/go-pdu/crypto"
-	"github.com/pdupub/go-pdu/db"
-	"github.com/pdupub/go-pdu/peer"
-	"golang.org/x/net/websocket"
 	"math/big"
 	"math/rand"
 	"net/http"
@@ -35,6 +28,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pdupub/go-pdu/common"
+	"github.com/pdupub/go-pdu/common/log"
+	"github.com/pdupub/go-pdu/core"
+	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/db"
+	"github.com/pdupub/go-pdu/peer"
+	"golang.org/x/net/websocket"
 )
 
 const (
@@ -226,13 +227,28 @@ func (n *Node) Run(c <-chan os.Signal) {
 
 func (n Node) wsHandler(ws *websocket.Conn) {
 	var err error
-	var msg string
+	var content string
+	var msg core.Message
+
+	// todo: move into galaxy
+	type Response struct {
+		Result string `json:"result"`
+	}
+	resByte, err := json.Marshal(Response{Result: "OK"})
+	if err != nil {
+		log.Error(err)
+	}
+
 	for {
-		if err = websocket.Message.Receive(ws, &msg); err != nil {
+		if err = websocket.Message.Receive(ws, &content); err != nil {
 			break
 		}
-		if err = websocket.Message.Send(ws, msg); err != nil {
-			break
+		if err = json.Unmarshal([]byte(content), &msg); err != nil {
+			log.Error("decode message fail", err)
+		}
+		log.Info("Msg received", common.Hash2String(msg.ID()))
+		if err = websocket.Message.Send(ws, resByte); err != nil {
+			log.Error("send fail", err)
 		}
 	}
 }
