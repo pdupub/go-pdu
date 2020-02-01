@@ -247,6 +247,11 @@ func (n Node) wsHandler(ws *websocket.Conn) {
 			log.Error("decode message fail", err)
 		}
 		log.Info("Msg received", common.Hash2String(msg.ID()))
+
+		if err = n.saveMsg(&msg); err != nil {
+			log.Error("Add new msg fail", err)
+		}
+
 		if err = websocket.Message.Send(ws, resByte); err != nil {
 			log.Error("send fail", err)
 		}
@@ -358,6 +363,10 @@ func (n Node) broadcastMsg(msg *core.Message) error {
 }
 
 func (n Node) saveMsg(msg *core.Message) error {
+	err := n.universe.AddMsg(msg)
+	if err != nil {
+		return err
+	}
 	msgBytes, err := json.Marshal(msg)
 	if err != nil {
 		return err
