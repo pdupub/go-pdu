@@ -51,3 +51,10 @@ func Bytes2Hash(b []byte) Hash {
 	copy(hash[HashLength-len(b):], b)
 	return hash
 }
+
+// Hash2Bytes is transform Hash to []byte
+func Hash2Bytes(h Hash) (b []byte) {
+	b = make([]byte, HashLength)
+	copy(b, h[:])
+	return b
+}

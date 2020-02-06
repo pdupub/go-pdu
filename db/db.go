@@ -26,6 +26,9 @@ const (
 	// BucketMID is used to save msg.ID by order (order/msg.ID)
 	BucketMID = "mid"
 
+	// BucketMOD is used to save msg received sequence (msg.ID/order)
+	BucketMOD = "mod"
+
 	// BucketLastMID is used to save last msg.ID by user.ID
 	BucketLastMID = "lmid"
 
@@ -44,8 +47,21 @@ const (
 	// ConfigMsgCount is the current message count in the universe
 	ConfigMsgCount = "msg_count"
 
+	// ConfigCurrentStep is the current step of initialize the universe
+	// step 0 - create bucket
+	// step 1 - roots saved
+	ConfigCurrentStep = "current_step"
+
 	// ConfigLocalNodeKey is the local node key
 	ConfigLocalNodeKey = "local_node_key"
+)
+
+const (
+	// StepInitDB is the step which all bucket in db have been created
+	StepInitDB = iota
+
+	// StepRootsSaved is the step which two roots have been saved into db
+	StepRootsSaved
 )
 
 // Row is the key/value pair from db

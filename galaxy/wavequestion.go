@@ -18,6 +18,8 @@ package galaxy
 
 // WaveQuestion implements the Wave interface and represents request info message.
 type WaveQuestion struct {
+	Cmd  string   `json:"cmd"`
+	Args [][]byte `json:"args"`
 }
 
 // Command returns the protocol command string for the wave.

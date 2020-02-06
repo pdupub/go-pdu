@@ -20,6 +20,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"os/signal"
+	"path"
+
 	"github.com/mitchellh/go-homedir"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/common/log"
@@ -31,9 +35,6 @@ import (
 	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
-	"os/signal"
-	"path"
 )
 
 // startCmd represents the start command
@@ -41,11 +42,25 @@ var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start to run PDU Universe",
 	RunE: func(_ *cobra.Command, args []string) error {
-		err := initConfigLoad()
-		if err != nil {
+
+		if err := updateDataDir(); err != nil {
 			return err
 		}
 
+		if exist, err := pathExists(dataDir); err != nil {
+			return err
+		} else if !exist {
+			if newdb, err := initNodeDir(); err != nil {
+				return err
+			} else if err := newdb.Close(); err != nil {
+				return err
+			}
+			log.Info("Database initialized successfully", dataDir)
+		}
+
+		if err := initConfigLoad(); err != nil {
+			return err
+		}
 		log.Info("Starting p2p node")
 		log.Info("CONFIG_NAME", viper.GetString("CONFIG_NAME"))
 
@@ -53,12 +68,10 @@ var startCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
 		pn, err := node.New(udb)
 		if err != nil {
 			return err
 		}
-
 		// for all node mode need to unlock account
 		var unlockedUser core.User
 		var unlockedPrivateKey *crypto.PrivateKey
@@ -129,8 +142,7 @@ var startCmd = &cobra.Command{
 	},
 }
 
-// initConfigLoad reads in config file and ENV variables if set.
-func initConfigLoad() error {
+func updateDataDir() error {
 	if dataDir == "" {
 		// Find home directory.
 		home, err := homedir.Dir()
@@ -138,9 +150,12 @@ func initConfigLoad() error {
 			return err
 		}
 		dataDir = path.Join(home, params.DefaultPath)
-
 	}
+	return nil
+}
 
+// initConfigLoad reads in config file and ENV variables if set.
+func initConfigLoad() error {
 	viper.SetConfigFile(path.Join(dataDir, params.DefaultConfigFile))
 	viper.SetConfigType("yml")
 	viper.AutomaticEnv() // read in environment variables that match
@@ -164,7 +179,7 @@ func initDBLoad() (db.UDB, error) {
 func init() {
 	startCmd.PersistentFlags().StringVar(&dataDir, "datadir", "", fmt.Sprintf("(default $HOME/%s)", params.DefaultPath))
 	startCmd.PersistentFlags().StringVar(&nodeAddressList, "nodes", "", "pdu nodes list, split by comma [userid@ip:port/nodeKey]")
-	startCmd.PersistentFlags().Uint64Var(&localPort, "localPort", node.DefaultLocalPort, "local port")
+	startCmd.PersistentFlags().Uint64Var(&localPort, "port", node.DefaultLocalPort, "local port")
 
 	// time proof
 	startCmd.PersistentFlags().BoolVar(&nodeTPEnable, "tp", false, "time proof enable")

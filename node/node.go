@@ -42,7 +42,7 @@ import (
 const (
 	displayInterval   = 1000
 	maxLoadPeersCount = 1000
-	checkPeerInterval = 20
+	checkPeerInterval = 10
 )
 
 var (
@@ -60,6 +60,7 @@ type Node struct {
 	localPort            uint64
 	localNodeKey         string
 	peers                map[common.Hash]*peer.Peer
+	initStep             uint64
 }
 
 // New is used to create new node
@@ -71,11 +72,7 @@ func New(udb db.UDB) (node *Node, err error) {
 		peers:      make(map[common.Hash]*peer.Peer),
 	}
 
-	if err := node.initUniverse(); err != nil {
-		return nil, err
-	}
-
-	if err := node.loadMessage(); err != nil {
+	if err := node.loadUniverse(); err != nil {
 		return nil, err
 	}
 
@@ -248,6 +245,49 @@ func (n Node) wsHandler(ws *websocket.Conn) {
 			} else if err = n.broadcastMsg(&msg); err != nil {
 				log.Error("Broadcast", common.Hash2String(msg.ID()))
 			}
+		} else if w.Command() == galaxy.CmdQuestion {
+			wm := w.(*galaxy.WaveQuestion)
+			log.Info("Received question", wm.Cmd)
+			switch wm.Cmd {
+			case galaxy.CmdRoots:
+				user0, user1, err := db.GetRootUsers(n.udb)
+				if err != nil {
+					log.Error(err)
+				}
+				p := peer.Peer{Conn: ws}
+				if err = p.SendRoots(user0, user1); err != nil {
+					log.Error(err)
+				}
+			case galaxy.CmdMessages:
+				var order, count *big.Int
+				var err error
+				var msgs []*core.Message
+				msgID := common.Bytes2Hash(wm.Args[0])
+
+				log.Debug(common.Hash2String(msgID))
+				if msgID != common.Bytes2Hash([]byte{}) {
+					order, count, err = db.GetOrderCntByMsg(n.udb, msgID)
+					if err != nil {
+						log.Error(err)
+					}
+					order = order.Add(order, big.NewInt(1))
+				} else {
+					order = big.NewInt(0)
+					count, err = db.GetMsgCount(n.udb)
+					if err != nil {
+						log.Error(err)
+					}
+				}
+
+				if order != nil && count != nil && count.Uint64()-order.Uint64() > peer.MaxMsgCountPerWave {
+					log.Info("Send msg from order", order, "size", peer.MaxMsgCountPerWave)
+					msgs = db.GetMsgByOrder(n.udb, order, peer.MaxMsgCountPerWave)
+				}
+				p := peer.Peer{Conn: ws}
+				if err = p.SendMsgs(msgs); err != nil {
+					log.Error(err)
+				}
+			}
 		}
 	}
 }
@@ -272,12 +312,111 @@ func (n *Node) runLocalServe() {
 	}
 }
 
+func (n *Node) syncCreateUniverse() {
+	log.Info("Start sync universe start", "create universe")
+	for _, peer := range n.peers {
+		if !peer.Connected() {
+			continue
+		}
+		if err := peer.SendQuestion(galaxy.CmdRoots); err != nil {
+			log.Error(err)
+			continue
+		}
+
+		w, err := galaxy.ReceiveWave(peer.Conn)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		if w.Command() == galaxy.CmdRoots {
+			mw := w.(*galaxy.WaveRoots)
+			user0 := mw.Users[0]
+			user1 := mw.Users[1]
+			log.Info("user0", common.Hash2String(user0.ID()))
+			log.Info("user1", common.Hash2String(user1.ID()))
+			// update init step
+			n.initStep = db.StepRootsSaved
+			n.universe, err = core.NewUniverse(user0, user1)
+			if err != nil {
+				log.Error(err)
+				continue
+			}
+			if err := db.SaveRootUsers(n.udb, mw.Users[:]); err != nil {
+				log.Error(err)
+				continue
+			}
+			break
+		}
+	}
+}
+
+func (n *Node) syncMsgFromPeers() {
+	log.Info("Start Sync message from peers")
+	lastMsg, err := db.GetLastMsg(n.udb)
+	var lastMsgID common.Hash
+	if err != nil && err != db.ErrMessageNotFound {
+		log.Error(err)
+		return
+	}
+	if lastMsg != nil {
+		lastMsgID = lastMsg.ID()
+	}
+	for _, peer := range n.peers {
+		if !peer.Connected() {
+			continue
+		}
+		if err := peer.SendQuestion(galaxy.CmdMessages, lastMsgID); err != nil {
+			log.Error(err)
+			continue
+		}
+
+		w, err := galaxy.ReceiveWave(peer.Conn)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		if w.Command() == galaxy.CmdMessages {
+			mw := w.(*galaxy.WaveMessages)
+			for _, mb := range mw.Msgs {
+				var msg core.Message
+				err := json.Unmarshal(mb, &msg)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+				n.saveMsg(&msg)
+			}
+		}
+	}
+}
+
 func (n *Node) runNode(sig <-chan struct{}, wait chan<- struct{}) {
+	// create universe if need
+	if n.initStep < db.StepRootsSaved {
+		for {
+			if n.initStep >= db.StepRootsSaved {
+				break
+			}
+			select {
+			case <-time.After(time.Second):
+				n.updatePeersStatus()
+				n.syncCreateUniverse()
+			case <-sig:
+				log.Info("Stop server")
+				close(wait)
+				return
+
+			}
+		}
+	}
+
+	// run node
 	for {
 		select {
 		case <-time.After(time.Second * time.Duration(checkPeerInterval)):
 			log.Info("Update peers status")
 			n.updatePeersStatus()
+			n.syncMsgFromPeers()
 		case <-sig:
 			log.Info("Stop server")
 			close(wait)
@@ -306,14 +445,14 @@ func (n *Node) runTimeProof(sig <-chan struct{}, wait chan<- struct{}) {
 		case <-time.After(time.Second * time.Duration(n.tpInterval)):
 			var refs []*core.MsgReference
 			// load last msg in universe
-			lastMsg, err := n.getLastMsg()
+			lastMsg, err := db.GetLastMsg(n.udb)
 			if err != nil {
 				log.Error(err)
 				continue
 			}
 			refs = append(refs, &core.MsgReference{SenderID: lastMsg.SenderID, MsgID: lastMsg.ID()})
 			// load last msg from unlock user if exist
-			lastMsgByUser, err := n.getLastMsgByUser(n.tpUnlockedUser.ID())
+			lastMsgByUser, err := db.GetLastMsgByUser(n.udb, n.tpUnlockedUser.ID())
 			if err != nil {
 				log.Error(err)
 				continue
@@ -357,119 +496,48 @@ func (n Node) broadcastMsg(msg *core.Message) error {
 }
 
 func (n Node) saveMsg(msg *core.Message) error {
-	err := n.universe.AddMsg(msg)
-	if err != nil {
+	if err := n.universe.AddMsg(msg); err != nil {
 		return err
 	}
-	msgBytes, err := json.Marshal(msg)
-	if err != nil {
-		return err
-	}
-	countBytes, err := n.udb.Get(db.BucketConfig, db.ConfigMsgCount)
-	if err != nil {
-		return err
-	}
-	count := new(big.Int).SetBytes(countBytes)
-	err = n.udb.Set(db.BucketMsg, common.Hash2String(msg.ID()), msgBytes)
-	if err != nil {
-		return err
-	}
-
-	err = n.udb.Set(db.BucketMID, count.String(), []byte(common.Hash2String(msg.ID())))
-	if err != nil {
-		return err
-	}
-	count = count.Add(count, big.NewInt(1))
-	err = n.udb.Set(db.BucketConfig, db.ConfigMsgCount, count.Bytes())
-	if err != nil {
-		return err
-	}
-
-	err = n.udb.Set(db.BucketLastMID, common.Hash2String(msg.SenderID), []byte(common.Hash2String(msg.ID())))
-	if err != nil {
+	if err := db.SaveMsg(n.udb, msg); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (n Node) getLastMsgByUser(userID common.Hash) (*core.Message, error) {
-	var msg core.Message
-	lastMsgBytes, err := n.udb.Get(db.BucketLastMID, common.Hash2String(userID))
-	if err != nil {
-		return nil, err
-	}
-	msgBytes, err := n.udb.Get(db.BucketMsg, string(lastMsgBytes))
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(msgBytes, &msg)
-	if err != nil {
-		return nil, err
-	}
-
-	return &msg, nil
-}
-
-func (n Node) getLastMsg() (*core.Message, error) {
-	var msg core.Message
-	countBytes, err := n.udb.Get(db.BucketConfig, db.ConfigMsgCount)
-	if err != nil {
-		return nil, err
-	}
-	count := new(big.Int).SetBytes(countBytes)
-	mid, err := n.udb.Get(db.BucketMID, count.Sub(count, big.NewInt(1)).String())
-	if err != nil {
-		return nil, err
-	}
-	msgBytes, err := n.udb.Get(db.BucketMsg, string(mid))
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(msgBytes, &msg)
-	if err != nil {
-		return nil, err
-	}
-	return &msg, nil
-}
-
-func (n *Node) initUniverse() error {
-	var user0, user1 core.User
-
-	root0, err := n.udb.Get(db.BucketConfig, db.ConfigRoot0)
+func (n *Node) loadUniverse() (err error) {
+	stepBytes, err := n.udb.Get(db.BucketConfig, db.ConfigCurrentStep)
 	if err != nil {
 		return err
 	}
-	root1, err := n.udb.Get(db.BucketConfig, db.ConfigRoot1)
+	currentStep := new(big.Int).SetBytes(stepBytes).Uint64()
+	var user0, user1 *core.User
+	if currentStep < db.StepRootsSaved {
+		return nil
+	}
+	user0, user1, err = db.GetRootUsers(n.udb)
 	if err != nil {
 		return err
 	}
-	if err := json.Unmarshal(root0, &user0); err != nil {
-		return err
-	}
-	if err := json.Unmarshal(root1, &user1); err != nil {
-		return err
-	}
+	// update init step
+	n.initStep = db.StepRootsSaved
 	log.Info("root0", common.Hash2String(user0.ID()))
 	log.Info("root1", common.Hash2String(user1.ID()))
-	n.universe, err = core.NewUniverse(&user0, &user1)
+	n.universe, err = core.NewUniverse(user0, user1)
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func (n *Node) loadMessage() error {
-	cntBytes, err := n.udb.Get(db.BucketConfig, db.ConfigMsgCount)
+	msgCount, err := db.GetMsgCount(n.udb)
 	if err != nil {
 		return err
 	}
-	msgCount := new(big.Int).SetBytes(cntBytes).Uint64()
-	for i := uint64(0); i < msgCount; i++ {
+	for i := uint64(0); i < msgCount.Uint64(); i++ {
+		// todo : replace by db.GetMsgByOrder()
 		mid, err := n.udb.Get(db.BucketMID, new(big.Int).SetUint64(i).String())
 		if err != nil {
 			return err
 		}
-		msgBytes, err := n.udb.Get(db.BucketMsg, string(mid))
+		msgBytes, err := n.udb.Get(db.BucketMsg, common.Bytes2String(mid))
 		if err != nil {
 			return err
 		}
@@ -478,6 +546,7 @@ func (n *Node) loadMessage() error {
 		if err != nil {
 			return err
 		}
+
 		err = n.universe.AddMsg(&msg)
 		if err != nil {
 			return err

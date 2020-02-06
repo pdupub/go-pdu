@@ -17,23 +17,17 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mitchellh/go-homedir"
+	"os"
+	"strings"
+
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/db"
-	"github.com/pdupub/go-pdu/db/bolt"
 	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"math/big"
-	"os"
-	"path"
-	"strings"
 )
 
 // createCmd represents the create command
@@ -41,16 +35,7 @@ var createCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a new PDU Universe",
 	RunE: func(_ *cobra.Command, args []string) error {
-
-		if err := initDir(); err != nil {
-			return err
-		}
-
-		if err := initConfig(); err != nil {
-			return err
-		}
-
-		udb, err := initDB()
+		udb, err := initNodeDir()
 		if err != nil {
 			return err
 		}
@@ -77,7 +62,7 @@ func initUniverseAndSave(udb db.UDB) error {
 		return err
 	}
 
-	if err := saveRootUsers(users, udb); err != nil {
+	if err := db.SaveRootUsers(udb, users); err != nil {
 		return err
 	}
 
@@ -101,7 +86,7 @@ func initUniverseAndSave(udb db.UDB) error {
 		return err
 	}
 
-	if err := saveMsg(msg, udb); err != nil {
+	if err := db.SaveMsg(udb, msg); err != nil {
 		return err
 	}
 	return nil
@@ -139,72 +124,6 @@ func createFirstMsg(users []*core.User, priKeys []*crypto.PrivateKey) (*core.Mes
 	return msg, nil
 }
 
-func scanLine(input *string) {
-	reader := bufio.NewReader(os.Stdin)
-	data, _, _ := reader.ReadLine()
-	*input = string(data)
-}
-
-func saveMsg(msg *core.Message, udb db.UDB) error {
-	msgBytes, err := json.Marshal(msg)
-	if err != nil {
-		return err
-	}
-	countBytes, err := udb.Get(db.BucketConfig, db.ConfigMsgCount)
-	if err != nil {
-		return err
-	}
-	count := new(big.Int).SetBytes(countBytes)
-	err = udb.Set(db.BucketMsg, common.Hash2String(msg.ID()), msgBytes)
-	if err != nil {
-		return err
-	}
-
-	err = udb.Set(db.BucketMID, count.String(), []byte(common.Hash2String(msg.ID())))
-	if err != nil {
-		return err
-	}
-	count = count.Add(count, big.NewInt(1))
-	err = udb.Set(db.BucketConfig, db.ConfigMsgCount, count.Bytes())
-	if err != nil {
-		return err
-	}
-
-	err = udb.Set(db.BucketLastMID, common.Hash2String(msg.SenderID), []byte(common.Hash2String(msg.ID())))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func saveRootUsers(users []*core.User, udb db.UDB) (err error) {
-	// save root users
-	var root0, root1 []byte
-	if root0, err = json.Marshal(users[0]); err != nil {
-		return err
-	}
-	if err = udb.Set(db.BucketConfig, db.ConfigRoot0, root0); err != nil {
-		return err
-	}
-	if err = udb.Set(db.BucketUser, common.Hash2String(users[0].ID()), root0); err != nil {
-		return err
-	}
-
-	if root1, err = json.Marshal(users[1]); err != nil {
-		return err
-	}
-
-	if err = udb.Set(db.BucketConfig, db.ConfigRoot1, root1); err != nil {
-		return err
-	}
-
-	if err = udb.Set(db.BucketUser, common.Hash2String(users[1].ID()), root1); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func createRootUsers() (users []*core.User, priKeys []*crypto.PrivateKey, err error) {
 
 	for i := 0; i < 2; i++ {
@@ -231,59 +150,6 @@ func createRootUsers() (users []*core.User, priKeys []*crypto.PrivateKey, err er
 		}
 	}
 	return users, priKeys, err
-}
-
-func initDB() (db.UDB, error) {
-	dbFilePath := path.Join(dataDir, "u.db")
-	udb, err := bolt.NewDB(dbFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := udb.CreateBucket(db.BucketConfig); err != nil {
-		return nil, err
-	}
-	if err := udb.Set(db.BucketConfig, db.ConfigMsgCount, big.NewInt(0).Bytes()); err != nil {
-		return nil, err
-	}
-
-	if err := udb.CreateBucket(db.BucketUser); err != nil {
-		return nil, err
-	}
-	if err := udb.CreateBucket(db.BucketMsg); err != nil {
-		return nil, err
-	}
-	if err := udb.CreateBucket(db.BucketMID); err != nil {
-		return nil, err
-	}
-	if err := udb.CreateBucket(db.BucketLastMID); err != nil {
-		return nil, err
-	}
-
-	if err := udb.CreateBucket(db.BucketPeer); err != nil {
-		return nil, err
-	}
-
-	return udb, nil
-}
-
-func initConfig() error {
-	viper.SetConfigType(params.DefaultConfigType)
-	viper.Set("CONFIG_NAME", "PDU")
-	return viper.WriteConfigAs(path.Join(dataDir, params.DefaultConfigFile))
-}
-
-func initDir() error {
-	if dataDir == "" {
-		home, _ := homedir.Dir()
-		dataDir = path.Join(home, params.DefaultPath)
-	}
-	err := os.Mkdir(dataDir, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func init() {

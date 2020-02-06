@@ -17,13 +17,95 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io/ioutil"
+	"math/big"
+	"os"
+	"path"
+	"strings"
+
 	"github.com/howeyc/gopass"
+	"github.com/mitchellh/go-homedir"
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/crypto"
-	"io/ioutil"
-	"strings"
+	"github.com/pdupub/go-pdu/db"
+	"github.com/pdupub/go-pdu/db/bolt"
+	"github.com/pdupub/go-pdu/params"
+	"github.com/spf13/viper"
 )
+
+// initNodeDir initialize node dir and config file and db, and open db
+func initNodeDir() (db.UDB, error) {
+	if err := initDir(); err != nil {
+		return nil, err
+	}
+
+	if err := initConfig(); err != nil {
+		return nil, err
+	}
+
+	udb, err := initDB()
+	if err != nil {
+		return nil, err
+	}
+	return udb, nil
+}
+
+func initConfig() error {
+	viper.SetConfigType(params.DefaultConfigType)
+	viper.Set("CONFIG_NAME", "PDU")
+	return viper.WriteConfigAs(path.Join(dataDir, params.DefaultConfigFile))
+}
+
+func initDir() error {
+	if dataDir == "" {
+		home, _ := homedir.Dir()
+		dataDir = path.Join(home, params.DefaultPath)
+	}
+	err := os.Mkdir(dataDir, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func initDB() (db.UDB, error) {
+	dbFilePath := path.Join(dataDir, "u.db")
+	udb, err := bolt.NewDB(dbFilePath)
+	if err != nil {
+		return nil, err
+	}
+	if err := udb.CreateBucket(db.BucketConfig); err != nil {
+		return nil, err
+	}
+	if err := udb.Set(db.BucketConfig, db.ConfigMsgCount, big.NewInt(0).Bytes()); err != nil {
+		return nil, err
+	}
+	if err := udb.CreateBucket(db.BucketUser); err != nil {
+		return nil, err
+	}
+	if err := udb.CreateBucket(db.BucketMsg); err != nil {
+		return nil, err
+	}
+	if err := udb.CreateBucket(db.BucketMID); err != nil {
+		return nil, err
+	}
+	if err := udb.CreateBucket(db.BucketMOD); err != nil {
+		return nil, err
+	}
+	if err := udb.CreateBucket(db.BucketLastMID); err != nil {
+		return nil, err
+	}
+	if err := udb.CreateBucket(db.BucketPeer); err != nil {
+		return nil, err
+	}
+	if err := udb.Set(db.BucketConfig, db.ConfigCurrentStep, big.NewInt(db.StepInitDB).Bytes()); err != nil {
+		return nil, err
+	}
+	return udb, nil
+}
 
 func unlockKeyByCmd() (*crypto.PrivateKey, *crypto.PublicKey, error) {
 	var keyFile string
@@ -54,4 +136,21 @@ func unlockKeyByFile(keyFile, passFile string) (*crypto.PrivateKey, *crypto.Publ
 	}
 
 	return core.DecryptKey(keyJson, strings.TrimSpace(string(passwd)))
+}
+
+func scanLine(input *string) {
+	reader := bufio.NewReader(os.Stdin)
+	data, _, _ := reader.ReadLine()
+	*input = string(data)
+}
+
+func pathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
