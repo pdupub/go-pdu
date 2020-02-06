@@ -28,7 +28,7 @@ import (
 // WaveHeaderSize 24 bytes + waveBody
 const WaveSize = 2048
 
-// MessageHeaderSize is the number of bytes in a wave header
+// WaveHeaderSize is the number of bytes in a wave header
 // command 12 bytes + length 4 bytes + checksum 4 bytes
 const WaveHeaderSize = 24
 
