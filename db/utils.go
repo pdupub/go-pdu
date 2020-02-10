@@ -30,6 +30,7 @@ var (
 	ErrMessageNotFound = errors.New("message can not be found")
 )
 
+// SaveRootUsers is save two root users to db
 func SaveRootUsers(udb UDB, users []*core.User) (err error) {
 	// save root users
 	var root0, root1 []byte
@@ -61,6 +62,7 @@ func SaveRootUsers(udb UDB, users []*core.User) (err error) {
 	return nil
 }
 
+// GetRootUsers get two root users from db
 func GetRootUsers(udb UDB) (*core.User, *core.User, error) {
 	var user0, user1 core.User
 	var err error
@@ -81,6 +83,7 @@ func GetRootUsers(udb UDB) (*core.User, *core.User, error) {
 	return &user0, &user1, nil
 }
 
+// SaveMsg save new msg to db
 func SaveMsg(udb UDB, msg *core.Message) error {
 	msgBytes, err := json.Marshal(msg)
 	if err != nil {
@@ -116,6 +119,7 @@ func SaveMsg(udb UDB, msg *core.Message) error {
 	return nil
 }
 
+// GetLastMsg get the last message by order from db
 func GetLastMsg(udb UDB) (*core.Message, error) {
 	var msg core.Message
 	countBytes, err := udb.Get(BucketConfig, ConfigMsgCount)
@@ -142,6 +146,7 @@ func GetLastMsg(udb UDB) (*core.Message, error) {
 	return &msg, nil
 }
 
+// GetMsgByOrder get the message by order, for sync message between peers
 func GetMsgByOrder(udb UDB, start *big.Int, size int) (msgs []*core.Message) {
 	for ; size > 0; size-- {
 		mid, err := udb.Get(BucketMID, start.String())
@@ -163,6 +168,7 @@ func GetMsgByOrder(udb UDB, start *big.Int, size int) (msgs []*core.Message) {
 	return msgs
 }
 
+// GetOrderCntByMsg get the message order by msgID
 func GetOrderCntByMsg(udb UDB, mid common.Hash) (order *big.Int, count *big.Int, err error) {
 	orderBytes, err := udb.Get(BucketMOD, common.Hash2String(mid))
 	if err != nil {
@@ -179,6 +185,7 @@ func GetOrderCntByMsg(udb UDB, mid common.Hash) (order *big.Int, count *big.Int,
 	return order, count, nil
 }
 
+// GetMsgCount return the message count in local db
 func GetMsgCount(udb UDB) (count *big.Int, err error) {
 	countBytes, err := udb.Get(BucketConfig, ConfigMsgCount)
 	if err != nil {
@@ -188,6 +195,7 @@ func GetMsgCount(udb UDB) (count *big.Int, err error) {
 	return count, nil
 }
 
+// GetLastMsgByUser return the last message by userID
 func GetLastMsgByUser(udb UDB, userID common.Hash) (*core.Message, error) {
 	var msg core.Message
 	lastMsgBytes, err := udb.Get(BucketLastMID, common.Hash2String(userID))

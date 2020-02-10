@@ -131,6 +131,7 @@ func (p *Peer) SendMsg(msg *core.Message) error {
 	return p.SendMsgs([]*core.Message{msg})
 }
 
+// SendMsgs is used to send mulitiple msgs
 func (p *Peer) SendMsgs(msgs []*core.Message) error {
 	if len(msgs) > MaxMsgCountPerWave {
 		msgs = msgs[:MaxMsgCountPerWave]
