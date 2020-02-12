@@ -24,9 +24,8 @@ import (
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/db"
 	"github.com/pdupub/go-pdu/galaxy"
+	"github.com/pdupub/go-pdu/peer"
 )
-
-// todo : use channel to get data from other peers, and save into db
 
 func (n *Node) syncCreateUniverse() {
 	log.Info("Start sync universe start", "create universe")
@@ -68,40 +67,76 @@ func (n *Node) syncCreateUniverse() {
 
 func (n *Node) syncMsgFromPeers() {
 	log.Info("Start Sync message from peers")
-	lastMsg, err := db.GetLastMsg(n.udb)
-	var lastMsgID common.Hash
-	if err != nil && err != db.ErrMessageNotFound {
-		log.Error(err)
-		return
-	}
-	if lastMsg != nil {
-		lastMsgID = lastMsg.ID()
-	}
 	for _, peer := range n.peers {
 		if !peer.Connected() {
 			continue
 		}
-		if err := peer.SendQuestion(galaxy.CmdMessages, lastMsgID); err != nil {
+		// get current last message
+		lastMsg, err := db.GetLastMsg(n.udb)
+		var lastMsgID common.Hash
+		if err != nil && err != db.ErrMessageNotFound {
 			log.Error(err)
-			continue
+			return
+		}
+		if lastMsg != nil {
+			lastMsgID = lastMsg.ID()
 		}
 
-		w, err := galaxy.ReceiveWave(peer.Conn)
-		if err != nil {
-			log.Error(err)
-			continue
+		var msgs []*core.Message
+		for i := 0; i < 100; i++ {
+			resMsg, err := n.syncMsg(peer, lastMsgID)
+			if err != nil {
+				log.Error(err)
+				break
+			}
+			if len(resMsg) == 0 {
+				break
+			}
+
+			lastMsg = resMsg[len(resMsg)-1]
+			if lastMsgID == lastMsg.ID() {
+				break
+			}
+			log.Debug("last message", common.Hash2String(lastMsgID))
+			log.Debug("curr message", common.Hash2String(lastMsg.ID()))
+			lastMsgID = lastMsg.ID()
+			msgs = append(msgs, resMsg...)
 		}
-		if w.Command() == galaxy.CmdMessages {
-			mw := w.(*galaxy.WaveMessages)
-			for _, mb := range mw.Msgs {
-				var msg core.Message
-				err := json.Unmarshal(mb, &msg)
-				if err != nil {
-					log.Error(err)
-					continue
-				}
-				n.saveMsg(&msg)
+
+		for _, msg := range msgs {
+			if err := n.saveMsg(msg); err != nil {
+				log.Error(err)
+				break
 			}
 		}
+
 	}
+}
+
+func (n *Node) syncMsg(peer *peer.Peer, lastMsgID common.Hash) ([]*core.Message, error) {
+	var msgs []*core.Message
+	// send question
+	if err := peer.SendQuestion(galaxy.CmdMessages, lastMsgID); err != nil {
+		return nil, err
+	}
+
+	// recevie message
+	w, err := galaxy.ReceiveWave(peer.Conn)
+	if err != nil {
+		return nil, err
+	}
+
+	// check msg cmd
+	if w.Command() == galaxy.CmdMessages {
+		mw := w.(*galaxy.WaveMessages)
+		for _, mb := range mw.Msgs {
+			var msg core.Message
+			err := json.Unmarshal(mb, &msg)
+			if err != nil {
+				return msgs, err
+			}
+			msgs = append(msgs, &msg)
+		}
+	}
+	return msgs, nil
 }

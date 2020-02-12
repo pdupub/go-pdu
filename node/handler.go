@@ -65,7 +65,6 @@ func (n Node) handleQuestion(ws *websocket.Conn, w galaxy.Wave) error {
 		var msgs []*core.Message
 		msgID := common.Bytes2Hash(wm.Args[0])
 
-		log.Debug(common.Hash2String(msgID))
 		if msgID != common.Bytes2Hash([]byte{}) {
 			order, count, err = db.GetOrderCntByMsg(n.udb, msgID)
 			if err != nil {
