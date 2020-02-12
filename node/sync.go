@@ -101,19 +101,18 @@ func (n *Node) syncMsgFromPeers() {
 			if lastMsgID == lastMsg.ID() {
 				break
 			}
-			//log.Debug("last message", common.Hash2String(lastMsgID))
-			//log.Debug("curr message", common.Hash2String(lastMsg.ID()))
 			lastMsgID = lastMsg.ID()
 			msgs = append(msgs, resMsg...)
 		}
-
-		for _, msg := range msgs {
-			if err := n.saveMsg(msg); err != nil {
-				log.Error(err)
-				break
+		if len(msgs) > 0 {
+			log.Debug("Sync", len(msgs), "message from", common.Hash2String(msgs[0].ID()), "to", common.Hash2String(msgs[len(msgs)-1].ID()))
+			for _, msg := range msgs {
+				if err := n.saveMsg(msg); err != nil {
+					log.Error(err)
+					break
+				}
 			}
 		}
-
 	}
 }
 
