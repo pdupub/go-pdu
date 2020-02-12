@@ -27,6 +27,10 @@ import (
 	"github.com/pdupub/go-pdu/peer"
 )
 
+const (
+	maxQuestionPerWave = 30
+)
+
 func (n *Node) syncCreateUniverse() {
 	log.Info("Start sync universe start", "create universe")
 	for _, peer := range n.peers {
@@ -83,7 +87,7 @@ func (n *Node) syncMsgFromPeers() {
 		}
 
 		var msgs []*core.Message
-		for i := 0; i < 100; i++ {
+		for i := 0; i < maxQuestionPerWave; i++ {
 			resMsg, err := n.syncMsg(peer, lastMsgID)
 			if err != nil {
 				log.Error(err)
@@ -97,8 +101,8 @@ func (n *Node) syncMsgFromPeers() {
 			if lastMsgID == lastMsg.ID() {
 				break
 			}
-			log.Debug("last message", common.Hash2String(lastMsgID))
-			log.Debug("curr message", common.Hash2String(lastMsg.ID()))
+			//log.Debug("last message", common.Hash2String(lastMsgID))
+			//log.Debug("curr message", common.Hash2String(lastMsg.ID()))
 			lastMsgID = lastMsg.ID()
 			msgs = append(msgs, resMsg...)
 		}
