@@ -122,7 +122,11 @@ func (n *Node) SetNodes(nodes string) error {
 		if err != nil {
 			return err
 		}
-		n.peers[common.Bytes2Hash([]byte(userID))] = currentPeer
+		h, err := common.String2Hash(userID)
+		if err != nil {
+			return err
+		}
+		n.peers[h] = currentPeer
 	}
 
 	return nil
@@ -151,9 +155,16 @@ func (n *Node) loadPeers() error {
 	for _, row := range rows {
 		var newPeer peer.Peer
 		if err := json.Unmarshal(row.V, &newPeer); err != nil {
-			return err
+			log.Error(err)
+			continue
 		}
-		n.peers[common.Bytes2Hash([]byte(row.K))] = &newPeer
+		h, err := common.String2Hash(row.K)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		n.peers[h] = &newPeer
+		log.Info("Peers load", newPeer.Url(), "by", common.Hash2String(h))
 	}
 	return nil
 }

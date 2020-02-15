@@ -16,7 +16,10 @@
 
 package common
 
-import "fmt"
+import (
+	"encoding/hex"
+	"fmt"
+)
 
 // Hash is fixed length []byte
 type Hash [HashLength]byte
@@ -57,4 +60,13 @@ func Hash2Bytes(h Hash) (b []byte) {
 	b = make([]byte, HashLength)
 	copy(b, h[:])
 	return b
+}
+
+// String2Hash is transform string to Hash
+func String2Hash(s string) (Hash, error) {
+	h, err := hex.DecodeString(s)
+	if err != nil {
+		return Hash{}, err
+	}
+	return Bytes2Hash(h), nil
 }

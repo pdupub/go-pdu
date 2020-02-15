@@ -44,6 +44,7 @@ const (
 	CmdPing     = "ping"
 	CmdPong     = "aler"
 	CmdUser     = "user"
+	CmdPeers    = "peers"
 )
 
 var (
