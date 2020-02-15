@@ -83,6 +83,15 @@ func (p *Peer) Connected() bool {
 	return false
 }
 
+func (p *Peer) send(wave galaxy.Wave) error {
+	_, err := galaxy.SendWave(p.Conn, wave)
+	if err != nil {
+		p.Conn = nil
+		return err
+	}
+	return nil
+}
+
 // SendQuestion is used to send question to peer
 func (p *Peer) SendQuestion(cmd string, args ...interface{}) error {
 	if !p.Connected() {
@@ -97,11 +106,7 @@ func (p *Peer) SendQuestion(cmd string, args ...interface{}) error {
 		Cmd:  cmd,
 		Args: newArgs,
 	}
-	_, err = galaxy.SendWave(p.Conn, wave)
-	if err != nil {
-		return err
-	}
-	return nil
+	return p.send(wave)
 }
 
 func (p Peer) buildArgs(args ...interface{}) (result [][]byte, err error) {
@@ -150,10 +155,7 @@ func (p *Peer) SendMsgs(msgs []*core.Message) error {
 	wave := &galaxy.WaveMessages{
 		Msgs: msgsB,
 	}
-	if _, err := galaxy.SendWave(p.Conn, wave); err != nil {
-		return err
-	}
-	return nil
+	return p.send(wave)
 }
 
 // SendPeers is used to send peers of local node
@@ -169,10 +171,7 @@ func (p *Peer) SendPeers(pm map[common.Hash]*Peer) error {
 	wave := &galaxy.WavePeers{
 		Peers: targetPeers,
 	}
-	if _, err := galaxy.SendWave(p.Conn, wave); err != nil {
-		return err
-	}
-	return nil
+	return p.send(wave)
 }
 
 // SendRoots is used to send 2 roots to peer
@@ -187,11 +186,7 @@ func (p *Peer) SendRoots(user0, user1 *core.User) error {
 		Users: users,
 	}
 
-	_, err := galaxy.SendWave(p.Conn, wave)
-	if err != nil {
-		return err
-	}
-	return nil
+	return p.send(wave)
 }
 
 // origin used when peer dial
