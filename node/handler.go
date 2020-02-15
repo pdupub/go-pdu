@@ -48,6 +48,7 @@ func (n Node) handleMessages(ws *websocket.Conn, w galaxy.Wave) (*core.Message, 
 
 func (n Node) handleQuestion(ws *websocket.Conn, w galaxy.Wave) error {
 	wm := w.(*galaxy.WaveQuestion)
+	p := peer.Peer{Conn: ws}
 	//log.Debug("Received question", wm.Cmd)
 	switch wm.Cmd {
 	case galaxy.CmdRoots:
@@ -55,8 +56,11 @@ func (n Node) handleQuestion(ws *websocket.Conn, w galaxy.Wave) error {
 		if err != nil {
 			return err
 		}
-		p := peer.Peer{Conn: ws}
 		if err = p.SendRoots(user0, user1); err != nil {
+			return err
+		}
+	case galaxy.CmdPeers:
+		if err := p.SendPeers(n.peers); err != nil {
 			return err
 		}
 	case galaxy.CmdMessages:
@@ -83,7 +87,6 @@ func (n Node) handleQuestion(ws *websocket.Conn, w galaxy.Wave) error {
 			//log.Debug("Send msg from order", order, "size", peer.MaxMsgCountPerWave)
 			msgs = db.GetMsgByOrder(n.udb, order, peer.MaxMsgCountPerWave)
 		}
-		p := peer.Peer{Conn: ws}
 		if err = p.SendMsgs(msgs); err != nil {
 			return err
 		}

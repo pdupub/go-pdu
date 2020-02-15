@@ -126,7 +126,11 @@ func (n *Node) SetNodes(nodes string) error {
 		if err != nil {
 			return err
 		}
-		n.peers[h] = currentPeer
+		if p, ok := n.peers[h]; !ok || p.Url() != currentPeer.Url() {
+			if p.NodeKey != n.localNodeKey {
+				n.peers[h] = currentPeer
+			}
+		}
 	}
 
 	return nil
@@ -163,8 +167,10 @@ func (n *Node) loadPeers() error {
 			log.Error(err)
 			continue
 		}
-		n.peers[h] = &newPeer
-		log.Info("Peers load", newPeer.Url(), "by", common.Hash2String(h))
+		if newPeer.NodeKey != n.localNodeKey {
+			n.peers[h] = &newPeer
+			log.Info("Peers load", newPeer.Url(), "by", common.Hash2String(h))
+		}
 	}
 	return nil
 }
@@ -279,6 +285,7 @@ func (n *Node) runNode(sig <-chan struct{}, wait chan<- struct{}) {
 		case <-time.After(time.Second * time.Duration(checkPeerInterval)):
 			log.Info("Update peers status")
 			n.updatePeersStatus()
+			n.syncPeers()
 			n.syncMsgFromPeers()
 		case <-sig:
 			log.Info("Stop server")

@@ -73,6 +73,8 @@ func makeEmptyWave(command string) (Wave, error) {
 		wave = &WavePong{}
 	case CmdUser:
 		wave = &WaveUser{}
+	case CmdPeers:
+		wave = &WavePeers{}
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)
 	}

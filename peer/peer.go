@@ -156,6 +156,25 @@ func (p *Peer) SendMsgs(msgs []*core.Message) error {
 	return nil
 }
 
+// SendPeers is used to send peers of local node
+func (p *Peer) SendPeers(pm map[common.Hash]*Peer) error {
+	if !p.Connected() {
+		return errPeerNotReachable
+	}
+	var targetPeers []string
+	for id, p := range pm {
+		nodeAddress := fmt.Sprintf("%s@%s:%d/%s", common.Hash2String(id), p.IP, p.Port, p.NodeKey)
+		targetPeers = append(targetPeers, nodeAddress)
+	}
+	wave := &galaxy.WavePeers{
+		Peers: targetPeers,
+	}
+	if _, err := galaxy.SendWave(p.Conn, wave); err != nil {
+		return err
+	}
+	return nil
+}
+
 // SendRoots is used to send 2 roots to peer
 func (p *Peer) SendRoots(user0, user1 *core.User) error {
 	if !p.Connected() {

@@ -18,6 +18,7 @@ package node
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/common/log"
@@ -65,6 +66,32 @@ func (n *Node) syncCreateUniverse() {
 				continue
 			}
 			break
+		}
+	}
+}
+
+func (n *Node) syncPeers() {
+	log.Info("Start sync peers from othe node")
+	for _, peer := range n.peers {
+		if !peer.Connected() {
+			continue
+		}
+		if err := peer.SendQuestion(galaxy.CmdPeers); err != nil {
+			log.Error(err)
+			continue
+		}
+
+		w, err := galaxy.ReceiveWave(peer.Conn)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		if w.Command() == galaxy.CmdPeers {
+			mw := w.(*galaxy.WavePeers)
+			for _, peer := range mw.Peers {
+				log.Debug("Peer address", peer)
+			}
+			n.SetNodes(strings.Join(mw.Peers, ","))
 		}
 	}
 }
