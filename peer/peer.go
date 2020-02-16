@@ -55,7 +55,7 @@ func New(ip string, port uint64, nodeKey string) (*Peer, error) {
 	return &Peer{IP: ip, Port: port, NodeKey: nodeKey}, nil
 }
 
-// Key return key of peer
+// ID return key of peer
 func (p *Peer) ID() common.Hash {
 	hash := sha256.New()
 	hash.Reset()
@@ -99,9 +99,9 @@ func (p Peer) Url() string {
 	return fmt.Sprintf("ws://%s:%d/%s", p.IP, p.Port, p.NodeKey)
 }
 
+// Address is UserID@IP:port/nodeKey
 func (p Peer) Address() string {
 	// todo : address without p.UserID or not verified
-
 	return fmt.Sprintf("%s@%s:%d/%s", common.Hash2String(p.UserID), p.IP, p.Port, p.NodeKey)
 }
 

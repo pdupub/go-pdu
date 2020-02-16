@@ -87,6 +87,7 @@ func (n *Node) SetLocalPort(port uint64) {
 	n.localPort = port
 }
 
+// AddPeer add peer to local node peers
 func (n *Node) AddPeer(p *peer.Peer) error {
 	peerBytes, err := json.Marshal(p)
 	if err != nil {
