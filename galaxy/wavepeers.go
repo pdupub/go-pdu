@@ -18,7 +18,7 @@ package galaxy
 
 // WavePeers implements the Wave interface and represent node peers.
 type WavePeers struct {
-	Peers []string `json:"peers"` //"927171CCD704F7A5D481C04B6F16D0E73F823C69EEC9D49866258E658366D136@127.0.0.1:8341/9F1A60DF0D424EF0E80BBF0F3F90D7F2"
+	Peers [][]byte `json:"peers"`
 }
 
 // Command returns the protocol command string for the wave.

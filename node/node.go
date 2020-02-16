@@ -87,6 +87,22 @@ func (n *Node) SetLocalPort(port uint64) {
 	n.localPort = port
 }
 
+func (n *Node) AddPeer(p *peer.Peer) error {
+	peerBytes, err := json.Marshal(p)
+	if err != nil {
+		return err
+	}
+	err = n.udb.Set(db.BucketPeer, common.Hash2String(p.ID()), peerBytes)
+	if err != nil {
+		return err
+	}
+
+	if po, ok := n.peers[p.ID()]; !ok || (po.Url() != p.Url() && p.NodeKey != n.localNodeKey) {
+		n.peers[p.ID()] = p
+	}
+	return nil
+}
+
 // SetNodes set the target nodes [userid@ip:port/nodeKey]
 func (n *Node) SetNodes(nodes string) error {
 	for _, nodeStr := range strings.Split(nodes, ",") {
@@ -114,22 +130,14 @@ func (n *Node) SetNodes(nodes string) error {
 		if err != nil {
 			return err
 		}
-		peerBytes, err := json.Marshal(currentPeer)
+		userIDHash, err := common.String2Hash(userID)
 		if err != nil {
 			return err
 		}
-		err = n.udb.Set(db.BucketPeer, userID, peerBytes)
+		currentPeer.SetUserID(userIDHash)
+		err = n.AddPeer(currentPeer)
 		if err != nil {
 			return err
-		}
-		h, err := common.String2Hash(userID)
-		if err != nil {
-			return err
-		}
-		if p, ok := n.peers[h]; !ok || p.Url() != currentPeer.Url() {
-			if p.NodeKey != n.localNodeKey {
-				n.peers[h] = currentPeer
-			}
 		}
 	}
 

@@ -18,7 +18,6 @@ package node
 
 import (
 	"encoding/json"
-	"strings"
 
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/common/log"
@@ -88,10 +87,19 @@ func (n *Node) syncPeers() {
 		}
 		if w.Command() == galaxy.CmdPeers {
 			mw := w.(*galaxy.WavePeers)
-			for _, op := range mw.Peers {
-				log.Debug("Peer address", op)
+			for _, peerBytes := range mw.Peers {
+				var targetPeer peer.Peer
+				err := json.Unmarshal(peerBytes, &targetPeer)
+				if err != nil {
+					log.Error("Decode peer fail", err)
+					continue
+				}
+
+				if err := n.AddPeer(&targetPeer); err != nil {
+					log.Error("Add peer fail", err)
+				}
+				log.Debug("Peer address", targetPeer.Address())
 			}
-			n.SetNodes(strings.Join(mw.Peers, ","))
 		}
 	}
 }

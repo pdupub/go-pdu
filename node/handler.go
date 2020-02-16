@@ -29,6 +29,10 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+const (
+	localIPAddress = "127.0.0.1"
+)
+
 func (n Node) handleMessages(ws *websocket.Conn, w galaxy.Wave) (*core.Message, error) {
 	var msg core.Message
 	wm := w.(*galaxy.WaveMessages)
@@ -66,7 +70,8 @@ func (n Node) handleQuestion(ws *websocket.Conn, w galaxy.Wave) error {
 			return err
 		}
 	case galaxy.CmdPeers:
-		if err := p.SendPeers(n.peers); err != nil {
+		localPeer := &peer.Peer{IP: localIPAddress, Port: n.localPort, NodeKey: n.localNodeKey, UserID: n.tpUnlockedUser.ID()}
+		if err := p.SendPeers(n.peers, localPeer); err != nil {
 			return err
 		}
 	case galaxy.CmdMessages:

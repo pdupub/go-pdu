@@ -17,6 +17,7 @@
 package peer
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -54,6 +55,14 @@ func New(ip string, port uint64, nodeKey string) (*Peer, error) {
 	return &Peer{IP: ip, Port: port, NodeKey: nodeKey}, nil
 }
 
+// Key return key of peer
+func (p *Peer) ID() common.Hash {
+	hash := sha256.New()
+	hash.Reset()
+	hash.Write([]byte(p.Url()))
+	return common.Bytes2Hash(hash.Sum(nil))
+}
+
 // SetUserID set author of this peer
 func (p *Peer) SetUserID(userID common.Hash) {
 	if p.UserID != userID {
@@ -88,6 +97,12 @@ func (p *Peer) Close() error {
 // Url show the Peer ws url address
 func (p Peer) Url() string {
 	return fmt.Sprintf("ws://%s:%d/%s", p.IP, p.Port, p.NodeKey)
+}
+
+func (p Peer) Address() string {
+	// todo : address without p.UserID or not verified
+
+	return fmt.Sprintf("%s@%s:%d/%s", common.Hash2String(p.UserID), p.IP, p.Port, p.NodeKey)
 }
 
 // Connected return true if this peer is connected right now
@@ -174,15 +189,24 @@ func (p *Peer) SendMsgs(msgs []*core.Message) error {
 }
 
 // SendPeers is used to send peers of local node
-func (p *Peer) SendPeers(pm map[common.Hash]*Peer) error {
+func (p *Peer) SendPeers(pm map[common.Hash]*Peer, localPeer *Peer) error {
 	if !p.Connected() {
 		return errPeerNotReachable
 	}
-	var targetPeers []string
-	for id, item := range pm {
-		nodeAddress := fmt.Sprintf("%s@%s:%d/%s", common.Hash2String(id), item.IP, item.Port, item.NodeKey)
+	var targetPeers [][]byte
+	for _, item := range pm {
+		nodeAddress, err := json.Marshal(item)
+		if err != nil {
+			return err
+		}
 		targetPeers = append(targetPeers, nodeAddress)
 	}
+
+	localAddress, err := json.Marshal(localPeer)
+	if err != nil {
+		return err
+	}
+	targetPeers = append(targetPeers, localAddress)
 	wave := &galaxy.WavePeers{
 		Peers: targetPeers,
 	}
