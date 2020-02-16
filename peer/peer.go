@@ -41,15 +41,30 @@ const (
 
 // Peer contain the info of websocket connection
 type Peer struct {
-	IP      string `json:"ip"`
-	Port    uint64 `json:"port"`
-	NodeKey string `json:"nodeKey"`
-	Conn    *websocket.Conn
+	IP       string      `json:"ip"`
+	Port     uint64      `json:"port"`
+	NodeKey  string      `json:"nodeKey"`
+	UserID   common.Hash `json:"userID"`
+	Verified bool        `json:"verified"`
+	Conn     *websocket.Conn
 }
 
 // New create new Peer
 func New(ip string, port uint64, nodeKey string) (*Peer, error) {
 	return &Peer{IP: ip, Port: port, NodeKey: nodeKey}, nil
+}
+
+// SetUserID set author of this peer
+func (p *Peer) SetUserID(userID common.Hash) {
+	if p.UserID != userID {
+		p.UserID = userID
+		p.Verified = false
+	}
+}
+
+// SetVerified set verified is true
+func (p *Peer) SetVerified() {
+	p.Verified = true
 }
 
 // Dial build ws connection
@@ -164,8 +179,8 @@ func (p *Peer) SendPeers(pm map[common.Hash]*Peer) error {
 		return errPeerNotReachable
 	}
 	var targetPeers []string
-	for id, p := range pm {
-		nodeAddress := fmt.Sprintf("%s@%s:%d/%s", common.Hash2String(id), p.IP, p.Port, p.NodeKey)
+	for id, item := range pm {
+		nodeAddress := fmt.Sprintf("%s@%s:%d/%s", common.Hash2String(id), item.IP, item.Port, item.NodeKey)
 		targetPeers = append(targetPeers, nodeAddress)
 	}
 	wave := &galaxy.WavePeers{
