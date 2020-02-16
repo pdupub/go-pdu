@@ -286,6 +286,7 @@ func (n *Node) runNode(sig <-chan struct{}, wait chan<- struct{}) {
 			log.Info("Update peers status")
 			n.updatePeersStatus()
 			n.syncPeers()
+			n.syncPingPong()
 			n.syncMsgFromPeers()
 		case <-sig:
 			log.Info("Stop server")

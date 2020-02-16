@@ -96,6 +96,31 @@ func (n *Node) syncPeers() {
 	}
 }
 
+func (n *Node) syncPingPong() {
+	log.Info("Ping other peers")
+	for _, peer := range n.peers {
+		if !peer.Connected() {
+			// todo : try to re dial peer
+			continue
+		}
+		if err := peer.SendPing(); err != nil {
+			log.Error(err)
+			continue
+		}
+
+		w, err := galaxy.ReceiveWave(peer.Conn)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		if w.Command() == galaxy.CmdPong {
+			log.Debug("Pong received success")
+			continue
+		}
+		log.Error("Pong received fail")
+	}
+}
+
 func (n *Node) syncMsgFromPeers() {
 	log.Info("Start Sync message from peers")
 	for _, peer := range n.peers {

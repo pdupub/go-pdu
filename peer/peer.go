@@ -189,6 +189,24 @@ func (p *Peer) SendRoots(user0, user1 *core.User) error {
 	return p.send(wave)
 }
 
+// SendPing is used for ping pong, send ping to peer
+func (p *Peer) SendPing() error {
+	if !p.Connected() {
+		return errPeerNotReachable
+	}
+	wave := &galaxy.WavePing{}
+	return p.send(wave)
+}
+
+// SendPong is used for ping pong, send pong back to peer
+func (p *Peer) SendPong() error {
+	if !p.Connected() {
+		return errPeerNotReachable
+	}
+	wave := &galaxy.WavePong{}
+	return p.send(wave)
+}
+
 // origin used when peer dial
 func (p Peer) origin() string {
 	return fmt.Sprintf("http://%s:%d/", p.IP, p.Port)

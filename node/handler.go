@@ -46,6 +46,12 @@ func (n Node) handleMessages(ws *websocket.Conn, w galaxy.Wave) (*core.Message, 
 	return &msg, nil
 }
 
+func (n Node) handlePing(ws *websocket.Conn, w galaxy.Wave) error {
+	//wm := w.(*galaxy.WavePing)
+	p := peer.Peer{Conn: ws}
+	return p.SendPong()
+}
+
 func (n Node) handleQuestion(ws *websocket.Conn, w galaxy.Wave) error {
 	wm := w.(*galaxy.WaveQuestion)
 	p := peer.Peer{Conn: ws}
@@ -110,6 +116,10 @@ func (n Node) wsHandler(ws *websocket.Conn) {
 			}
 		} else if w.Command() == galaxy.CmdQuestion {
 			if err := n.handleQuestion(ws, w); err != nil {
+				log.Error(err)
+			}
+		} else if w.Command() == galaxy.CmdPing {
+			if err := n.handlePing(ws, w); err != nil {
 				log.Error(err)
 			}
 		}
