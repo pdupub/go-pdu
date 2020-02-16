@@ -297,9 +297,9 @@ func (n *Node) runNode(sig <-chan struct{}, wait chan<- struct{}) {
 }
 
 func (n *Node) updatePeersStatus() {
-	for _, peer := range n.peers {
-		if !peer.Connected() {
-			if err := peer.Dial(); err != nil {
+	for _, p := range n.peers {
+		if !p.Connected() {
+			if err := p.Dial(); err != nil {
 				log.Error(err)
 			}
 		}
@@ -355,11 +355,11 @@ func (n *Node) runTimeProof(sig <-chan struct{}, wait chan<- struct{}) {
 }
 
 func (n Node) broadcastMsg(msg *core.Message) error {
-	for _, peer := range n.peers {
-		if !peer.Connected() {
+	for _, p := range n.peers {
+		if !p.Connected() {
 			continue
 		}
-		if err := peer.SendMsg(msg); err != nil {
+		if err := p.SendMsg(msg); err != nil {
 			return err
 		}
 	}

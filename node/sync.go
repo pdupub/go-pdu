@@ -34,16 +34,16 @@ const (
 
 func (n *Node) syncCreateUniverse() {
 	log.Info("Start sync universe start", "create universe")
-	for _, peer := range n.peers {
-		if !peer.Connected() {
+	for _, p := range n.peers {
+		if !p.Connected() {
 			continue
 		}
-		if err := peer.SendQuestion(galaxy.CmdRoots); err != nil {
+		if err := p.SendQuestion(galaxy.CmdRoots); err != nil {
 			log.Error(err)
 			continue
 		}
 
-		w, err := galaxy.ReceiveWave(peer.Conn)
+		w, err := galaxy.ReceiveWave(p.Conn)
 		if err != nil {
 			log.Error(err)
 			continue
@@ -72,24 +72,24 @@ func (n *Node) syncCreateUniverse() {
 
 func (n *Node) syncPeers() {
 	log.Info("Start sync peers from othe node")
-	for _, peer := range n.peers {
-		if !peer.Connected() {
+	for _, p := range n.peers {
+		if !p.Connected() {
 			continue
 		}
-		if err := peer.SendQuestion(galaxy.CmdPeers); err != nil {
+		if err := p.SendQuestion(galaxy.CmdPeers); err != nil {
 			log.Error(err)
 			continue
 		}
 
-		w, err := galaxy.ReceiveWave(peer.Conn)
+		w, err := galaxy.ReceiveWave(p.Conn)
 		if err != nil {
 			log.Error(err)
 			continue
 		}
 		if w.Command() == galaxy.CmdPeers {
 			mw := w.(*galaxy.WavePeers)
-			for _, peer := range mw.Peers {
-				log.Debug("Peer address", peer)
+			for _, op := range mw.Peers {
+				log.Debug("Peer address", op)
 			}
 			n.SetNodes(strings.Join(mw.Peers, ","))
 		}
@@ -98,17 +98,17 @@ func (n *Node) syncPeers() {
 
 func (n *Node) syncPingPong() {
 	log.Info("Ping other peers")
-	for _, peer := range n.peers {
-		if !peer.Connected() {
+	for _, p := range n.peers {
+		if !p.Connected() {
 			// todo : try to re dial peer
 			continue
 		}
-		if err := peer.SendPing(); err != nil {
+		if err := p.SendPing(); err != nil {
 			log.Error(err)
 			continue
 		}
 
-		w, err := galaxy.ReceiveWave(peer.Conn)
+		w, err := galaxy.ReceiveWave(p.Conn)
 		if err != nil {
 			log.Error(err)
 			continue
@@ -123,8 +123,8 @@ func (n *Node) syncPingPong() {
 
 func (n *Node) syncMsgFromPeers() {
 	log.Info("Start Sync message from peers")
-	for _, peer := range n.peers {
-		if !peer.Connected() {
+	for _, p := range n.peers {
+		if !p.Connected() {
 			continue
 		}
 		// get current last message
@@ -140,7 +140,7 @@ func (n *Node) syncMsgFromPeers() {
 
 		var msgs []*core.Message
 		for i := 0; i < maxQuestionPerWave; i++ {
-			resMsg, err := n.syncMsg(peer, lastMsgID)
+			resMsg, err := n.syncMsg(p, lastMsgID)
 			if err != nil {
 				log.Error(err)
 				break
@@ -168,15 +168,15 @@ func (n *Node) syncMsgFromPeers() {
 	}
 }
 
-func (n *Node) syncMsg(peer *peer.Peer, lastMsgID common.Hash) ([]*core.Message, error) {
+func (n *Node) syncMsg(p *peer.Peer, lastMsgID common.Hash) ([]*core.Message, error) {
 	var msgs []*core.Message
 	// send question
-	if err := peer.SendQuestion(galaxy.CmdMessages, lastMsgID); err != nil {
+	if err := p.SendQuestion(galaxy.CmdMessages, lastMsgID); err != nil {
 		return nil, err
 	}
 
 	// recevie message
-	w, err := galaxy.ReceiveWave(peer.Conn)
+	w, err := galaxy.ReceiveWave(p.Conn)
 	if err != nil {
 		return nil, err
 	}
