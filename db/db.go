@@ -77,5 +77,6 @@ type UDB interface {
 	DeleteBucket(string) error
 	Set(string, string, []byte) error
 	Get(string, string) ([]byte, error)
+	Del(string, string) error
 	Find(string, string, ...int) ([]*Row, error)
 }

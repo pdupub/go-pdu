@@ -16,11 +16,15 @@
 
 package galaxy
 
-import "github.com/pdupub/go-pdu/core"
+import (
+	"github.com/pdupub/go-pdu/common"
+	"github.com/pdupub/go-pdu/core"
+)
 
 // WaveRoots implements the Wave interface and represents a getRoots message.
 type WaveRoots struct {
-	Users [2]*core.User `json:"users"`
+	WaveID common.Hash   `json:"waveID"`
+	Users  [2]*core.User `json:"users"`
 }
 
 // Command returns the protocol command string for the wave.

@@ -19,6 +19,8 @@ package common
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
+	"math/rand"
 )
 
 // Hash is fixed length []byte
@@ -69,4 +71,8 @@ func String2Hash(s string) (Hash, error) {
 		return Hash{}, err
 	}
 	return Bytes2Hash(h), nil
+}
+
+func CreateHash() Hash {
+	return Bytes2Hash(new(big.Int).SetUint64(rand.Uint64()).Bytes())
 }

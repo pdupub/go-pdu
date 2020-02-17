@@ -16,9 +16,12 @@
 
 package galaxy
 
+import "github.com/pdupub/go-pdu/common"
+
 // WaveMessages implements the Wave interface and represents a broadcast new message.
 type WaveMessages struct {
-	Msgs [][]byte `json:"msgs"`
+	WaveID common.Hash `json:"waveID"`
+	Msgs   [][]byte    `json:"msgs"`
 }
 
 // Command returns the protocol command string for the wave.

@@ -16,8 +16,11 @@
 
 package galaxy
 
+import "github.com/pdupub/go-pdu/common"
+
 // WavePing implements the Wave interface and represents a ping message
 type WavePing struct {
+	WaveID common.Hash `json:"waveID"`
 }
 
 // Command returns the protocol command string for the wave.

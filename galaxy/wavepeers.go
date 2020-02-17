@@ -16,9 +16,12 @@
 
 package galaxy
 
+import "github.com/pdupub/go-pdu/common"
+
 // WavePeers implements the Wave interface and represent node peers.
 type WavePeers struct {
-	Peers [][]byte `json:"peers"`
+	WaveID common.Hash `json:"waveID"`
+	Peers  [][]byte    `json:"peers"`
 }
 
 // Command returns the protocol command string for the wave.

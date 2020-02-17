@@ -16,8 +16,11 @@
 
 package galaxy
 
+import "github.com/pdupub/go-pdu/common"
+
 // WaveVersion implements the Wave interface and represents a galaxy protocol version message.
 type WaveVersion struct {
+	WaveID common.Hash `json:"waveID"`
 }
 
 // Command returns the protocol command string for the wave.

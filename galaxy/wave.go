@@ -42,13 +42,15 @@ const (
 	CmdRoots    = "roots"
 	CmdMessages = "messages"
 	CmdPing     = "ping"
-	CmdPong     = "aler"
+	CmdPong     = "pong"
 	CmdUser     = "user"
 	CmdPeers    = "peers"
+	CmdErr      = "error"
 )
 
 var (
 	errWaveLengthTooLong = errors.New("wave length too long")
+	errWaveHeaderMissing = errors.New("wave header missing")
 )
 
 // Wave is an interface that describes a galaxy information.
@@ -75,6 +77,8 @@ func makeEmptyWave(command string) (Wave, error) {
 		wave = &WaveUser{}
 	case CmdPeers:
 		wave = &WavePeers{}
+	case CmdErr:
+		wave = &WaveErr{}
 	default:
 		return nil, fmt.Errorf("unhandled command [%s]", command)
 	}
@@ -116,6 +120,9 @@ func ReceiveWave(r io.Reader) (Wave, error) {
 	n, err := r.Read(waveBytes)
 	if err != nil {
 		return nil, err
+	}
+	if n <= WaveHeaderSize {
+		return nil, errWaveHeaderMissing
 	}
 	waveHeader := waveBytes[:WaveHeaderSize]
 	waveBody := waveBytes[WaveHeaderSize:n]

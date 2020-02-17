@@ -18,12 +18,13 @@ package galaxy
 
 import "github.com/pdupub/go-pdu/common"
 
-// WaveUser implements the Wave interface and represents a checkUser message.
-type WaveUser struct {
+// WaveErr return err of wave questions
+type WaveErr struct {
 	WaveID common.Hash `json:"waveID"`
+	Err    string      `json:"err"`
 }
 
 // Command returns the protocol command string for the wave.
-func (w *WaveUser) Command() string {
-	return CmdUser
+func (w *WaveErr) Command() string {
+	return CmdErr
 }

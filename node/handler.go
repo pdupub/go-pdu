@@ -19,6 +19,7 @@ package node
 import (
 	"encoding/json"
 	"math/big"
+	"strings"
 
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/common/log"
@@ -33,30 +34,30 @@ const (
 	localIPAddress = "127.0.0.1"
 )
 
-func (n Node) handleMessages(ws *websocket.Conn, w galaxy.Wave) (*core.Message, error) {
+func (n Node) handleMessages(ws *websocket.Conn, w galaxy.Wave) (*core.Message, common.Hash, error) {
 	var msg core.Message
 	wm := w.(*galaxy.WaveMessages)
 	for _, wmsg := range wm.Msgs {
 		if err := json.Unmarshal(wmsg, &msg); err != nil {
-			return nil, err
+			return nil, wm.WaveID, err
 		}
 	}
 	// save msg (universe & udb)
 	if err := n.saveMsg(&msg); err != nil {
-		return nil, err
+		return nil, wm.WaveID, err
 	} else if err := n.broadcastMsg(&msg); err != nil {
-		return nil, err
+		return nil, wm.WaveID, err
 	}
-	return &msg, nil
+	return &msg, wm.WaveID, nil
 }
 
-func (n Node) handlePing(ws *websocket.Conn, w galaxy.Wave) error {
-	//wm := w.(*galaxy.WavePing)
+func (n Node) handlePing(ws *websocket.Conn, w galaxy.Wave) (common.Hash, error) {
+	wm := w.(*galaxy.WavePing)
 	p := peer.Peer{Conn: ws}
-	return p.SendPong()
+	return wm.WaveID, p.SendPong(wm.WaveID)
 }
 
-func (n Node) handleQuestion(ws *websocket.Conn, w galaxy.Wave) error {
+func (n Node) handleQuestion(ws *websocket.Conn, w galaxy.Wave) (common.Hash, error) {
 	wm := w.(*galaxy.WaveQuestion)
 	p := peer.Peer{Conn: ws}
 	//log.Debug("Received question", wm.Cmd)
@@ -64,16 +65,29 @@ func (n Node) handleQuestion(ws *websocket.Conn, w galaxy.Wave) error {
 	case galaxy.CmdRoots:
 		user0, user1, err := db.GetRootUsers(n.udb)
 		if err != nil {
-			return err
+			return wm.WaveID, err
 		}
-		if err = p.SendRoots(user0, user1); err != nil {
-			return err
+
+		if err = p.SendRoots(wm.WaveID, user0, user1); err != nil {
+			return wm.WaveID, err
 		}
 	case galaxy.CmdPeers:
-		localPeer := &peer.Peer{IP: localIPAddress, Port: n.localPort, NodeKey: n.localNodeKey, UserID: n.tpUnlockedUser.ID()}
-		if err := p.SendPeers(n.peers, localPeer); err != nil {
-			return err
+		if err := p.SendPeers(wm.WaveID, n.peers, n.localPeer()); err != nil {
+			return wm.WaveID, err
 		}
+
+		// add request peer to node.peers
+		var remotePeer peer.Peer
+		if err := json.Unmarshal(wm.Args[0], &remotePeer); err != nil {
+			return wm.WaveID, err
+		}
+		// get remote ip address
+		remoteAddr := strings.Split(ws.Request().RemoteAddr, ":")
+		remotePeer.IP = remoteAddr[0]
+		if err := n.AddPeer(&remotePeer); err != nil {
+			return wm.WaveID, err
+		}
+
 	case galaxy.CmdMessages:
 		var order, count *big.Int
 		var err error
@@ -83,14 +97,14 @@ func (n Node) handleQuestion(ws *websocket.Conn, w galaxy.Wave) error {
 		if msgID != common.Bytes2Hash([]byte{}) {
 			order, count, err = db.GetOrderCntByMsg(n.udb, msgID)
 			if err != nil {
-				return err
+				return wm.WaveID, err
 			}
 			order = order.Add(order, big.NewInt(1))
 		} else {
 			order = big.NewInt(0)
 			count, err = db.GetMsgCount(n.udb)
 			if err != nil {
-				return err
+				return wm.WaveID, err
 			}
 		}
 
@@ -98,34 +112,39 @@ func (n Node) handleQuestion(ws *websocket.Conn, w galaxy.Wave) error {
 			//log.Debug("Send msg from order", order, "size", peer.MaxMsgCountPerWave)
 			msgs = db.GetMsgByOrder(n.udb, order, peer.MaxMsgCountPerWave)
 		}
-		if err = p.SendMsgs(msgs); err != nil {
-			return err
+		if err = p.SendMsgs(wm.WaveID, msgs); err != nil {
+			return wm.WaveID, err
 		}
 	}
-	return nil
+	return wm.WaveID, nil
 }
 
 func (n Node) wsHandler(ws *websocket.Conn) {
+	p := peer.Peer{Conn: ws}
 	for {
 		w, err := galaxy.ReceiveWave(ws)
 		if err != nil {
 			log.Error(err)
 			break
 		}
+
 		if w.Command() == galaxy.CmdMessages {
-			if msg, err := n.handleMessages(ws, w); err != nil {
-				//log.Error(err)
-				log.Debug(err)
+			if msg, waveID, err := n.handleMessages(ws, w); err != nil {
+				log.Error("Socket Handler", err)
+				p.SendErr(waveID, err)
 			} else {
 				log.Info("Received message", common.Hash2String(msg.ID()))
 			}
+
 		} else if w.Command() == galaxy.CmdQuestion {
-			if err := n.handleQuestion(ws, w); err != nil {
-				log.Error(err)
+			if waveID, err := n.handleQuestion(ws, w); err != nil {
+				log.Error("Socket Handler", err)
+				p.SendErr(waveID, err)
 			}
 		} else if w.Command() == galaxy.CmdPing {
-			if err := n.handlePing(ws, w); err != nil {
-				log.Error(err)
+			if waveID, err := n.handlePing(ws, w); err != nil {
+				log.Error("Socket Handler", err)
+				p.SendErr(waveID, err)
 			}
 		}
 	}

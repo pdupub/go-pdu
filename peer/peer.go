@@ -123,7 +123,7 @@ func (p *Peer) send(wave galaxy.Wave) error {
 }
 
 // SendQuestion is used to send question to peer
-func (p *Peer) SendQuestion(cmd string, args ...interface{}) error {
+func (p *Peer) SendQuestion(waveID common.Hash, cmd string, args ...interface{}) error {
 	if !p.Connected() {
 		return errPeerNotReachable
 	}
@@ -133,8 +133,9 @@ func (p *Peer) SendQuestion(cmd string, args ...interface{}) error {
 		return err
 	}
 	wave := &galaxy.WaveQuestion{
-		Cmd:  cmd,
-		Args: newArgs,
+		WaveID: waveID,
+		Cmd:    cmd,
+		Args:   newArgs,
 	}
 	return p.send(wave)
 }
@@ -162,12 +163,12 @@ func (p Peer) buildArgs(args ...interface{}) (result [][]byte, err error) {
 }
 
 // SendMsg is used to send msg to peer
-func (p *Peer) SendMsg(msg *core.Message) error {
-	return p.SendMsgs([]*core.Message{msg})
+func (p *Peer) SendMsg(waveID common.Hash, msg *core.Message) error {
+	return p.SendMsgs(waveID, []*core.Message{msg})
 }
 
 // SendMsgs is used to send mulitiple msgs
-func (p *Peer) SendMsgs(msgs []*core.Message) error {
+func (p *Peer) SendMsgs(waveID common.Hash, msgs []*core.Message) error {
 	if len(msgs) > MaxMsgCountPerWave {
 		msgs = msgs[:MaxMsgCountPerWave]
 	}
@@ -183,18 +184,22 @@ func (p *Peer) SendMsgs(msgs []*core.Message) error {
 		msgsB = append(msgsB, msgBytes)
 	}
 	wave := &galaxy.WaveMessages{
-		Msgs: msgsB,
+		WaveID: waveID,
+		Msgs:   msgsB,
 	}
 	return p.send(wave)
 }
 
 // SendPeers is used to send peers of local node
-func (p *Peer) SendPeers(pm map[common.Hash]*Peer, localPeer *Peer) error {
+func (p *Peer) SendPeers(waveID common.Hash, pm map[common.Hash]*Peer, localPeer *Peer) error {
 	if !p.Connected() {
 		return errPeerNotReachable
 	}
 	var targetPeers [][]byte
 	for _, item := range pm {
+		if item.Conn == nil {
+			continue
+		}
 		nodeAddress, err := json.Marshal(item)
 		if err != nil {
 			return err
@@ -208,13 +213,14 @@ func (p *Peer) SendPeers(pm map[common.Hash]*Peer, localPeer *Peer) error {
 	}
 	targetPeers = append(targetPeers, localAddress)
 	wave := &galaxy.WavePeers{
-		Peers: targetPeers,
+		WaveID: waveID,
+		Peers:  targetPeers,
 	}
 	return p.send(wave)
 }
 
 // SendRoots is used to send 2 roots to peer
-func (p *Peer) SendRoots(user0, user1 *core.User) error {
+func (p *Peer) SendRoots(waveID common.Hash, user0, user1 *core.User) error {
 	if !p.Connected() {
 		return errPeerNotReachable
 	}
@@ -222,31 +228,44 @@ func (p *Peer) SendRoots(user0, user1 *core.User) error {
 	users[0] = user0
 	users[1] = user1
 	wave := &galaxy.WaveRoots{
-		Users: users,
+		WaveID: waveID,
+		Users:  users,
 	}
 
 	return p.send(wave)
 }
 
 // SendPing is used for ping pong, send ping to peer
-func (p *Peer) SendPing() error {
+func (p *Peer) SendPing(waveID common.Hash) error {
 	if !p.Connected() {
 		return errPeerNotReachable
 	}
-	wave := &galaxy.WavePing{}
+	wave := &galaxy.WavePing{WaveID: waveID}
 	return p.send(wave)
 }
 
 // SendPong is used for ping pong, send pong back to peer
-func (p *Peer) SendPong() error {
+func (p *Peer) SendPong(waveID common.Hash) error {
 	if !p.Connected() {
 		return errPeerNotReachable
 	}
-	wave := &galaxy.WavePong{}
+	wave := &galaxy.WavePong{WaveID: waveID}
 	return p.send(wave)
 }
 
 // origin used when peer dial
 func (p Peer) origin() string {
 	return fmt.Sprintf("http://%s:%d/", p.IP, p.Port)
+}
+
+// SendErr is send the error of request back
+func (p *Peer) SendErr(waveID common.Hash, err error) error {
+	if !p.Connected() {
+		return errPeerNotReachable
+	}
+	wave := &galaxy.WaveErr{
+		WaveID: waveID,
+		Err:    err.Error(),
+	}
+	return p.send(wave)
 }

@@ -18,6 +18,7 @@ package node
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/common/log"
@@ -37,7 +38,8 @@ func (n *Node) syncCreateUniverse() {
 		if !p.Connected() {
 			continue
 		}
-		if err := p.SendQuestion(galaxy.CmdRoots); err != nil {
+
+		if err := p.SendQuestion(common.CreateHash(), galaxy.CmdRoots); err != nil {
 			log.Error(err)
 			continue
 		}
@@ -65,17 +67,26 @@ func (n *Node) syncCreateUniverse() {
 				continue
 			}
 			break
+		} else if w.Command() == galaxy.CmdErr {
+			mw := w.(*galaxy.WaveErr)
+			log.Error("Sync fail ", mw.Err)
 		}
 	}
 }
 
 func (n *Node) syncPeers() {
 	log.Info("Start sync peers from othe node")
+	localPeerBytes, err := json.Marshal(n.localPeer())
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
 	for _, p := range n.peers {
 		if !p.Connected() {
 			continue
 		}
-		if err := p.SendQuestion(galaxy.CmdPeers); err != nil {
+		if err := p.SendQuestion(common.CreateHash(), galaxy.CmdPeers, localPeerBytes); err != nil {
 			log.Error(err)
 			continue
 		}
@@ -96,10 +107,16 @@ func (n *Node) syncPeers() {
 				}
 
 				if err := n.AddPeer(&targetPeer); err != nil {
-					log.Error("Add peer fail", err)
+					if err != errPeerAlreadyExist {
+						log.Error("Add peer fail", err)
+					}
+					continue
 				}
 				log.Debug("Peer address", targetPeer.Address())
 			}
+		} else if w.Command() == galaxy.CmdErr {
+			mw := w.(*galaxy.WaveErr)
+			log.Error("Sync fail ", mw.Err)
 		}
 	}
 }
@@ -111,7 +128,9 @@ func (n *Node) syncPingPong() {
 			// todo : try to re dial peer
 			continue
 		}
-		if err := p.SendPing(); err != nil {
+		waveID := common.CreateHash()
+		log.Trace("Ping waveID", common.Hash2String(waveID))
+		if err := p.SendPing(waveID); err != nil {
 			log.Error(err)
 			continue
 		}
@@ -122,10 +141,13 @@ func (n *Node) syncPingPong() {
 			continue
 		}
 		if w.Command() == galaxy.CmdPong {
-			log.Debug("Pong received success")
+			mw := w.(*galaxy.WavePong)
+			log.Trace("Pong received success", common.Hash2String(mw.WaveID))
 			continue
+		} else if w.Command() == galaxy.CmdErr {
+			mw := w.(*galaxy.WaveErr)
+			log.Error("Sync fail ", mw.Err)
 		}
-		log.Error("Pong received fail")
 	}
 }
 
@@ -179,7 +201,7 @@ func (n *Node) syncMsgFromPeers() {
 func (n *Node) syncMsg(p *peer.Peer, lastMsgID common.Hash) ([]*core.Message, error) {
 	var msgs []*core.Message
 	// send question
-	if err := p.SendQuestion(galaxy.CmdMessages, lastMsgID); err != nil {
+	if err := p.SendQuestion(common.CreateHash(), galaxy.CmdMessages, lastMsgID); err != nil {
 		return nil, err
 	}
 
@@ -200,6 +222,9 @@ func (n *Node) syncMsg(p *peer.Peer, lastMsgID common.Hash) ([]*core.Message, er
 			}
 			msgs = append(msgs, &msg)
 		}
+	} else if w.Command() == galaxy.CmdErr {
+		mw := w.(*galaxy.WaveErr)
+		return nil, errors.New(mw.Err)
 	}
 	return msgs, nil
 }

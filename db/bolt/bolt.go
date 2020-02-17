@@ -19,8 +19,9 @@ package bolt
 import (
 	"bytes"
 	"errors"
-	"github.com/pdupub/go-pdu/db"
 	"time"
+
+	"github.com/pdupub/go-pdu/db"
 
 	"github.com/boltdb/bolt"
 )
@@ -87,6 +88,17 @@ func (u *UBoltDB) Get(bucketName, key string) (val []byte, err error) {
 		return nil
 	})
 	return val, err
+}
+
+// Del val by key from bucket
+func (u *UBoltDB) Del(bucketName, key string) error {
+	return u.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bucketName))
+		if b == nil {
+			return errBucketNotExist
+		}
+		return b.Delete([]byte(key))
+	})
 }
 
 // Find the rows from bucket by prefix

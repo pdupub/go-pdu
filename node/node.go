@@ -46,6 +46,7 @@ const (
 
 var (
 	errParseNodeAddressFail = errors.New("parse node address fail")
+	errPeerAlreadyExist     = errors.New("peer already exist")
 )
 
 // Node is struct of node
@@ -89,19 +90,20 @@ func (n *Node) SetLocalPort(port uint64) {
 
 // AddPeer add peer to local node peers
 func (n *Node) AddPeer(p *peer.Peer) error {
-	peerBytes, err := json.Marshal(p)
-	if err != nil {
-		return err
-	}
-	err = n.udb.Set(db.BucketPeer, common.Hash2String(p.ID()), peerBytes)
-	if err != nil {
-		return err
-	}
-
-	if po, ok := n.peers[p.ID()]; !ok || (po.Url() != p.Url() && p.NodeKey != n.localNodeKey) {
+	if po, ok := n.peers[p.ID()]; (!ok || po.Url() != p.Url()) && p.NodeKey != n.localNodeKey {
+		p.Conn = nil
+		peerBytes, err := json.Marshal(p)
+		if err != nil {
+			return err
+		}
+		err = n.udb.Set(db.BucketPeer, common.Hash2String(p.ID()), peerBytes)
+		if err != nil {
+			return err
+		}
 		n.peers[p.ID()] = p
+		return nil
 	}
-	return nil
+	return errPeerAlreadyExist
 }
 
 // SetNodes set the target nodes [userid@ip:port/nodeKey]
@@ -150,7 +152,7 @@ func (n *Node) initNetwork() error {
 	if err := n.setLocalNodeKey(); err != nil {
 		return err
 	}
-
+	log.Info("local peer id", common.Hash2String(n.localPeer().ID()))
 	// load peers from db
 	if err := n.loadPeers(); err != nil {
 		return err
@@ -178,7 +180,7 @@ func (n *Node) loadPeers() error {
 		}
 		if newPeer.NodeKey != n.localNodeKey {
 			n.peers[h] = &newPeer
-			log.Info("Peers load", newPeer.Url(), "by", common.Hash2String(h))
+			log.Info("Peers load", newPeer.Url(), "peerID", common.Hash2String(h))
 		}
 	}
 	return nil
@@ -292,7 +294,6 @@ func (n *Node) runNode(sig <-chan struct{}, wait chan<- struct{}) {
 	for {
 		select {
 		case <-time.After(time.Second * time.Duration(checkPeerInterval)):
-			log.Info("Update peers status")
 			n.updatePeersStatus()
 			n.syncPeers()
 			n.syncPingPong()
@@ -306,10 +307,15 @@ func (n *Node) runNode(sig <-chan struct{}, wait chan<- struct{}) {
 }
 
 func (n *Node) updatePeersStatus() {
-	for _, p := range n.peers {
+	log.Info("Update peers status")
+	for k, p := range n.peers {
 		if !p.Connected() {
 			if err := p.Dial(); err != nil {
 				log.Error(err)
+				// remove fail conn from n.peers
+				delete(n.peers, k)
+				// remove fail conn from db
+				n.udb.Del(db.BucketPeer, common.Hash2String(k))
 			}
 		}
 	}
@@ -368,7 +374,8 @@ func (n Node) broadcastMsg(msg *core.Message) error {
 		if !p.Connected() {
 			continue
 		}
-		if err := p.SendMsg(msg); err != nil {
+
+		if err := p.SendMsg(common.CreateHash(), msg); err != nil {
 			return err
 		}
 	}
@@ -437,4 +444,12 @@ func (n *Node) loadUniverse() (err error) {
 	}
 	log.Info("All", msgCount, "messages already be loaded")
 	return nil
+}
+
+func (n Node) localPeer() *peer.Peer {
+	localPeer := &peer.Peer{IP: localIPAddress, Port: n.localPort, NodeKey: n.localNodeKey}
+	if n.tpUnlockedUser != nil {
+		localPeer.UserID = n.tpUnlockedUser.ID()
+	}
+	return localPeer
 }

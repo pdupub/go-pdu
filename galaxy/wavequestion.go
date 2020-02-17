@@ -16,10 +16,13 @@
 
 package galaxy
 
+import "github.com/pdupub/go-pdu/common"
+
 // WaveQuestion implements the Wave interface and represents request info message.
 type WaveQuestion struct {
-	Cmd  string   `json:"cmd"`
-	Args [][]byte `json:"args"`
+	WaveID common.Hash `json:"waveID"`
+	Cmd    string      `json:"cmd"`
+	Args   [][]byte    `json:"args"`
 }
 
 // Command returns the protocol command string for the wave.
