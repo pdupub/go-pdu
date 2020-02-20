@@ -280,7 +280,6 @@ func (n *Node) runNode(sig <-chan struct{}, wait chan<- struct{}) {
 			select {
 			case <-time.After(time.Second):
 				n.updatePeersStatus()
-				n.syncCreateUniverse()
 			case <-sig:
 				log.Info("Stop server")
 				close(wait)
@@ -295,9 +294,6 @@ func (n *Node) runNode(sig <-chan struct{}, wait chan<- struct{}) {
 		select {
 		case <-time.After(time.Second * time.Duration(checkPeerInterval)):
 			n.updatePeersStatus()
-			n.syncPeers()
-			n.syncPingPong()
-			n.syncMsgFromPeers()
 		case <-sig:
 			log.Info("Stop server")
 			close(wait)

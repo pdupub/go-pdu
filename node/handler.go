@@ -18,6 +18,8 @@ package node
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"math/big"
 	"strings"
 
@@ -55,6 +57,55 @@ func (n Node) handlePing(ws *websocket.Conn, w galaxy.Wave) (common.Hash, error)
 	wm := w.(*galaxy.WavePing)
 	p := peer.Peer{Conn: ws}
 	return wm.WaveID, p.SendPong(wm.WaveID)
+}
+
+func (n Node) handlePong(ws *websocket.Conn, w galaxy.Wave) (common.Hash, error) {
+	wm := w.(*galaxy.WavePong)
+	return wm.WaveID, nil
+}
+
+func (n *Node) handleRoots(ws *websocket.Conn, w galaxy.Wave) (common.Hash, error) {
+	wm := w.(*galaxy.WaveRoots)
+	user0 := wm.Users[0]
+	user1 := wm.Users[1]
+	log.Info("user0", common.Hash2String(user0.ID()))
+	log.Info("user1", common.Hash2String(user1.ID()))
+	// update init step
+	var err error
+	n.initStep = db.StepRootsSaved
+	n.universe, err = core.NewUniverse(user0, user1)
+	if err != nil {
+		return wm.WaveID, err
+	}
+	if err := db.SaveRootUsers(n.udb, wm.Users[:]); err != nil {
+		return wm.WaveID, err
+	}
+	return wm.WaveID, nil
+}
+
+func (n *Node) handlePeers(ws *websocket.Conn, w galaxy.Wave) (common.Hash, error) {
+	wm := w.(*galaxy.WavePeers)
+	for _, peerBytes := range wm.Peers {
+		var targetPeer peer.Peer
+		err := json.Unmarshal(peerBytes, &targetPeer)
+		if err != nil {
+			return wm.WaveID, err
+		}
+
+		if err := n.AddPeer(&targetPeer); err != nil {
+			if err != errPeerAlreadyExist {
+				return wm.WaveID, err
+			}
+		}
+		log.Debug("Peer address", targetPeer.Address())
+	}
+	return wm.WaveID, nil
+}
+
+func (n *Node) handleErr(ws *websocket.Conn, w galaxy.Wave) (common.Hash, error) {
+	wm := w.(*galaxy.WaveErr)
+	log.Error("Peer handler err", wm.Err, "by wave", wm.WaveID)
+	return wm.WaveID, nil
 }
 
 func (n Node) handleQuestion(ws *websocket.Conn, w galaxy.Wave) (common.Hash, error) {
@@ -119,33 +170,68 @@ func (n Node) handleQuestion(ws *websocket.Conn, w galaxy.Wave) (common.Hash, er
 	return wm.WaveID, nil
 }
 
-func (n Node) wsHandler(ws *websocket.Conn) {
-	p := peer.Peer{Conn: ws}
-	for {
-		w, err := galaxy.ReceiveWave(ws)
-		if err != nil {
-			log.Error(err)
-			break
+func (n Node) handleWave(ws *websocket.Conn, w galaxy.Wave) (waveID common.Hash, err error) {
+	switch w.Command() {
+	case galaxy.CmdMessages:
+		var msg *core.Message
+		if msg, waveID, err = n.handleMessages(ws, w); err != nil {
+			return waveID, err
+		} else {
+			log.Info("Received message", common.Hash2String(msg.ID()))
 		}
+	case galaxy.CmdQuestion:
+		if waveID, err = n.handleQuestion(ws, w); err != nil {
+			return waveID, err
+		}
+	case galaxy.CmdPing:
+		if waveID, err = n.handlePing(ws, w); err != nil {
+			return waveID, err
+		}
+	case galaxy.CmdPong:
+		if waveID, err = n.handlePong(ws, w); err != nil {
+			return waveID, err
+		}
+	case galaxy.CmdRoots:
+		if waveID, err = n.handleRoots(ws, w); err != nil {
+			return waveID, err
+		}
+	case galaxy.CmdPeers:
+		if waveID, err = n.handlePeers(ws, w); err != nil {
+			return waveID, err
+		}
+	case galaxy.CmdErr:
+		if waveID, err = n.handleErr(ws, w); err != nil {
+			return waveID, err
+		}
+	default:
+		return common.Hash{}, fmt.Errorf("unhandled command [%s]", w.Command())
+	}
+	return waveID, nil
+}
 
-		if w.Command() == galaxy.CmdMessages {
-			if msg, waveID, err := n.handleMessages(ws, w); err != nil {
-				log.Error("Socket Handler", err)
-				p.SendErr(waveID, err)
-			} else {
-				log.Info("Received message", common.Hash2String(msg.ID()))
+func (n Node) serveReceiveWave(r io.Reader, chanWave chan<- galaxy.Wave) {
+	for {
+		w, err := galaxy.ReceiveWave(r)
+		if err != nil {
+			log.Error("Serve receive wave fail", err)
+			if err == io.EOF {
+				break
 			}
+			continue
+		}
+		chanWave <- w
+	}
+}
 
-		} else if w.Command() == galaxy.CmdQuestion {
-			if waveID, err := n.handleQuestion(ws, w); err != nil {
-				log.Error("Socket Handler", err)
-				p.SendErr(waveID, err)
-			}
-		} else if w.Command() == galaxy.CmdPing {
-			if waveID, err := n.handlePing(ws, w); err != nil {
-				log.Error("Socket Handler", err)
-				p.SendErr(waveID, err)
-			}
+func (n Node) wsHandler(ws *websocket.Conn) {
+	chanWave := make(chan galaxy.Wave)
+	p := peer.Peer{Conn: ws}
+	go n.serveReceiveWave(ws, chanWave)
+	for {
+		waveID, err := n.handleWave(ws, <-chanWave)
+		if err != nil {
+			log.Error("Socket Handler", err)
+			p.SendErr(waveID, err)
 		}
 	}
 }
