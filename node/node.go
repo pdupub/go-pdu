@@ -34,20 +34,34 @@ import (
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/db"
+	"github.com/pdupub/go-pdu/galaxy"
 	"github.com/pdupub/go-pdu/peer"
 	"golang.org/x/net/websocket"
 )
 
 const (
-	displayInterval   = 1000
-	maxLoadPeersCount = 1000
-	checkPeerInterval = 10
+	displayInterval     = 1000
+	maxLoadPeersCount   = 1000
+	checkPeerInterval   = 10
+	maxPingPongDelayCnt = 10
+	maxQuestionDelayCnt = 10
+	maxPeerLoopCnt      = 4
+	syncMsgLoopCnt      = 100
 )
 
 var (
 	errParseNodeAddressFail = errors.New("parse node address fail")
 	errPeerAlreadyExist     = errors.New("peer already exist")
+	errDuplicateWaveID      = errors.New("duplicate wave id")
+	errTargetWaveIDMissing  = errors.New("target wave id missing")
+	errNoNewMsgSync         = errors.New("no new message sync")
 )
+
+// Record is the struct of wave request
+type Record struct {
+	pid   common.Hash
+	delay int
+}
 
 // Node is struct of node
 type Node struct {
@@ -61,17 +75,27 @@ type Node struct {
 	localNodeKey         string
 	peers                map[common.Hash]*peer.Peer
 	initStep             uint64
+	pingpongRecord       map[common.Hash]*Record
+	questionRecord       map[common.Hash]*Record
+	wsAcceptMsg          bool
+	peerSyncCnt          map[common.Hash]int
+	lastSyncMsg          common.Hash
 }
 
 // New is used to create new node
 func New(udb db.UDB) (node *Node, err error) {
 	node = &Node{
-		udb:        udb,
-		tpInterval: uint64(1),
-		localPort:  DefaultLocalPort,
-		peers:      make(map[common.Hash]*peer.Peer),
+		udb:            udb,
+		tpInterval:     uint64(1),
+		localPort:      DefaultLocalPort,
+		peers:          make(map[common.Hash]*peer.Peer),
+		pingpongRecord: make(map[common.Hash]*Record),
+		questionRecord: make(map[common.Hash]*Record),
+		wsAcceptMsg:    false,
+		peerSyncCnt:    make(map[common.Hash]int),
+		lastSyncMsg:    common.Hash{},
 	}
-
+	rand.Seed(time.Now().UnixNano())
 	if err := node.loadUniverse(); err != nil {
 		return nil, err
 	}
@@ -270,51 +294,193 @@ func (n *Node) runLocalServe() {
 	}
 }
 
-func (n *Node) runNode(sig <-chan struct{}, wait chan<- struct{}) {
-	// create universe if need
-	if n.initStep < db.StepRootsSaved {
-		for {
-			if n.initStep >= db.StepRootsSaved {
-				break
-			}
-			select {
-			case <-time.After(time.Second):
-				n.updatePeersStatus()
-			case <-sig:
-				log.Info("Stop server")
-				close(wait)
-				return
+func (n *Node) removePeer(k common.Hash) {
+	// remove fail conn from n.peers
+	delete(n.peers, k)
+	//
+	delete(n.peerSyncCnt, k)
+	// remove fail conn from db
+	n.udb.Del(db.BucketPeer, common.Hash2String(k))
+}
 
-			}
+func (n *Node) checkRecord() {
+	for waveID, r := range n.pingpongRecord {
+		r.delay++
+		if r.delay > maxPingPongDelayCnt {
+			// remove this record
+			delete(n.pingpongRecord, waveID)
+			// remove this peer
+			n.removePeer(r.pid)
 		}
+		//log.Trace("current status", common.Hash2String(waveID), "delay", r.delay)
 	}
-
-	// run node
-	for {
-		select {
-		case <-time.After(time.Second * time.Duration(checkPeerInterval)):
-			n.updatePeersStatus()
-		case <-sig:
-			log.Info("Stop server")
-			close(wait)
-			return
+	for waveID, r := range n.questionRecord {
+		r.delay++
+		if r.delay > maxQuestionDelayCnt {
+			log.Error("current question", common.Hash2String(waveID), "delay", r.delay)
+			// remove this record
+			delete(n.questionRecord, waveID)
 		}
 	}
 }
 
-func (n *Node) updatePeersStatus() {
-	log.Info("Update peers status")
-	for k, p := range n.peers {
-		if !p.Connected() {
-			if err := p.Dial(); err != nil {
-				log.Error(err)
-				// remove fail conn from n.peers
-				delete(n.peers, k)
-				// remove fail conn from db
-				n.udb.Del(db.BucketPeer, common.Hash2String(k))
+func (n *Node) askPeers(pid common.Hash) error {
+	p := n.peers[pid]
+	localPeerBytes, err := json.Marshal(n.localPeer())
+	if err != nil {
+		return err
+	}
+	waveID := common.CreateHash()
+	if err := p.SendQuestion(waveID, galaxy.CmdPeers, localPeerBytes); err != nil {
+		return err
+	}
+	if err := n.recordQuestion(pid, waveID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (n *Node) askMsg(pid common.Hash) error {
+	p := n.peers[pid]
+	// get current last message
+	lastMsg, err := db.GetLastMsg(n.udb)
+	var lastMsgID common.Hash
+	if err != nil && err != db.ErrMessageNotFound {
+		return err
+	}
+	if lastMsg != nil {
+		lastMsgID = lastMsg.ID()
+	}
+
+	if lastMsg != nil && lastMsgID == n.lastSyncMsg {
+		return errNoNewMsgSync
+	}
+
+	waveID := common.CreateHash()
+	if err := p.SendQuestion(waveID, galaxy.CmdMessages, lastMsgID); err != nil {
+		return err
+	}
+	if err := n.recordQuestion(pid, waveID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (n *Node) runNode(sig <-chan struct{}, wait chan<- struct{}) {
+	// run node
+	chanWave := make(chan galaxy.Wave)
+	chanWSig := make(chan common.Hash)
+	peerLoopCnt := make(map[common.Hash]uint64)
+
+	for {
+		select {
+		case <-time.After(time.Second * time.Duration(checkPeerInterval)):
+			log.Info("Update information from peers")
+			n.checkRecord()
+			for k, p := range n.peers {
+				if !p.Connected() {
+					if err := p.Dial(); err != nil {
+						log.Error(err)
+						n.removePeer(k)
+						continue
+					}
+					if err := n.askPeers(k); err != nil {
+						log.Error(err)
+						continue
+					}
+					go n.serveReceiveWave(p.Conn, k, chanWave, chanWSig)
+				} else {
+					if loopCnt, ok := peerLoopCnt[k]; !ok || loopCnt >= maxPeerLoopCnt {
+						peerLoopCnt[k] = 0
+					}
+					peerLoopCnt[k]++
+					// ping each of peer
+					waveID := common.CreateHash()
+					if err := p.SendPing(waveID); err != nil {
+						n.removePeer(k)
+						continue
+					}
+					if err := n.recordPing(k, waveID); err != nil {
+						log.Error(err)
+					}
+
+					// get roots if universe not exist, so break if not err
+					if n.initStep < db.StepRootsSaved {
+						waveID = common.CreateHash()
+						if err := p.SendQuestion(waveID, galaxy.CmdRoots); err != nil {
+							log.Error(err)
+							continue
+						} else {
+							if err := n.recordQuestion(k, waveID); err != nil {
+								log.Error(err)
+							}
+							break
+						}
+					}
+
+					// sync from peers,
+					// todo : set n.wsAcceptMsg
+					if peerLoopCnt[k] == 1 {
+						log.Trace("Start to sync from other peer ")
+						n.peerSyncCnt[k] = syncMsgLoopCnt
+						if err := n.askMsg(k); err != nil {
+							log.Error(err)
+							continue
+						}
+					} else {
+						n.peerSyncCnt[k] = 0
+					}
+
+				}
+			}
+		case k := <-chanWSig:
+			n.removePeer(k)
+		case <-sig:
+			log.Info("Stop server")
+			close(wait)
+			return
+		case w := <-chanWave:
+			waveID, err := n.handleWave(nil, w, true)
+			if err != nil {
+				//log.Trace("Peer handler fail", err, "waveID", common.Hash2String(waveID))
+			} else {
+				// sync msg if n.peerSyncCnt > 0
+				if r, ok := n.questionRecord[waveID]; ok && w.Command() == galaxy.CmdMessages {
+					if left, ok := n.peerSyncCnt[r.pid]; ok && left > 0 {
+						n.peerSyncCnt[r.pid] = left - 1
+						if err := n.askMsg(r.pid); err != nil {
+							log.Error(err)
+							n.peerSyncCnt[r.pid] = 0
+						}
+					}
+				}
+			}
+
+			if w.Command() == galaxy.CmdPong {
+				delete(n.pingpongRecord, waveID)
+			} else {
+				delete(n.questionRecord, waveID)
 			}
 		}
 	}
+}
+
+func (n *Node) recordQuestion(peerID, waveID common.Hash) error {
+	if _, ok := n.questionRecord[waveID]; !ok {
+		n.questionRecord[waveID] = &Record{pid: peerID, delay: 0}
+	} else {
+		return errDuplicateWaveID
+	}
+	return nil
+}
+
+func (n *Node) recordPing(peerID, waveID common.Hash) error {
+	if _, ok := n.pingpongRecord[waveID]; !ok {
+		n.pingpongRecord[waveID] = &Record{pid: peerID, delay: 0}
+	} else {
+		return errDuplicateWaveID
+	}
+	return nil
 }
 
 func (n *Node) runTimeProof(sig <-chan struct{}, wait chan<- struct{}) {
