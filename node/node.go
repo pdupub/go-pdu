@@ -308,7 +308,7 @@ func (n *Node) checkRecord() {
 		r.delay++
 		if r.delay > maxPingPongDelayCnt {
 			// remove this record
-			delete(n.pingpongRecord, waveID)
+			n.delRecord(waveID, galaxy.CmdPong)
 			// remove this peer
 			n.removePeer(r.pid)
 		}
@@ -319,51 +319,9 @@ func (n *Node) checkRecord() {
 		if r.delay > maxQuestionDelayCnt {
 			log.Error("current question", common.Hash2String(waveID), "delay", r.delay)
 			// remove this record
-			delete(n.questionRecord, waveID)
+			n.delRecord(waveID, galaxy.CmdQuestion)
 		}
 	}
-}
-
-func (n *Node) askPeers(pid common.Hash) error {
-	p := n.peers[pid]
-	localPeerBytes, err := json.Marshal(n.localPeer())
-	if err != nil {
-		return err
-	}
-	waveID := common.CreateHash()
-	if err := p.SendQuestion(waveID, galaxy.CmdPeers, localPeerBytes); err != nil {
-		return err
-	}
-	if err := n.recordQuestion(pid, waveID); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (n *Node) askMsg(pid common.Hash) error {
-	p := n.peers[pid]
-	// get current last message
-	lastMsg, err := db.GetLastMsg(n.udb)
-	var lastMsgID common.Hash
-	if err != nil && err != db.ErrMessageNotFound {
-		return err
-	}
-	if lastMsg != nil {
-		lastMsgID = lastMsg.ID()
-	}
-
-	if lastMsg != nil && lastMsgID == n.lastSyncMsg {
-		return errNoNewMsgSync
-	}
-
-	waveID := common.CreateHash()
-	if err := p.SendQuestion(waveID, galaxy.CmdMessages, lastMsgID); err != nil {
-		return err
-	}
-	if err := n.recordQuestion(pid, waveID); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (n *Node) runNode(sig <-chan struct{}, wait chan<- struct{}) {
@@ -394,32 +352,22 @@ func (n *Node) runNode(sig <-chan struct{}, wait chan<- struct{}) {
 						peerLoopCnt[k] = 0
 					}
 					peerLoopCnt[k]++
-					// ping each of peer
-					waveID := common.CreateHash()
-					if err := p.SendPing(waveID); err != nil {
-						n.removePeer(k)
-						continue
-					}
-					if err := n.recordPing(k, waveID); err != nil {
+
+					if err := n.askPing(k); err != nil {
 						log.Error(err)
+						continue
 					}
 
 					// get roots if universe not exist, so break if not err
 					if n.initStep < db.StepRootsSaved {
-						waveID = common.CreateHash()
-						if err := p.SendQuestion(waveID, galaxy.CmdRoots); err != nil {
+						if err := n.askRoots(k); err != nil {
 							log.Error(err)
 							continue
-						} else {
-							if err := n.recordQuestion(k, waveID); err != nil {
-								log.Error(err)
-							}
-							break
 						}
+						break // done for this loop
 					}
 
 					// sync from peers,
-					// todo : set n.wsAcceptMsg
 					if peerLoopCnt[k] == 1 {
 						log.Trace("Start to sync from other peer ")
 						n.peerSyncCnt[k] = syncMsgLoopCnt
@@ -443,44 +391,13 @@ func (n *Node) runNode(sig <-chan struct{}, wait chan<- struct{}) {
 			waveID, err := n.handleWave(nil, w, true)
 			if err != nil {
 				//log.Trace("Peer handler fail", err, "waveID", common.Hash2String(waveID))
-			} else {
-				// sync msg if n.peerSyncCnt > 0
-				if r, ok := n.questionRecord[waveID]; ok && w.Command() == galaxy.CmdMessages {
-					if left, ok := n.peerSyncCnt[r.pid]; ok && left > 0 {
-						n.peerSyncCnt[r.pid] = left - 1
-						if err := n.askMsg(r.pid); err != nil {
-							log.Error(err)
-							n.peerSyncCnt[r.pid] = 0
-						}
-					}
-				}
+			} else if w.Command() == galaxy.CmdMessages {
+				n.reAskMsg(waveID)
 			}
+			n.delRecord(waveID, w.Command())
 
-			if w.Command() == galaxy.CmdPong {
-				delete(n.pingpongRecord, waveID)
-			} else {
-				delete(n.questionRecord, waveID)
-			}
 		}
 	}
-}
-
-func (n *Node) recordQuestion(peerID, waveID common.Hash) error {
-	if _, ok := n.questionRecord[waveID]; !ok {
-		n.questionRecord[waveID] = &Record{pid: peerID, delay: 0}
-	} else {
-		return errDuplicateWaveID
-	}
-	return nil
-}
-
-func (n *Node) recordPing(peerID, waveID common.Hash) error {
-	if _, ok := n.pingpongRecord[waveID]; !ok {
-		n.pingpongRecord[waveID] = &Record{pid: peerID, delay: 0}
-	} else {
-		return errDuplicateWaveID
-	}
-	return nil
 }
 
 func (n *Node) runTimeProof(sig <-chan struct{}, wait chan<- struct{}) {

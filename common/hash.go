@@ -73,6 +73,7 @@ func String2Hash(s string) (Hash, error) {
 	return Bytes2Hash(h), nil
 }
 
+// CreateHash is used to create a random hash as wave id
 func CreateHash() Hash {
 	return Bytes2Hash(new(big.Int).SetUint64(rand.Uint64()).Bytes())
 }
