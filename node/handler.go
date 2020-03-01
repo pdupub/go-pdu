@@ -215,7 +215,7 @@ func (n *Node) handleWave(ws *websocket.Conn, w galaxy.Wave, alwaysTrue bool) (w
 	default:
 		waveID, err = common.Hash{}, fmt.Errorf("unhandled command [%s]", w.Command())
 	}
-	return waveID, nil
+	return waveID, err
 }
 
 func (n Node) serveReceiveWave(r io.Reader, kh common.Hash, chanWave chan<- galaxy.Wave, chanSig chan<- common.Hash) {
