@@ -34,6 +34,7 @@ import (
 
 var (
 	errRootVertexParentsExist       = errors.New("root vertex parents exist")
+	errRootNumberOutOfRange         = errors.New("root number is out of range")
 	errVertexAlreadyExist           = errors.New("vertex already exist")
 	errVertexNotExist               = errors.New("vertex not exist")
 	errVertexHasChildren            = errors.New("vertex has children")
@@ -41,29 +42,51 @@ var (
 	errVertexParentNumberOutOfRange = errors.New("parent number is out of range")
 )
 
+const (
+	defaultMaxParentsCount = 255
+)
+
 // DAG is directed acyclic graph
 type DAG struct {
 	mu              sync.Mutex
-	maxParentsCount int // 0 = unlimited
+	maxParentsCount int
+	strict          bool
 	store           map[interface{}]*Vertex
 	ids             []interface{}
+	rufd            uint // unfilled root count
 }
 
 // NewDAG create new DAG by root vertexes
-func NewDAG(rootVertex ...*Vertex) (*DAG, error) {
+func NewDAG(rootCnt uint, rootVertex ...*Vertex) (*DAG, error) {
 	dag := &DAG{
-		store: make(map[interface{}]*Vertex),
-		ids:   []interface{}{},
+		maxParentsCount: defaultMaxParentsCount,
+		strict:          true,
+		store:           make(map[interface{}]*Vertex),
+		ids:             []interface{}{},
+		rufd:            rootCnt,
 	}
 	for _, vertex := range rootVertex {
-		if len(vertex.Parents()) == 0 {
+		if dag.rufd == 0 {
+			return nil, errRootNumberOutOfRange
+		} else if len(vertex.Parents()) == 0 {
 			dag.store[vertex.ID()] = vertex
 			dag.ids = append(dag.ids, vertex.ID())
+			dag.rufd--
 		} else {
 			return nil, errRootVertexParentsExist
 		}
 	}
 	return dag, nil
+}
+
+// IsStrict return if all parents must exist when add vertex
+func (d *DAG) IsStrict() bool {
+	return d.strict
+}
+
+// SetStrict set if the parents rule is strict or not
+func (d *DAG) SetStrict(b bool) {
+	d.strict = b
 }
 
 // SetMaxParentsCount set the max number of parents one vertex can get
@@ -72,13 +95,12 @@ func (d *DAG) SetMaxParentsCount(maxCount int) {
 }
 
 // GetMaxParentsCount get the max number of parents
-func (d DAG) GetMaxParentsCount() int {
+func (d *DAG) GetMaxParentsCount() int {
 	return d.maxParentsCount
 }
 
 // GetVertex can get vertex by ID
 func (d *DAG) GetVertex(id interface{}) *Vertex {
-
 	if _, ok := d.store[id]; !ok {
 		return nil
 	}
@@ -94,13 +116,22 @@ func (d *DAG) AddVertex(vertex *Vertex) error {
 		return errVertexAlreadyExist
 	}
 
-	if d.maxParentsCount != 0 && len(vertex.Parents()) > d.maxParentsCount {
+	if len(vertex.Parents()) > d.maxParentsCount {
 		return errVertexParentNumberOutOfRange
 	}
 	// check parents cloud be found
+	sequenceExist := false
 	for _, pid := range vertex.Parents() {
 		if _, ok := d.store[pid]; !ok {
 			return errVertexParentNotExist
+		}
+		sequenceExist = true
+	}
+	if !sequenceExist {
+		if d.rufd == 0 {
+			return errRootNumberOutOfRange
+		} else {
+			d.rufd--
 		}
 	}
 	// add vertex into store
@@ -141,12 +172,12 @@ func (d *DAG) DelVertex(id interface{}) error {
 }
 
 // GetIDs get id list of DAG
-func (d DAG) GetIDs() []interface{} {
+func (d *DAG) GetIDs() []interface{} {
 	return d.ids
 }
 
 // String is used to print the DAG content
-func (d DAG) String() string {
+func (d *DAG) String() string {
 	result := fmt.Sprintf("maxParentsCount : %d - storeSize : %d \n", d.maxParentsCount, len(d.store))
 	for k, v := range d.store {
 		result += fmt.Sprintf("k = %v \n", k)

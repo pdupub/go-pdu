@@ -87,7 +87,7 @@ func NewUniverse(Eve, Adam *User) (*Universe, error) {
 	if err != nil {
 		return nil, err
 	}
-	userD, err := dag.NewDAG(EveVertex, AdamVertex)
+	userD, err := dag.NewDAG(2, EveVertex, AdamVertex)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +202,7 @@ func (u *Universe) initializeSpaceTime(msgSpaceTime *Message, ref *MsgReference)
 		return err
 	}
 	if u.stD == nil {
-		stD, err := dag.NewDAG(stVertex)
+		stD, err := dag.NewDAG(1, stVertex)
 		if err != nil {
 			return err
 		}
@@ -280,7 +280,7 @@ func (u *Universe) initializeMsgD(msg *Message) error {
 	if err != nil {
 		return err
 	}
-	msgD, err := dag.NewDAG(msgVertex)
+	msgD, err := dag.NewDAG(1, msgVertex)
 	if err != nil {
 		return err
 	}
@@ -306,7 +306,7 @@ func (u *Universe) createSpaceTime(msg *Message, ref *MsgReference) (*SpaceTime,
 	if err != nil {
 		return nil, err
 	}
-	timeProofDag, err := dag.NewDAG(timeVertex)
+	timeProofDag, err := dag.NewDAG(1, timeVertex)
 	if err != nil {
 		return nil, err
 	}
@@ -347,7 +347,7 @@ func (u *Universe) createSpaceTime(msg *Message, ref *MsgReference) (*SpaceTime,
 }
 
 func (u Universe) createUserStateD(st *SpaceTime, ref *MsgReference) (*dag.DAG, error) {
-	newUserStateD, err := dag.NewDAG()
+	newUserStateD, err := dag.NewDAG(2)
 	if err != nil {
 		return nil, err
 	}
@@ -367,6 +367,7 @@ func (u Universe) createUserStateD(st *SpaceTime, ref *MsgReference) (*dag.DAG, 
 		if err != nil {
 			return nil, err
 		}
+
 		newUserStateD.AddVertex(userStateVertex)
 	}
 	return newUserStateD, nil
@@ -376,6 +377,7 @@ func (u *Universe) updateTimeProof(msg *Message) error {
 	if vertex := u.stD.GetVertex(msg.SenderID); vertex != nil {
 		st := vertex.Value().(*SpaceTime)
 		var currentSeq uint64 = 1
+		var ref interface{}
 		for _, r := range msg.Reference {
 			if r.SenderID == msg.SenderID {
 				refVertex := st.timeProofD.GetVertex(r.MsgID)
@@ -383,11 +385,12 @@ func (u *Universe) updateTimeProof(msg *Message) error {
 					refSeq := refVertex.Value().(uint64)
 					if currentSeq <= refSeq {
 						currentSeq = refSeq + 1
+						ref = r.MsgID
 					}
 				}
 			}
 		}
-		timeVertex, err := dag.NewVertex(msg.ID(), currentSeq)
+		timeVertex, err := dag.NewVertex(msg.ID(), currentSeq, ref)
 		if err != nil {
 			return err
 		}
@@ -421,13 +424,12 @@ func (u *Universe) addUserByMsg(msg *Message) error {
 	userAdded := false
 	for _, ref := range msg.Reference {
 		if err := u.addUserToSpaceTime(ref, dobContent, user); err != nil {
-
 			continue
-		} else {
-			// at least add into one space time
-			userAdded = true
 		}
+		// at least add into one space time
+		userAdded = true
 	}
+
 	if !userAdded {
 		return errNewUserAddFail
 	}

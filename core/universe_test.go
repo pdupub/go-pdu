@@ -20,11 +20,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"testing"
+
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/core/rule"
 	"github.com/pdupub/go-pdu/crypto"
-	"testing"
 )
 
 var (

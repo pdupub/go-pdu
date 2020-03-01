@@ -23,7 +23,7 @@ import (
 func TestDAG_AddVertex(t *testing.T) {
 	v1, _ := NewVertex("id-1", "hello world")
 	v2, _ := NewVertex("id-2", "hello you")
-	dag, err := NewDAG(v1, v2)
+	dag, err := NewDAG(2, v1, v2)
 	if err != nil {
 		t.Errorf("create DAG fail , err : %s", err)
 	}
@@ -66,10 +66,52 @@ func TestDAG_AddVertex(t *testing.T) {
 	}
 }
 
+func TestDAG_AddVertex2(t *testing.T) {
+	v1, _ := NewVertex("id-1", "hello world")
+	v2, _ := NewVertex("id-2", "hello you")
+
+	dag, err := NewDAG(3)
+	if err != nil {
+		t.Errorf("create DAG fail , err : %s", err)
+	}
+
+	if len(dag.GetIDs()) != 0 {
+		t.Errorf("id number not match, should be %d, dag getIDs is %d", 0, dag.GetIDs())
+	}
+
+	if err := dag.AddVertex(v1); err != nil {
+		t.Errorf("add vertex fail, err : %s", err)
+	}
+
+	if err := dag.AddVertex(v2); err != nil {
+		t.Errorf("add vertex fail, err : %s", err)
+	}
+
+	v3, _ := NewVertex("id-3", "hello you", v1, v2)
+	if err := dag.AddVertex(v3); err != nil {
+		t.Errorf("add vertex fail, err : %s", err)
+	}
+
+	v4, _ := NewVertex("id-4", "hello you", v1, v3)
+	if err := dag.AddVertex(v4); err != nil {
+		t.Errorf("add vertex fail, err : %s", err)
+	}
+
+	v5, _ := NewVertex("id-5", "hello you too")
+	if err := dag.AddVertex(v5); err != nil {
+		t.Errorf("add vertex fail, err : %s", err)
+	}
+
+	v6, _ := NewVertex("id-6", "hello you too")
+	if err := dag.AddVertex(v6); err != errRootNumberOutOfRange {
+		t.Errorf("add vertex should fail, err should be %s not %s", errRootNumberOutOfRange, err)
+	}
+}
+
 func TestDAG_DelVertex(t *testing.T) {
 	v1, _ := NewVertex("id-1", "hello world")
 	v2, _ := NewVertex("id-2", "hello you")
-	dag, err := NewDAG(v1, v2)
+	dag, err := NewDAG(2, v1, v2)
 	if err != nil {
 		t.Errorf("create DAG fail , err : %s", err)
 	}
