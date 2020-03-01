@@ -59,11 +59,11 @@ func (n *Node) askRoots(pid common.Hash) error {
 	waveID := common.CreateHash()
 	if err := p.SendQuestion(waveID, galaxy.CmdRoots); err != nil {
 		return err
-	} else {
-		if err := n.recordQuestion(pid, waveID); err != nil {
-			return err
-		}
 	}
+	if err := n.recordQuestion(pid, waveID); err != nil {
+		return err
+	}
+
 	return nil
 }
 
