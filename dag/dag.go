@@ -84,9 +84,10 @@ func (d *DAG) IsStrict() bool {
 	return d.strict
 }
 
-// SetStrict set if the parents rule is strict or not
-func (d *DAG) SetStrict(b bool) {
-	d.strict = b
+// RemoveStrict set strict to false, mean at least one parents exist in dag,
+// the vertex can be added, and the strict rule can not from false to true.
+func (d *DAG) RemoveStrict() {
+	d.strict = false
 }
 
 // SetMaxParentsCount set the max number of parents one vertex can get
@@ -122,7 +123,7 @@ func (d *DAG) AddVertex(vertex *Vertex) error {
 	// check parents cloud be found
 	sequenceExist := false
 	for _, pid := range vertex.Parents() {
-		if _, ok := d.store[pid]; !ok {
+		if _, ok := d.store[pid]; !ok && d.strict {
 			return errVertexParentNotExist
 		}
 		sequenceExist = true
@@ -130,16 +131,17 @@ func (d *DAG) AddVertex(vertex *Vertex) error {
 	if !sequenceExist {
 		if d.rufd == 0 {
 			return errRootNumberOutOfRange
-		} else {
-			d.rufd--
 		}
+		d.rufd--
 	}
 	// add vertex into store
 	d.store[vertex.ID()] = vertex
 	d.ids = append(d.ids, vertex.ID())
 	// update the parent vertex children
 	for _, pid := range vertex.Parents() {
-		d.store[pid].AddChild(vertex.ID())
+		if v, ok := d.store[pid]; ok {
+			v.AddChild(vertex.ID())
+		}
 	}
 	return nil
 }

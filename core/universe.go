@@ -64,14 +64,14 @@ func (ui UserInfo) String() string {
 type SpaceTime struct {
 	maxTimeSequence uint64
 	timeProofD      *dag.DAG // msg.id  : time sequence
-	userStateD      *dag.DAG // user.id : state of user
+	userStateD      *dag.DAG // user.id : state of user (strict)
 }
 
 // Universe contain many space time on different time line
 type Universe struct {
 	msgD  *dag.DAG // contain all messages valid in any universe (time proof)
-	userD *dag.DAG // contain all users valid in any universe (time proof)
-	stD   *dag.DAG // contain all space time, which is the origin thought of PDU
+	userD *dag.DAG // contain all users valid in any universe (time proof) (strict)
+	stD   *dag.DAG // contain all space time, which is the origin thought of PDU (strict)
 }
 
 // NewUniverse create Universe from two user with diff gender
@@ -284,6 +284,7 @@ func (u *Universe) initializeMsgD(msg *Message) error {
 	if err != nil {
 		return err
 	}
+	msgD.RemoveStrict()
 	u.msgD = msgD
 	return nil
 }
@@ -310,6 +311,7 @@ func (u *Universe) createSpaceTime(msg *Message, ref *MsgReference) (*SpaceTime,
 	if err != nil {
 		return nil, err
 	}
+	timeProofDag.RemoveStrict()
 
 	spaceTime := &SpaceTime{maxTimeSequence: timeVertex.Value().(uint64), timeProofD: timeProofDag, userStateD: nil}
 	if nil != u.stD {
