@@ -66,7 +66,7 @@ func TestDAG_AddVertex(t *testing.T) {
 	}
 }
 
-func TestDAG_AddVertex2(t *testing.T) {
+func TestDAG_AddVertex_RootCnt(t *testing.T) {
 	v1, _ := NewVertex("id-1", "hello world")
 	v2, _ := NewVertex("id-2", "hello you")
 
@@ -106,6 +106,50 @@ func TestDAG_AddVertex2(t *testing.T) {
 	if err := dag.AddVertex(v6); err != errRootNumberOutOfRange {
 		t.Errorf("add vertex should fail, err should be %s not %s", errRootNumberOutOfRange, err)
 	}
+}
+
+func TestDAG_AddVertex_Strict(t *testing.T) {
+	v1, _ := NewVertex("id-1", "hello world")
+	v2, _ := NewVertex("id-2", "hello you")
+
+	dag, err := NewDAG(2, v1, v2)
+	if err != nil {
+		t.Errorf("create DAG fail , err : %s", err)
+	}
+
+	v3, _ := NewVertex("id-3", "hello you", v1, v2)
+	v4, _ := NewVertex("id-4", "hello you", v1, v3)
+	v5, _ := NewVertex("id-5", "hello you too", v2, v3)
+
+	if err := dag.AddVertex(v4); err != errVertexParentNotExist {
+		t.Errorf("add vertex should fail with err %s ,but: %s", errVertexParentNotExist, err)
+	}
+	dag.RemoveStrict()
+	if err := dag.AddVertex(v4); err != nil {
+		t.Errorf("add vertex fail, err : %s", err)
+	}
+	if children, ok := dag.awcf[v3.ID()]; !ok {
+		t.Errorf("awaiting confirmation should have key %s", v3.ID())
+	} else if len(children) != 1 || children[0] != v4.ID() {
+		t.Errorf("children should contain 1 child ,which ID is %s", v4.ID())
+	}
+
+	if err := dag.AddVertex(v5); err != nil {
+		t.Errorf("add vertex fail, err : %s", err)
+	}
+	if children, ok := dag.awcf[v3.ID()]; !ok {
+		t.Errorf("awaiting confirmation should have key %s", v3.ID())
+	} else if len(children) != 2 || children[0] != v4.ID() || children[1] != v5.ID() {
+		t.Errorf("children should contain 2 children ,which IDs are %s and %s", v4.ID(), v5.ID())
+	}
+
+	if err := dag.AddVertex(v3); err != nil {
+		t.Errorf("add vertex fail, err : %s", err)
+	}
+	if _, ok := dag.awcf[v3.ID()]; ok {
+		t.Errorf("v3.ID %s should be deleted from awaiting confirmation", v3.ID())
+	}
+
 }
 
 func TestDAG_DelVertex(t *testing.T) {

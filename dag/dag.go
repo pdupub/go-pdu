@@ -53,7 +53,8 @@ type DAG struct {
 	strict          bool
 	store           map[interface{}]*Vertex
 	ids             []interface{}
-	rufd            uint // unfilled root count
+	rufd            uint                          // unfilled root count
+	awcf            map[interface{}][]interface{} // awaiting for confirmation
 }
 
 // NewDAG create new DAG by root vertexes
@@ -88,6 +89,7 @@ func (d *DAG) IsStrict() bool {
 // the vertex can be added, and the strict rule can not from false to true.
 func (d *DAG) RemoveStrict() {
 	d.strict = false
+	d.awcf = make(map[interface{}][]interface{})
 }
 
 // SetMaxParentsCount set the max number of parents one vertex can get
@@ -134,13 +136,30 @@ func (d *DAG) AddVertex(vertex *Vertex) error {
 		}
 		d.rufd--
 	}
+
+	// check if is in awcf
+	if !d.strict {
+		if children, ok := d.awcf[vertex.ID()]; ok {
+			for _, cID := range children {
+				vertex.AddChild(cID)
+			}
+		}
+		delete(d.awcf, vertex.ID())
+	}
 	// add vertex into store
 	d.store[vertex.ID()] = vertex
 	d.ids = append(d.ids, vertex.ID())
+
 	// update the parent vertex children
 	for _, pid := range vertex.Parents() {
 		if v, ok := d.store[pid]; ok {
 			v.AddChild(vertex.ID())
+		} else if !d.strict {
+			if _, ok := d.awcf[pid]; ok {
+				d.awcf[pid] = append(d.awcf[pid], vertex.ID())
+			} else {
+				d.awcf[pid] = []interface{}{vertex.ID()}
+			}
 		}
 	}
 	return nil
