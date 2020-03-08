@@ -523,7 +523,7 @@ func (n *Node) loadUniverse() (err error) {
 			return err
 		}
 		if i%displayInterval == 0 {
-			log.Info(i+1, "messages be loaded")
+			log.Info("message ", i+1, "be loaded", common.Hash2String(msg.ID()))
 		}
 	}
 	log.Info("All", msgCount, "messages already be loaded")
