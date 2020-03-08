@@ -46,13 +46,6 @@ func (ui UserInfo) String() string {
 	return fmt.Sprintf("localNickname:\t%s\tnatureState:\t%d\tnatureLastCosign:\t%d\tnatureLifeMaxSeq:\t%d\tnatureDOBSeq:\t%d\t", ui.localNickname, ui.natureState, ui.natureLastCosign, ui.natureLifeMaxSeq, ui.natureDOBSeq)
 }
 
-// SpaceTime contain time proof of this space time and the user info who is valid in this space time
-type SpaceTime struct {
-	maxTimeSequence uint64
-	timeProofD      *dag.DAG // msg.id  : time sequence
-	userStateD      *dag.DAG // user.id : state of user (strict)
-}
-
 // Universe contain many space time on different time line
 type Universe struct {
 	msgD  *dag.DAG // contain all messages valid in any universe (time proof)
