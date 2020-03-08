@@ -19,13 +19,13 @@ package core
 import (
 	"crypto/sha256"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"math/big"
+	"strconv"
+
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/core/rule"
 	"github.com/pdupub/go-pdu/crypto"
-	"math/big"
-	"strconv"
 )
 
 // User is the author of any msg in pdu
@@ -36,10 +36,6 @@ type User struct {
 	DOBMsg   *Message `json:"dobMsg"`
 	LifeTime uint64   `json:"lifeTime"`
 }
-
-var (
-	errContentTypeNotDOB = errors.New("content type is not TypeDOB")
-)
 
 // CreateRootUser try to create root user by public key
 // Gender of the root user is depend on key,name and extra
@@ -54,7 +50,7 @@ func CreateRootUser(key crypto.PublicKey, name, extra string) *User {
 // The BOD struct signed by both parents.
 func CreateNewUser(universe *Universe, msg *Message) (*User, error) {
 	if msg.Value.ContentType != TypeDOB {
-		return nil, errContentTypeNotDOB
+		return nil, ErrContentTypeNotDOB
 	}
 	var dobContent DOBMsgContent
 	if err := json.Unmarshal(msg.Value.Content, &dobContent); err != nil {
@@ -65,13 +61,13 @@ func CreateNewUser(universe *Universe, msg *Message) (*User, error) {
 	// calculate the life time of new user
 	p0 := universe.userD.GetVertex(dobContent.Parents[0].UserID)
 	if p0 == nil {
-		return nil, errUserNotExist
+		return nil, ErrUserNotExist
 	}
 	maxParentLifeTime := p0.Value().(*User).LifeTime
 
 	p1 := universe.userD.GetVertex(dobContent.Parents[1].UserID)
 	if p1 == nil {
-		return nil, errUserNotExist
+		return nil, ErrUserNotExist
 	}
 	if maxParentLifeTime < p1.Value().(*User).LifeTime {
 		maxParentLifeTime = p1.Value().(*User).LifeTime

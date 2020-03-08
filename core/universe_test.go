@@ -195,8 +195,8 @@ func TestUniverse_AddBODMsg(t *testing.T) {
 	if err := universe.AddMsg(msgDob); err != nil {
 		t.Error("add msg3 fail", err)
 	}
-	if err := universe.AddMsg(&msgDob2); err != errMsgAlreadyExist {
-		t.Errorf("add msg4 fail, err should be %s, but now err : %s", errMsgAlreadyExist, err)
+	if err := universe.AddMsg(&msgDob2); err != ErrMsgAlreadyExist {
+		t.Errorf("add msg4 fail, err should be %s, but now err : %s", ErrMsgAlreadyExist, err)
 	}
 
 	if maxSeq := universe.GetMaxSeq(Eve.ID()); maxSeq != 0 {
@@ -230,8 +230,8 @@ func TestUniverse_AddSpaceTime(t *testing.T) {
 		verifyMsg(msgT)
 	}
 
-	if err = universe.AddSpaceTime(msgNewST, msgNewST.Reference[0]); err != errCreateSpaceTimeFail {
-		t.Error("should be err : ", errCreateSpaceTimeFail)
+	if err = universe.AddSpaceTime(msgNewST, msgNewST.Reference[0]); err != ErrCreateSpaceTimeFail {
+		t.Error("should be err : ", ErrCreateSpaceTimeFail)
 	}
 	if err = universe.AddSpaceTime(msgNewST, msgNewST.Reference[1]); err != nil {
 		t.Error("add space time fail, err :", err)
@@ -333,7 +333,7 @@ func verifyMsg(msg *Message) error {
 	// verify msg
 	sender := universe.GetUserByID(msg.SenderID)
 	if sender == nil {
-		return errUserNotExist
+		return ErrUserNotExist
 	}
 	msg.Signature.PubKey = sender.Auth.PubKey
 
@@ -377,7 +377,7 @@ func createRootUser(male bool) (*crypto.PrivateKey, *User, error) {
 	if male == user.Gender() {
 		return privKey, user, nil
 	}
-	return nil, nil, errCreateRootUserFail
+	return nil, nil, ErrCreateRootUserFail
 }
 
 func displayAllSpaceTimeUserState() {
