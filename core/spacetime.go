@@ -22,5 +22,5 @@ import "github.com/pdupub/go-pdu/dag"
 type SpaceTime struct {
 	maxTimeSequence uint64
 	timeProofD      *dag.DAG // msg.id  : time sequence
-	userStateD      *dag.DAG // user.id : state of user (strict)
+	userStateD      *dag.DAG // user.id : user info (strict)
 }
