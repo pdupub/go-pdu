@@ -224,7 +224,7 @@ func TestUniverse_AddSpaceTime(t *testing.T) {
 		}
 		err = universe.AddMsg(msgT)
 		if err != nil {
-			log.Error("loop :", i, " err:", err)
+			t.Error("loop :", i, " err:", err)
 		}
 		ref = MsgReference{SenderID: Eve.ID(), MsgID: msgT.ID()}
 		verifyMsg(msgT)
@@ -252,11 +252,11 @@ func TestUniverse_AddUserOnSpaceTime(t *testing.T) {
 		}
 		msgT, err := CreateMsg(Eve, &v, priKeyEve, &ref)
 		if err != nil {
-			log.Error("loop :", i, " err:", err)
+			t.Error("loop :", i, " err:", err)
 		}
 		err = universe.AddMsg(msgT)
 		if err != nil {
-			log.Error("loop :", i, " err:", err)
+			t.Error("loop :", i, " err:", err)
 		}
 		ref = MsgReference{SenderID: Eve.ID(), MsgID: msgT.ID()}
 		verifyMsg(msgT)
@@ -291,11 +291,15 @@ func TestUniverse_AddUserOnSpaceTime(t *testing.T) {
 	if msgDob, err := CreateMsg(Eve, &valueDob, priKeyEve, &ref, &refAdam); err != nil {
 		t.Error("create msg fail , err :", err)
 	} else if err := universe.AddMsg(msgDob); err != nil {
-		log.Error("add user dob msg fail, err:", err)
+		t.Error("add user dob msg fail, err:", err)
 	}
 
 	// display the user state in each of the space time
 	//displayAllSpaceTimeUserState()
+
+}
+
+func TestUniverse_AddMsgWithDiffRef(t *testing.T) {
 
 }
 
