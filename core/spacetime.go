@@ -29,74 +29,108 @@ type SpaceTime struct {
 	userStateD      *dag.DAG // user.id : user info (strict)
 }
 
+// NewSpaceTime create the new space-time
 func NewSpaceTime(u *Universe, msg *Message, ref *MsgReference) (*SpaceTime, error) {
-	timeVertex, err := dag.NewVertex(msg.ID(), uint64(1))
-	if err != nil {
+	spaceTime := &SpaceTime{}
+	// create time proof and set max time sequence
+	if err := spaceTime.createTimeProofD(msg); err != nil {
 		return nil, err
 	}
-	timeProofDag, err := dag.NewDAG(1, timeVertex)
-	if err != nil {
-		return nil, err
-	}
-	timeProofDag.RemoveStrict()
 
-	spaceTime := &SpaceTime{maxTimeSequence: timeVertex.Value().(uint64), timeProofD: timeProofDag, userStateD: nil}
+	// create the user state
 	if nil != u.stD {
-		if ref == nil {
-			return nil, ErrCreateSpaceTimeFail
+		// base on parent space time
+		st, err := spaceTime.getParentSpaceTime(u, msg, ref)
+		if err != nil {
+			return nil, err
 		}
-		refExist := false
-		for _, v := range msg.Reference {
-			if v.SenderID == ref.SenderID && v.MsgID == ref.MsgID {
-				refExist = true
-			}
-		}
-		if !refExist {
-			return nil, ErrCreateSpaceTimeFail
-		}
-		stVertex := u.stD.GetVertex(ref.SenderID)
-		if stVertex == nil {
-			return nil, ErrCreateSpaceTimeFail
-		}
-		st := stVertex.Value().(*SpaceTime)
 		if err := spaceTime.createUserStateD(st, ref, u.userD); err != nil {
 			return nil, err
 		}
 	} else {
 		// create the userState for the first space time
-		if err := spaceTime.createUserStateD(nil, ref, u.userD); err != nil {
+		if err := spaceTime.createFirstUserStateD(ref, u.userD); err != nil {
 			return nil, err
 		}
 	}
 	return spaceTime, nil
 }
 
-func (s *SpaceTime) createUserStateD(st *SpaceTime, ref *MsgReference, userD *dag.DAG) error {
-	newUserStateD, err := dag.NewDAG(2)
-	newUserStateD.SetMaxParentsCount(2)
+// getParentSpaceTime return the parent space time. ref must be one of msg.ref. and SpaceTime of ref.SenderID must already be exist in universe.
+func (s SpaceTime) getParentSpaceTime(u *Universe, msg *Message, ref *MsgReference) (*SpaceTime, error) {
+	if ref == nil {
+		return nil, ErrCreateSpaceTimeFail
+	}
+	refExist := false
+	for _, v := range msg.Reference {
+		if v.SenderID == ref.SenderID && v.MsgID == ref.MsgID {
+			refExist = true
+		}
+	}
+	if !refExist {
+		return nil, ErrCreateSpaceTimeFail
+	}
+	stVertex := u.stD.GetVertex(ref.SenderID)
+	if stVertex == nil {
+		return nil, ErrCreateSpaceTimeFail
+	}
+	return stVertex.Value().(*SpaceTime), nil
+}
+
+// createTimeProofD create time proof DAG start from sequence 1
+func (s *SpaceTime) createTimeProofD(msg *Message) error {
+	timeSequence := uint64(1)
+	timeVertex, err := dag.NewVertex(msg.ID(), timeSequence)
 	if err != nil {
 		return err
 	}
-	refSeq := uint64(0)
-	lifeMaxSeq := rule.MaxLifeTime
-	userStateD := userD
-	if st != nil {
-		refSeq = st.timeProofD.GetVertex(ref.MsgID).Value().(uint64)
-		userStateD = st.userStateD
+	timeProofDag, err := dag.NewDAG(1, timeVertex)
+	if err != nil {
+		return err
 	}
-	for _, k := range userStateD.GetIDs() {
-		if st != nil {
-			lifeMaxSeq = userStateD.GetVertex(k).Value().(*UserInfo).natureLifeMaxSeq - refSeq
-		}
+	timeProofDag.RemoveStrict()
+	s.timeProofD = timeProofDag
+	s.maxTimeSequence = timeSequence
+	return nil
+}
 
-		userStateVertex, err := dag.NewVertex(k, &UserInfo{natureState: UserStatusNormal, natureLastCosign: 0, natureLifeMaxSeq: lifeMaxSeq, natureDOBSeq: 0, localNickname: userD.GetVertex(k).Value().(*User).Name}, userD.GetVertex(k).Parents()...)
+// createUserStateD create user state DAG base on userD
+func (s *SpaceTime) createUserStateD(st *SpaceTime, ref *MsgReference, userD *dag.DAG) error {
+	userStateD, err := dag.NewDAG(2)
+	if err != nil {
+		return err
+	}
+	userStateD.SetMaxParentsCount(2)
+
+	refSeq := st.timeProofD.GetVertex(ref.MsgID).Value().(uint64)
+	refUserStateD := st.userStateD
+	for _, k := range refUserStateD.GetIDs() {
+		lifeMaxSeq := refUserStateD.GetVertex(k).Value().(*UserInfo).natureLifeMaxSeq - refSeq
+		userStateVertex, err := dag.NewVertex(k, NewUserInfo(userD.GetVertex(k).Value().(*User).Name, lifeMaxSeq, 0), userD.GetVertex(k).Parents()...)
 		if err != nil {
 			return err
 		}
-
-		newUserStateD.AddVertex(userStateVertex)
+		userStateD.AddVertex(userStateVertex)
 	}
-	s.userStateD = newUserStateD
+	s.userStateD = userStateD
+	return nil
+}
+
+// createFirstUserStateD create user state DAG, this space time is from one of roots, who send the first message on universe
+func (s *SpaceTime) createFirstUserStateD(ref *MsgReference, userD *dag.DAG) error {
+	userStateD, err := dag.NewDAG(2)
+	if err != nil {
+		return err
+	}
+	userStateD.SetMaxParentsCount(2)
+	for _, k := range userD.GetIDs() {
+		userStateVertex, err := dag.NewVertex(k, NewUserInfo(userD.GetVertex(k).Value().(*User).Name, rule.MaxLifeTime, 0))
+		if err != nil {
+			return err
+		}
+		userStateD.AddVertex(userStateVertex)
+	}
+	s.userStateD = userStateD
 	return nil
 }
 
@@ -167,7 +201,7 @@ func (s *SpaceTime) AddUser(ref *MsgReference, dobContent DOBMsgContent, user *U
 			userInfo0.natureLastCosign = msgSeq
 			userInfo1.natureLastCosign = msgSeq
 			// add user in this st
-			userVertex, err := dag.NewVertex(user.ID(), &UserInfo{natureState: UserStatusNormal, natureLastCosign: msgSeq, natureLifeMaxSeq: user.LifeTime, natureDOBSeq: msgSeq, localNickname: user.Name}, p0, p1)
+			userVertex, err := dag.NewVertex(user.ID(), NewUserInfo(user.Name, user.LifeTime, msgSeq), p0, p1)
 			if err != nil {
 				return err
 			}

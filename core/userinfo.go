@@ -34,6 +34,12 @@ type UserInfo struct {
 	localNickname    string
 }
 
+// NewUserInfo create new user info for userstate in space time
+func NewUserInfo(name string, life uint64, BODSeq uint64) *UserInfo {
+	// when create new user info , the nature BOD sequence alse set to natureLastCosign, for easy to validate nex cosign
+	return &UserInfo{natureState: UserStatusNormal, natureLastCosign: BODSeq, natureLifeMaxSeq: life, natureDOBSeq: BODSeq, localNickname: name}
+}
+
 // String used to print user info
 func (ui UserInfo) String() string {
 	return fmt.Sprintf("localNickname:\t%s\tnatureState:\t%d\tnatureLastCosign:\t%d\tnatureLifeMaxSeq:\t%d\tnatureDOBSeq:\t%d\t", ui.localNickname, ui.natureState, ui.natureLastCosign, ui.natureLifeMaxSeq, ui.natureDOBSeq)
