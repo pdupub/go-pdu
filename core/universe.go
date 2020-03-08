@@ -336,6 +336,7 @@ func (u *Universe) createSpaceTime(msg *Message, ref *MsgReference) (*SpaceTime,
 
 func (u Universe) createUserStateD(st *SpaceTime, ref *MsgReference) (*dag.DAG, error) {
 	newUserStateD, err := dag.NewDAG(2)
+	newUserStateD.SetMaxParentsCount(2)
 	if err != nil {
 		return nil, err
 	}
