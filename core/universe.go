@@ -200,8 +200,10 @@ func (u Universe) GetMaxSeq(stID common.Hash) uint64 {
 // GetUserIDs return userIDs in this space time
 func (u Universe) GetUserIDs(stID common.Hash) []common.Hash {
 	var userIDs []common.Hash
-	if vertex := u.stD.GetVertex(stID); vertex != nil {
-		userIDs = vertex.Value().(*SpaceTime).GetUserIDs()
+	if u.stD != nil {
+		if vertex := u.stD.GetVertex(stID); vertex != nil {
+			userIDs = vertex.Value().(*SpaceTime).GetUserIDs()
+		}
 	}
 	return userIDs
 }
@@ -211,10 +213,7 @@ func (u Universe) GetUserIDs(stID common.Hash) []common.Hash {
 func (u Universe) GetUserInfo(userID common.Hash, stID common.Hash) *UserInfo {
 	if u.stD != nil {
 		if stVertex := u.stD.GetVertex(stID); stVertex != nil {
-			st := stVertex.Value().(*SpaceTime)
-			if uVertex := st.userStateD.GetVertex(userID); uVertex != nil {
-				return uVertex.Value().(*UserInfo)
-			}
+			return stVertex.Value().(*SpaceTime).GetUserInfo(userID)
 		}
 	}
 	return nil

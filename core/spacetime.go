@@ -100,10 +100,18 @@ func (s *SpaceTime) createUserStateD(st *SpaceTime, ref *MsgReference, userD *da
 	return nil
 }
 
-// GetUserIDs return users ID of space time
+// GetUserIDs returns users ID of space-time
 func (s SpaceTime) GetUserIDs() (userIDs []common.Hash) {
 	for _, id := range s.userStateD.GetIDs() {
 		userIDs = append(userIDs, id.(common.Hash))
 	}
 	return userIDs
+}
+
+// GetUserInfo returns userInfo in current space-time by userID
+func (s SpaceTime) GetUserInfo(userID common.Hash) *UserInfo {
+	if uVertex := s.userStateD.GetVertex(userID); uVertex != nil {
+		return uVertex.Value().(*UserInfo)
+	}
+	return nil
 }
