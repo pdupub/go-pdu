@@ -115,3 +115,32 @@ func (s SpaceTime) GetUserInfo(userID common.Hash) *UserInfo {
 	}
 	return nil
 }
+
+// UpdateTimeProof update the tp info
+func (s *SpaceTime) UpdateTimeProof(msg *Message) error {
+	var currentSeq uint64 = 1
+	var ref interface{}
+	for _, r := range msg.Reference {
+		if r.SenderID == msg.SenderID {
+			refVertex := s.timeProofD.GetVertex(r.MsgID)
+			if refVertex != nil {
+				refSeq := refVertex.Value().(uint64)
+				if currentSeq <= refSeq {
+					currentSeq = refSeq + 1
+					ref = r.MsgID
+				}
+			}
+		}
+	}
+	timeVertex, err := dag.NewVertex(msg.ID(), currentSeq, ref)
+	if err != nil {
+		return err
+	}
+
+	if err := s.timeProofD.AddVertex(timeVertex); err != nil {
+		return err
+	} else if currentSeq > s.maxTimeSequence {
+		s.maxTimeSequence = currentSeq
+	}
+	return nil
+}

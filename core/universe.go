@@ -258,31 +258,7 @@ func (u *Universe) processMsg(msg *Message) error {
 
 func (u *Universe) updateTimeProof(msg *Message) error {
 	if vertex := u.stD.GetVertex(msg.SenderID); vertex != nil {
-		st := vertex.Value().(*SpaceTime)
-		var currentSeq uint64 = 1
-		var ref interface{}
-		for _, r := range msg.Reference {
-			if r.SenderID == msg.SenderID {
-				refVertex := st.timeProofD.GetVertex(r.MsgID)
-				if refVertex != nil {
-					refSeq := refVertex.Value().(uint64)
-					if currentSeq <= refSeq {
-						currentSeq = refSeq + 1
-						ref = r.MsgID
-					}
-				}
-			}
-		}
-		timeVertex, err := dag.NewVertex(msg.ID(), currentSeq, ref)
-		if err != nil {
-			return err
-		}
-
-		if err := st.timeProofD.AddVertex(timeVertex); err != nil {
-			return err
-		} else if currentSeq > st.maxTimeSequence {
-			st.maxTimeSequence = currentSeq
-		}
+		return vertex.Value().(*SpaceTime).UpdateTimeProof(msg)
 	}
 	return nil
 }
