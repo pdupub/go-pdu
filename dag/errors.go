@@ -21,19 +21,26 @@ import "errors"
 var (
 	// ErrRootVertexParentsExist returns if create new dag with vertex has parent
 	ErrRootVertexParentsExist = errors.New("root vertex parents exist")
+
 	// ErrRootNumberOutOfRange returns if numbers of no parents vertex add to a dag is more then the number of roots
 	ErrRootNumberOutOfRange = errors.New("root number is out of range")
+
 	// ErrVertexAlreadyExist returns try to add a vertex which already exist in the dag
 	ErrVertexAlreadyExist = errors.New("vertex already exist")
+
 	// ErrVertexNotExist returns when try to get vertex by ID, but that vertex not exist
 	ErrVertexNotExist = errors.New("vertex not exist")
+
 	// ErrVertexHasChildren returns when try to delete a vertex, but that vertex have children vertex
 	ErrVertexHasChildren = errors.New("vertex has children")
+
 	// ErrVertexParentNotExist returns when dag is under the strict rule(default), try to add new vertex,
 	// but at least one parent is not exist in the dag
 	ErrVertexParentNotExist = errors.New("parent not exist")
+
 	// ErrVertexParentNumberOutOfRange returns parents number if more than setting parents number (default 255)
 	ErrVertexParentNumberOutOfRange = errors.New("parent number is out of range")
+
 	// ErrVertexIDInvalid returns try to user a invalid type as id of vertex
 	ErrVertexIDInvalid = errors.New("vertex ID invalid")
 )
