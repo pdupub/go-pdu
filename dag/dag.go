@@ -27,19 +27,8 @@
 package dag
 
 import (
-	"errors"
 	"fmt"
 	"sync"
-)
-
-var (
-	errRootVertexParentsExist       = errors.New("root vertex parents exist")
-	errRootNumberOutOfRange         = errors.New("root number is out of range")
-	errVertexAlreadyExist           = errors.New("vertex already exist")
-	errVertexNotExist               = errors.New("vertex not exist")
-	errVertexHasChildren            = errors.New("vertex has children")
-	errVertexParentNotExist         = errors.New("parent not exist")
-	errVertexParentNumberOutOfRange = errors.New("parent number is out of range")
 )
 
 const (
@@ -68,13 +57,13 @@ func NewDAG(rootCnt uint, rootVertex ...*Vertex) (*DAG, error) {
 	}
 	for _, vertex := range rootVertex {
 		if dag.rufd == 0 {
-			return nil, errRootNumberOutOfRange
+			return nil, ErrRootNumberOutOfRange
 		} else if len(vertex.Parents()) == 0 {
 			dag.store[vertex.ID()] = vertex
 			dag.ids = append(dag.ids, vertex.ID())
 			dag.rufd--
 		} else {
-			return nil, errRootVertexParentsExist
+			return nil, ErrRootVertexParentsExist
 		}
 	}
 	return dag, nil
@@ -116,23 +105,23 @@ func (d *DAG) AddVertex(vertex *Vertex) error {
 	defer d.mu.Unlock()
 	// check the vertex if exist or not
 	if _, ok := d.store[vertex.ID()]; ok {
-		return errVertexAlreadyExist
+		return ErrVertexAlreadyExist
 	}
 
 	if len(vertex.Parents()) > d.maxParentsCount {
-		return errVertexParentNumberOutOfRange
+		return ErrVertexParentNumberOutOfRange
 	}
 	// check parents cloud be found
 	sequenceExist := false
 	for _, pid := range vertex.Parents() {
 		if _, ok := d.store[pid]; !ok && d.strict {
-			return errVertexParentNotExist
+			return ErrVertexParentNotExist
 		}
 		sequenceExist = true
 	}
 	if !sequenceExist {
 		if d.rufd == 0 {
-			return errRootNumberOutOfRange
+			return ErrRootNumberOutOfRange
 		}
 		d.rufd--
 	}
@@ -171,9 +160,9 @@ func (d *DAG) DelVertex(id interface{}) error {
 	defer d.mu.Unlock()
 	// check the key exist and no children
 	if v, ok := d.store[id]; !ok {
-		return errVertexNotExist
+		return ErrVertexNotExist
 	} else if len(v.Children()) > 0 {
-		return errVertexHasChildren
+		return ErrVertexHasChildren
 	} else {
 		// remove this child vertex from parents
 		for _, pid := range v.Parents() {

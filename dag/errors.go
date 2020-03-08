@@ -16,33 +16,15 @@
 
 package dag
 
-import "testing"
+import "errors"
 
-func TestVertex(t *testing.T) {
-	vertex1, _ := NewVertex("id-1", "hello world")
-	vertex2, _ := NewVertex("id-2", "hello world again")
-
-	if _, err := NewVertex(vertex2, "invalid id"); err != ErrVertexIDInvalid {
-		t.Errorf("vertex id should be invalid")
-	}
-
-	vertex1.AddChild(vertex2)
-	if !vertex1.HasChild(vertex2) {
-		t.Errorf("vertex2 should be child ")
-	}
-
-	vertex2.AddChild(vertex1)
-	if vertex2.HasChild(vertex2) {
-		t.Errorf("vertex1 should be child ")
-	}
-
-	vertex2.DelChild(vertex1)
-	if vertex2.HasChild(vertex1) {
-		t.Errorf("vertex1 should be removed ")
-	}
-
-	vertex1.SetValue("nihao")
-	if vertex1.Value() != "nihao" {
-		t.Errorf("vertex1 set value fail")
-	}
-}
+var (
+	ErrRootVertexParentsExist       = errors.New("root vertex parents exist")
+	ErrRootNumberOutOfRange         = errors.New("root number is out of range")
+	ErrVertexAlreadyExist           = errors.New("vertex already exist")
+	ErrVertexNotExist               = errors.New("vertex not exist")
+	ErrVertexHasChildren            = errors.New("vertex has children")
+	ErrVertexParentNotExist         = errors.New("parent not exist")
+	ErrVertexParentNumberOutOfRange = errors.New("parent number is out of range")
+	ErrVertexIDInvalid              = errors.New("vertex ID invalid")
+)

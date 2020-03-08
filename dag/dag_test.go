@@ -42,17 +42,17 @@ func TestDAG_AddVertex(t *testing.T) {
 	}
 
 	v3b, _ := NewVertex("id-3", "hello", "id-1", "id-2")
-	if err := dag.AddVertex(v3b); err != errVertexAlreadyExist {
+	if err := dag.AddVertex(v3b); err != ErrVertexAlreadyExist {
 		t.Errorf("add vertex should not be success, becasuse id depulicate")
 	}
 
 	v4, _ := NewVertex("id-4", "hello", "id-0")
-	if err := dag.AddVertex(v4); err != errVertexParentNotExist {
+	if err := dag.AddVertex(v4); err != ErrVertexParentNotExist {
 		t.Errorf("add vertex should not be success, becasuse not parent exist")
 	}
 
 	v5, _ := NewVertex("id-5", "hello", "id-0", "id-1")
-	if err := dag.AddVertex(v5); err != errVertexParentNotExist {
+	if err := dag.AddVertex(v5); err != ErrVertexParentNotExist {
 		t.Errorf("add vertex should not be success, becasuse not all parents exist")
 	}
 
@@ -103,8 +103,8 @@ func TestDAG_AddVertex_RootCnt(t *testing.T) {
 	}
 
 	v6, _ := NewVertex("id-6", "hello you too")
-	if err := dag.AddVertex(v6); err != errRootNumberOutOfRange {
-		t.Errorf("add vertex should fail, err should be %s not %s", errRootNumberOutOfRange, err)
+	if err := dag.AddVertex(v6); err != ErrRootNumberOutOfRange {
+		t.Errorf("add vertex should fail, err should be %s not %s", ErrRootNumberOutOfRange, err)
 	}
 }
 
@@ -121,8 +121,8 @@ func TestDAG_AddVertex_Strict(t *testing.T) {
 	v4, _ := NewVertex("id-4", "hello you", v1, v3)
 	v5, _ := NewVertex("id-5", "hello you too", v2, v3)
 
-	if err := dag.AddVertex(v4); err != errVertexParentNotExist {
-		t.Errorf("add vertex should fail with err %s ,but: %s", errVertexParentNotExist, err)
+	if err := dag.AddVertex(v4); err != ErrVertexParentNotExist {
+		t.Errorf("add vertex should fail with err %s ,but: %s", ErrVertexParentNotExist, err)
 	}
 	dag.RemoveStrict()
 	if err := dag.AddVertex(v4); err != nil {
@@ -170,11 +170,11 @@ func TestDAG_DelVertex(t *testing.T) {
 		t.Errorf("add vertex fail, err : %s", err)
 	}
 
-	if err := dag.DelVertex("id-1"); err != errVertexHasChildren {
+	if err := dag.DelVertex("id-1"); err != ErrVertexHasChildren {
 		t.Errorf("del vertex should not be success, because child exist")
 	}
 
-	if err := dag.DelVertex("id-5"); err != errVertexNotExist {
+	if err := dag.DelVertex("id-5"); err != ErrVertexNotExist {
 		t.Error("del vertex should not be success, because id not exist")
 	}
 
@@ -189,7 +189,7 @@ func TestDAG_DelVertex(t *testing.T) {
 	if err := dag.DelVertex("id-2"); err != nil {
 		t.Errorf("del vertex fail, err : %s", err)
 	}
-	if err := dag.DelVertex("id-2"); err != errVertexNotExist {
+	if err := dag.DelVertex("id-2"); err != ErrVertexNotExist {
 		t.Errorf("del vertex fail should fail, because this key already being removed")
 	}
 }

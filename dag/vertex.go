@@ -17,12 +17,7 @@
 package dag
 
 import (
-	"errors"
 	"fmt"
-)
-
-var (
-	errVertexIDInvalid = errors.New("vertex ID invalid")
 )
 
 // Vertex is a node in DAG
@@ -39,9 +34,9 @@ func NewVertex(id interface{}, value interface{}, parents ...interface{}) (*Vert
 	// Vertex & *Vertex can not be used as Vertex.ID
 	switch id.(type) {
 	case *Vertex:
-		return nil, errVertexIDInvalid
+		return nil, ErrVertexIDInvalid
 	case Vertex:
-		return nil, errVertexIDInvalid
+		return nil, ErrVertexIDInvalid
 	}
 
 	v := &Vertex{
