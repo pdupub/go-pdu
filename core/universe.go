@@ -145,7 +145,7 @@ func (u *Universe) AddSpaceTime(msg *Message, ref *MsgReference) error {
 }
 
 func (u *Universe) initializeSpaceTime(msgSpaceTime *Message, ref *MsgReference) error {
-	st, err := u.createSpaceTime(msgSpaceTime, ref)
+	st, err := NewSpaceTime(u, msgSpaceTime, ref)
 	if err != nil {
 		return err
 	}
@@ -257,80 +257,6 @@ func (u *Universe) processMsg(msg *Message) error {
 		}
 	}
 	return nil
-}
-
-func (u *Universe) createSpaceTime(msg *Message, ref *MsgReference) (*SpaceTime, error) {
-	timeVertex, err := dag.NewVertex(msg.ID(), uint64(1))
-	if err != nil {
-		return nil, err
-	}
-	timeProofDag, err := dag.NewDAG(1, timeVertex)
-	if err != nil {
-		return nil, err
-	}
-	timeProofDag.RemoveStrict()
-
-	spaceTime := &SpaceTime{maxTimeSequence: timeVertex.Value().(uint64), timeProofD: timeProofDag, userStateD: nil}
-	if nil != u.stD {
-		if ref == nil {
-			return nil, ErrCreateSpaceTimeFail
-		}
-		refExist := false
-		for _, v := range msg.Reference {
-			if v.SenderID == ref.SenderID && v.MsgID == ref.MsgID {
-				refExist = true
-			}
-		}
-		if !refExist {
-			return nil, ErrCreateSpaceTimeFail
-		}
-		stVertex := u.stD.GetVertex(ref.SenderID)
-		if stVertex == nil {
-			return nil, ErrCreateSpaceTimeFail
-		}
-		st := stVertex.Value().(*SpaceTime)
-		userStateD, err := u.createUserStateD(st, ref)
-		if err != nil {
-			return nil, err
-		}
-		spaceTime.userStateD = userStateD
-	} else {
-		// create the userState for the first space time
-		userStateD, err := u.createUserStateD(nil, ref)
-		if err != nil {
-			return nil, err
-		}
-		spaceTime.userStateD = userStateD
-	}
-	return spaceTime, nil
-}
-
-func (u Universe) createUserStateD(st *SpaceTime, ref *MsgReference) (*dag.DAG, error) {
-	newUserStateD, err := dag.NewDAG(2)
-	newUserStateD.SetMaxParentsCount(2)
-	if err != nil {
-		return nil, err
-	}
-	refSeq := uint64(0)
-	lifeMaxSeq := rule.MaxLifeTime
-	userStateD := u.userD
-	if st != nil {
-		refSeq = st.timeProofD.GetVertex(ref.MsgID).Value().(uint64)
-		userStateD = st.userStateD
-	}
-	for _, k := range userStateD.GetIDs() {
-		if st != nil {
-			lifeMaxSeq = userStateD.GetVertex(k).Value().(*UserInfo).natureLifeMaxSeq - refSeq
-		}
-
-		userStateVertex, err := dag.NewVertex(k, &UserInfo{natureState: UserStatusNormal, natureLastCosign: 0, natureLifeMaxSeq: lifeMaxSeq, natureDOBSeq: 0, localNickname: u.userD.GetVertex(k).Value().(*User).Name}, u.userD.GetVertex(k).Parents()...)
-		if err != nil {
-			return nil, err
-		}
-
-		newUserStateD.AddVertex(userStateVertex)
-	}
-	return newUserStateD, nil
 }
 
 func (u *Universe) updateTimeProof(msg *Message) error {
