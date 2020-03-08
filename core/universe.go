@@ -18,33 +18,11 @@ package core
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/core/rule"
 	"github.com/pdupub/go-pdu/dag"
 )
-
-const (
-	// UserStatusNormal is the status of user, will be add more later, like punished...
-	UserStatusNormal = iota
-)
-
-// UserInfo contain the information except pass by DOBMsg
-// the state related to nature rule is start by nature
-// the other state start by local
-type UserInfo struct {
-	natureState      int    // validation state depend on nature rule
-	natureLastCosign uint64 // last DOB cosign
-	natureLifeMaxSeq uint64 // max time sequence this use can use as reference in this space time
-	natureDOBSeq     uint64 // sequence of dob in this space time
-	localNickname    string
-}
-
-// String used to print user info
-func (ui UserInfo) String() string {
-	return fmt.Sprintf("localNickname:\t%s\tnatureState:\t%d\tnatureLastCosign:\t%d\tnatureLifeMaxSeq:\t%d\tnatureDOBSeq:\t%d\t", ui.localNickname, ui.natureState, ui.natureLastCosign, ui.natureLifeMaxSeq, ui.natureDOBSeq)
-}
 
 // Universe contain many space time on different time line
 type Universe struct {
