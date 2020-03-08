@@ -294,6 +294,9 @@ func TestUniverse_AddUserOnSpaceTime(t *testing.T) {
 		log.Error("add user dob msg fail, err:", err)
 	}
 
+	// display the user state in each of the space time
+	//displayAllSpaceTimeUserState()
+
 }
 
 func loopAddMsg(universe *Universe, user *User, priKey *crypto.PrivateKey, lastMsgID common.Hash) error {
