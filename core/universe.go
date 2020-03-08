@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 
 	"github.com/pdupub/go-pdu/common"
-	"github.com/pdupub/go-pdu/core/rule"
 	"github.com/pdupub/go-pdu/dag"
 )
 
@@ -305,40 +304,8 @@ func (u *Universe) addUserByMsg(msg *Message) error {
 }
 
 func (u *Universe) addUserToSpaceTime(ref *MsgReference, dobContent DOBMsgContent, user *User) error {
-
-	if stV := u.stD.GetVertex(ref.SenderID); stV != nil {
-		st := stV.Value().(*SpaceTime)
-
-		if tp := st.timeProofD.GetVertex(ref.MsgID); tp != nil {
-			msgSeq := tp.Value().(uint64)
-			p0 := st.userStateD.GetVertex(dobContent.Parents[0].UserID)
-			if p0 == nil {
-				return ErrAddUserToSpaceTimeFail
-			}
-			userInfo0 := p0.Value().(*UserInfo)
-			p1 := st.userStateD.GetVertex(dobContent.Parents[1].UserID)
-			if p1 == nil {
-				return ErrAddUserToSpaceTimeFail
-			}
-			userInfo1 := p1.Value().(*UserInfo)
-			if userInfo0.natureDOBSeq+userInfo0.natureLifeMaxSeq > msgSeq &&
-				userInfo1.natureDOBSeq+userInfo1.natureLifeMaxSeq > msgSeq &&
-				msgSeq-userInfo0.natureLastCosign > rule.ReproductionInterval &&
-				msgSeq-userInfo1.natureLastCosign > rule.ReproductionInterval {
-				// update nature last cosign number as msgSeq
-				userInfo0.natureLastCosign = msgSeq
-				userInfo1.natureLastCosign = msgSeq
-				// add user in this st
-				userVertex, err := dag.NewVertex(user.ID(), &UserInfo{natureState: UserStatusNormal, natureLastCosign: msgSeq, natureLifeMaxSeq: user.LifeTime, natureDOBSeq: msgSeq, localNickname: user.Name}, p0, p1)
-				if err != nil {
-					return err
-				}
-				if err := st.userStateD.AddVertex(userVertex); err != nil {
-					return err
-				}
-				return nil
-			}
-		}
+	if vertex := u.stD.GetVertex(ref.SenderID); vertex != nil {
+		return vertex.Value().(*SpaceTime).AddUser(ref, dobContent, user)
 	}
 	return ErrAddUserToSpaceTimeFail
 }

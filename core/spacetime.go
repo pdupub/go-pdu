@@ -144,3 +144,38 @@ func (s *SpaceTime) UpdateTimeProof(msg *Message) error {
 	}
 	return nil
 }
+
+// AddUser add user info to this space time
+func (s *SpaceTime) AddUser(ref *MsgReference, dobContent DOBMsgContent, user *User) error {
+	if tp := s.timeProofD.GetVertex(ref.MsgID); tp != nil {
+		msgSeq := tp.Value().(uint64)
+		p0 := s.userStateD.GetVertex(dobContent.Parents[0].UserID)
+		if p0 == nil {
+			return ErrAddUserToSpaceTimeFail
+		}
+		userInfo0 := p0.Value().(*UserInfo)
+		p1 := s.userStateD.GetVertex(dobContent.Parents[1].UserID)
+		if p1 == nil {
+			return ErrAddUserToSpaceTimeFail
+		}
+		userInfo1 := p1.Value().(*UserInfo)
+		if userInfo0.natureDOBSeq+userInfo0.natureLifeMaxSeq > msgSeq &&
+			userInfo1.natureDOBSeq+userInfo1.natureLifeMaxSeq > msgSeq &&
+			msgSeq-userInfo0.natureLastCosign > rule.ReproductionInterval &&
+			msgSeq-userInfo1.natureLastCosign > rule.ReproductionInterval {
+			// update nature last cosign number as msgSeq
+			userInfo0.natureLastCosign = msgSeq
+			userInfo1.natureLastCosign = msgSeq
+			// add user in this st
+			userVertex, err := dag.NewVertex(user.ID(), &UserInfo{natureState: UserStatusNormal, natureLastCosign: msgSeq, natureLifeMaxSeq: user.LifeTime, natureDOBSeq: msgSeq, localNickname: user.Name}, p0, p1)
+			if err != nil {
+				return err
+			}
+			if err := s.userStateD.AddVertex(userVertex); err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+	return ErrAddUserToSpaceTimeFail
+}
