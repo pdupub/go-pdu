@@ -19,15 +19,36 @@ package core
 import "errors"
 
 var (
-	ErrUserNotExist           = errors.New("user not exist")
-	ErrMsgAlreadyExist        = errors.New("msg already exist")
-	ErrMsgNotFound            = errors.New("msg not found")
-	ErrTPAlreadyExist         = errors.New("time proof already exist")
-	ErrUserAlreadyExist       = errors.New("user already exist")
-	ErrNotSupportYet          = errors.New("not error, just not support yet")
-	ErrNewUserAddFail         = errors.New("new user add fail")
-	ErrCreateSpaceTimeFail    = errors.New("create space time fail")
+	// ErrUserNotExist returns fail to find a user
+	ErrUserNotExist = errors.New("user not exist")
+
+	// ErrMsgAlreadyExist returns try to add a message which already exist in universe
+	ErrMsgAlreadyExist = errors.New("msg already exist")
+
+	// ErrMsgNotFound returns fail to find a message
+	ErrMsgNotFound = errors.New("msg not found")
+
+	// ErrTPAlreadyExist returns time proof message already exist
+	ErrTPAlreadyExist = errors.New("time proof already exist")
+
+	// ErrUserAlreadyExist returns try a add a user who is already exist in unverse
+	ErrUserAlreadyExist = errors.New("user already exist")
+
+	// ErrNotSupportYet returns not support temp
+	ErrNotSupportYet = errors.New("not error, just not support yet")
+
+	// ErrNewUserAddFail returns add new user fail for unknown reason
+	ErrNewUserAddFail = errors.New("new user add fail")
+
+	// ErrCreateSpaceTimeFail returns when create space time fail
+	ErrCreateSpaceTimeFail = errors.New("create space time fail")
+
+	// ErrAddUserToSpaceTimeFail returns when add user to space time fail
 	ErrAddUserToSpaceTimeFail = errors.New("add user to space time fail")
-	ErrCreateRootUserFail     = errors.New("create root user fail")
-	ErrContentTypeNotDOB      = errors.New("content type is not TypeDOB")
+
+	// ErrCreateRootUserFail returns when create root user fail
+	ErrCreateRootUserFail = errors.New("create root user fail")
+
+	// ErrContentTypeNotDOB returns when try to add user from a not dob message
+	ErrContentTypeNotDOB = errors.New("content type is not TypeDOB")
 )
