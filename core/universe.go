@@ -201,9 +201,7 @@ func (u Universe) GetMaxSeq(stID common.Hash) uint64 {
 func (u Universe) GetUserIDs(stID common.Hash) []common.Hash {
 	var userIDs []common.Hash
 	if vertex := u.stD.GetVertex(stID); vertex != nil {
-		for _, id := range vertex.Value().(*SpaceTime).userStateD.GetIDs() {
-			userIDs = append(userIDs, id.(common.Hash))
-		}
+		userIDs = vertex.Value().(*SpaceTime).GetUserIDs()
 	}
 	return userIDs
 }

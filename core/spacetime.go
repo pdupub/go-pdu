@@ -17,6 +17,7 @@
 package core
 
 import (
+	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/core/rule"
 	"github.com/pdupub/go-pdu/dag"
 )
@@ -97,4 +98,12 @@ func (s *SpaceTime) createUserStateD(st *SpaceTime, ref *MsgReference, userD *da
 	}
 	s.userStateD = newUserStateD
 	return nil
+}
+
+// GetUserIDs return users ID of space time
+func (s SpaceTime) GetUserIDs() (userIDs []common.Hash) {
+	for _, id := range s.userStateD.GetIDs() {
+		userIDs = append(userIDs, id.(common.Hash))
+	}
+	return userIDs
 }
