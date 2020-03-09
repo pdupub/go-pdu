@@ -19,15 +19,16 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/pdupub/go-pdu/crypto"
-	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/utils"
+	"github.com/spf13/cobra"
+
 	"github.com/howeyc/gopass"
-	"github.com/pdupub/go-pdu/core"
 )
 
 const (
@@ -84,7 +85,7 @@ func generate() error {
 		return crypto.ErrSigTypeNotSupport
 	}
 
-	engine, err = core.SelectEngine(accCrypt)
+	engine, err = utils.SelectEngine(accCrypt)
 	if err != nil {
 		return err
 	}

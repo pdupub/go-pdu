@@ -23,14 +23,20 @@ import (
 	"github.com/pdupub/go-pdu/dag"
 )
 
-// Universe contain many space time on different time line
+// Universe is the struct contain all the information can be received and validated.
+// It is built with two precreate users as root users. Any message should be validated before
+// add into msgD, which is a DAG used to store message. If new user create from valid message,
+// the user should add into userD, a DAG used to store all users. The universe contain at least
+// one spacetime, each spacetime base on one user msg as time line. validation of message mean
+// this message should be valid at least in one of spacetime in stD. Infomation in local universe
+// is only part of infomation in whole decentralized system.
 type Universe struct {
-	msgD  *dag.DAG // contain all messages valid in any universe (time proof)
-	userD *dag.DAG // contain all users valid in any universe (time proof) (strict)
-	stD   *dag.DAG // contain all space time, which is the origin thought of PDU (strict)
+	msgD  *dag.DAG // contain all messages valid in at least one spacetime
+	userD *dag.DAG // contain all users valid in at least one spacetime (strict)
+	stD   *dag.DAG // contain all spacetime, which could be diff by selecting (strict)
 }
 
-// NewUniverse create Universe from two user with diff gender
+// NewUniverse create Universe with two user with diff gender as root users
 func NewUniverse(Eve, Adam *User) (*Universe, error) {
 	if Eve.Gender() == Adam.Gender() {
 		return nil, ErrNotSupportYet
@@ -51,9 +57,9 @@ func NewUniverse(Eve, Adam *User) (*Universe, error) {
 	return &Universe{userD: userD}, nil
 }
 
-// AddMsg will check if the msg from valid user,
-// add new msg into Universe, and update time proof if
-// msg.SenderID is belong to time proof
+// AddMsg will check if the message from valid user, who is validated in at least one spacetime
+// (in stD). Then new message will be added into Universe and update time proof if msg.SenderID
+// is any spacetime based on.
 func (u *Universe) AddMsg(msg *Message) error {
 	if !u.CheckUserExist(msg.SenderID) {
 		return ErrUserNotExist
@@ -66,7 +72,6 @@ func (u *Universe) AddMsg(msg *Message) error {
 			return err
 		}
 	} else {
-
 		// check
 		if u.GetMsgByID(msg.ID()) != nil {
 			return ErrMsgAlreadyExist
@@ -98,7 +103,7 @@ func (u *Universe) AddMsg(msg *Message) error {
 	return nil
 }
 
-// GetSpaceTimeIDs get ids in this space time
+// GetSpaceTimeIDs get ids in of spacetime (list of msg.SenderID of each spacetime)
 func (u *Universe) GetSpaceTimeIDs() []common.Hash {
 	var ids []common.Hash
 	if u.stD != nil {
@@ -109,7 +114,8 @@ func (u *Universe) GetSpaceTimeIDs() []common.Hash {
 	return ids
 }
 
-// AddSpaceTime will get all messages save in Universe with same msg.SenderID
+// AddSpaceTime will add spacetime in Universe with msg.SenderID, and follow the
+// time sequence from ref.
 func (u *Universe) AddSpaceTime(msg *Message, ref *MsgReference) error {
 	if u.GetMsgByID(msg.ID()) == nil {
 		return ErrMsgNotFound
@@ -171,7 +177,7 @@ func (u *Universe) initializeSpaceTime(msgSpaceTime *Message, ref *MsgReference)
 	return nil
 }
 
-// CheckUserExist check if the user valid in this Universe
+// CheckUserExist check if the user valid in the Universe
 func (u Universe) CheckUserExist(userID common.Hash) bool {
 	if nil != u.GetUserByID(userID) {
 		return true
@@ -227,6 +233,9 @@ func (u Universe) GetMsgByID(msgID interface{}) *Message {
 	return nil
 }
 
+// initializeMsgD only run once to create u.msgD by initial message, and the DAG
+// will remove strict rule, so msgD can accept new message if at least one of
+// reference exist in whole universe.
 func (u *Universe) initializeMsgD(msg *Message) error {
 	// build msg dag
 	msgVertex, err := dag.NewVertex(msg.ID(), msg)

@@ -18,7 +18,9 @@ package core
 
 import (
 	"encoding/json"
+
 	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/utils"
 )
 
 // Auth contain public key
@@ -35,7 +37,7 @@ func (a *Auth) UnmarshalJSON(input []byte) error {
 	}
 	a.Source = aMap["source"].(string)
 	a.SigType = aMap["sigType"].(string)
-	engine, err := SelectEngine(a.Source)
+	engine, err := utils.SelectEngine(a.Source)
 	if err != nil {
 		return err
 	}
@@ -49,7 +51,7 @@ func (a *Auth) UnmarshalJSON(input []byte) error {
 
 // MarshalJSON marshal public key to json
 func (a Auth) MarshalJSON() ([]byte, error) {
-	engine, err := SelectEngine(a.Source)
+	engine, err := utils.SelectEngine(a.Source)
 	if err != nil {
 		return nil, err
 	}

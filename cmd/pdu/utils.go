@@ -27,8 +27,8 @@ import (
 
 	"github.com/howeyc/gopass"
 	"github.com/mitchellh/go-homedir"
-	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/utils"
 	"github.com/pdupub/go-pdu/db"
 	"github.com/pdupub/go-pdu/db/bolt"
 	"github.com/pdupub/go-pdu/params"
@@ -121,7 +121,7 @@ func unlockKeyByCmd() (*crypto.PrivateKey, *crypto.PublicKey, error) {
 		return nil, nil, err
 	}
 
-	return core.DecryptKey(keyJson, string(passwd))
+	return utils.DecryptKey(keyJson, string(passwd))
 }
 
 func unlockKeyByFile(keyFile, passFile string) (*crypto.PrivateKey, *crypto.PublicKey, error) {
@@ -135,7 +135,7 @@ func unlockKeyByFile(keyFile, passFile string) (*crypto.PrivateKey, *crypto.Publ
 		return nil, nil, err
 	}
 
-	return core.DecryptKey(keyJson, strings.TrimSpace(string(passwd)))
+	return utils.DecryptKey(keyJson, strings.TrimSpace(string(passwd)))
 }
 
 func scanLine(input *string) {

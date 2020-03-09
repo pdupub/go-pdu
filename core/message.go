@@ -20,8 +20,10 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/utils"
 )
 
 // Message is valid msg in pdu
@@ -57,7 +59,7 @@ func CreateMsg(user *User, value *MsgValue, priKey *crypto.PrivateKey, refs ...*
 		Signature: nil,
 	}
 
-	engine, err := SelectEngine(priKey.Source)
+	engine, err := utils.SelectEngine(priKey.Source)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +81,7 @@ func CreateMsg(user *User, value *MsgValue, priKey *crypto.PrivateKey, refs ...*
 func VerifyMsg(msg Message) (bool, error) {
 	signature := msg.Signature
 	msg.Signature = nil
-	engine, err := SelectEngine(signature.Source)
+	engine, err := utils.SelectEngine(signature.Source)
 	if err != nil {
 		return false, err
 	}

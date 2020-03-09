@@ -26,6 +26,7 @@ import (
 	"github.com/pdupub/go-pdu/common/log"
 	"github.com/pdupub/go-pdu/core/rule"
 	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/utils"
 )
 
 var (
@@ -40,7 +41,7 @@ var (
 )
 
 func TestNewUniverse(t *testing.T) {
-	universeEngine, _ = SelectEngine(crypto.ETH)
+	universeEngine, _ = utils.SelectEngine(crypto.ETH)
 
 	// Test 1: Create root users, Adam and Eve , create universe
 	// The gender of user relate to public key (random), so createRootUser

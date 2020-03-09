@@ -18,8 +18,10 @@ package core
 
 import (
 	"encoding/json"
+
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/utils"
 )
 
 const (
@@ -62,7 +64,7 @@ func (mv *DOBMsgContent) SignByParent(user *User, privKey crypto.PrivateKey) err
 		return err
 	}
 	var signature *crypto.Signature
-	engine, err := SelectEngine(privKey.Source)
+	engine, err := utils.SelectEngine(privKey.Source)
 	if err != nil {
 		return err
 	}
