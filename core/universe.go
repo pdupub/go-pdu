@@ -312,6 +312,9 @@ func (u *Universe) addUserByMsg(msg *Message) error {
 	return nil
 }
 
+// addUserToSpaceTime used to add new user to spacetime base on ref.SenderID, the age of parents in this spacetime
+// should fit the nature rule.
+// TODO: ref.SenderID not must be spacetime, the new user's life length can be calculated by any ref msg.
 func (u *Universe) addUserToSpaceTime(ref *MsgReference, dobContent DOBMsgContent, user *User) error {
 	if vertex := u.stD.GetVertex(ref.SenderID); vertex != nil {
 		return vertex.Value().(*SpaceTime).AddUser(ref, dobContent, user)
