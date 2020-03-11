@@ -36,7 +36,7 @@ type UserInfo struct {
 
 // NewUserInfo create new user info for userstate in space time
 func NewUserInfo(name string, life uint64, BODSeq uint64) *UserInfo {
-	// when create new user info , the nature BOD sequence alse set to natureLastCosign, for easy to validate nex cosign
+	// when create new user info , the nature BOD sequence also set to natureLastCosign, for easy to validate nex cosign
 	return &UserInfo{natureState: UserStatusNormal, natureLastCosign: BODSeq, natureLifeMaxSeq: life, natureDOBSeq: BODSeq, localNickname: name}
 }
 

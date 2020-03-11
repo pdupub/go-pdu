@@ -28,8 +28,8 @@ import (
 // add into msgD, which is a DAG used to store message. If new user create from valid message,
 // the user should add into userD, a DAG used to store all users. The universe contain at least
 // one spacetime, each spacetime base on one user msg as time line. validation of message mean
-// this message should be valid at least in one of spacetime in stD. Infomation in local universe
-// is only part of infomation in whole decentralized system.
+// this message should be valid at least in one of spacetime in stD. Information in local universe
+// is only part of information in whole decentralized system.
 type Universe struct {
 	msgD  *dag.DAG // contain all messages valid in at least one spacetime
 	userD *dag.DAG // contain all users valid in at least one spacetime (strict)
