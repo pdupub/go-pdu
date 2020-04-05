@@ -19,6 +19,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/pdupub/go-pdu/console"
 	"github.com/spf13/cobra"
 )
 
@@ -28,16 +29,22 @@ var consoleCmd = &cobra.Command{
 	Short: "Console of pdu",
 	RunE: func(_ *cobra.Command, args []string) error {
 		var content string
-
 		consoleInfoDisplay()
-
+		cls, err := console.NewConsole()
+		if err != nil {
+			return err
+		}
 		for {
 			fmt.Print("> ")
 			scanLine(&content)
 			if content == "quit" || content == "q" {
+				cls.Close()
 				break
+			} else if content == "show" {
+				cls.ExeShowCmd()
+			} else {
+				fmt.Println(content)
 			}
-			fmt.Println(content)
 		}
 
 		return nil

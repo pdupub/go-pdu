@@ -16,12 +16,51 @@
 
 package console
 
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+)
+
 // Console is the struct of cmd line console
 type Console struct {
 	targetURL string
+	showCmd   *cobra.Command
 }
 
 // NewConsole used to build a new console
 func NewConsole() (*Console, error) {
-	return nil, nil
+	cls := &Console{}
+	cls.BldShowCmd()
+	return cls, nil
+}
+
+// Close the console
+func (c *Console) Close() {
+
+}
+
+// SetTargetURL set the url of remote url
+func (c *Console) SetTargetURL(url string) {
+	c.targetURL = url
+}
+
+// BldShowCmd initial the show command
+func (c *Console) BldShowCmd() {
+	c.showCmd = &cobra.Command{
+		Use:   "show",
+		Short: "Show command line",
+		RunE: func(_ *cobra.Command, args []string) error {
+			fmt.Println("Show information ......")
+			return nil
+		},
+	}
+}
+
+// ExeShowCmd execute the show command
+func (c *Console) ExeShowCmd() error {
+	if err := c.showCmd.Execute(); err != nil {
+		return err
+	}
+	return nil
 }
