@@ -17,7 +17,9 @@
 package console
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -26,6 +28,7 @@ import (
 type Console struct {
 	targetURL string
 	showCmd   *cobra.Command
+	history   []string
 }
 
 // NewConsole used to build a new console
@@ -38,6 +41,35 @@ func NewConsole() (*Console, error) {
 // Close the console
 func (c *Console) Close() {
 
+}
+
+// Run the console
+func (c *Console) Run() {
+	c.welcome()
+	for {
+		fmt.Print("> ")
+		content := c.scanLine()
+		if content == "quit" || content == "q" {
+			c.Close()
+			break
+		} else if content == "show" {
+			c.ExeShowCmd()
+		} else {
+			fmt.Println(content)
+		}
+	}
+}
+
+// initInfoDisplay
+func (c Console) welcome() {
+	fmt.Print(`
+##############################################################
+#                                                            #
+#               Welcome to PDU console ;-)                   #
+#                                                            #
+##############################################################
+
+`)
 }
 
 // SetTargetURL set the url of remote url
@@ -63,4 +95,12 @@ func (c *Console) ExeShowCmd() error {
 		return err
 	}
 	return nil
+}
+
+func (c Console) scanLine() string {
+	var input string
+	reader := bufio.NewReader(os.Stdin)
+	data, _, _ := reader.ReadLine()
+	input = string(data)
+	return input
 }
