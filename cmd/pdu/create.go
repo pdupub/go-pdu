@@ -139,7 +139,7 @@ func createRootUsers() (users []*core.User, priKeys []*crypto.PrivateKey, err er
 			fmt.Print("Extra: ")
 			scanLine(&rootExtra)
 			user := core.CreateRootUser(*pubKey, rootName, rootExtra)
-			fmt.Println("ID", common.Hash2String(user.ID()), "name", user.Name, "extra", user.DOBExtra, "gender", user.Gender())
+			fmt.Println("ID", common.Hash2String(user.ID()), "name", user.Name, "extra", user.BirthExtra, "gender", user.Gender())
 			fmt.Print("save new user (yes/no): ")
 			fmt.Scan(&isSave)
 			if strings.ToUpper(isSave) == "YES" || strings.ToUpper(isSave) == "Y" {

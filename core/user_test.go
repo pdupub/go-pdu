@@ -18,9 +18,10 @@ package core
 
 import (
 	"encoding/json"
+	"testing"
+
 	"github.com/pdupub/go-pdu/crypto"
 	"github.com/pdupub/go-pdu/crypto/ethereum"
-	"testing"
 )
 
 const (
@@ -85,7 +86,7 @@ func TestCreateRootUsersMS(t *testing.T) {
 func TestCreateNewUser(t *testing.T) {
 	Adam, privKeyAdam, Eve, privKeyEve := createRootUsers()
 	value := MsgValue{
-		ContentType: TypeDOB,
+		ContentType: TypeBirth,
 	}
 
 	_, pubKey, err := userEngine.GenKey(crypto.MultipleSignatures, 5)
@@ -94,10 +95,10 @@ func TestCreateNewUser(t *testing.T) {
 	}
 	// build auth for new user
 	auth := Auth{PublicKey: *pubKey}
-	// build dob msg content
-	content, err := CreateDOBMsgContent("A2", "1234", &auth)
+	// build birth msg content
+	content, err := CreateBirthMsgContent("A2", "1234", &auth)
 	if err != nil {
-		t.Error("create bod content fail", err)
+		t.Error("create birth content fail", err)
 	}
 	content.SignByParent(Adam, privKeyAdam)
 	content.SignByParent(Eve, privKeyEve)
@@ -105,8 +106,8 @@ func TestCreateNewUser(t *testing.T) {
 	if err != nil {
 		t.Error("content marshal fail ", err)
 	}
-	// build dob msg
-	dobMsg, err := CreateMsg(Eve, &value, &privKeyEve)
+	// build birth msg
+	birthMsg, err := CreateMsg(Eve, &value, &privKeyEve)
 	if err != nil {
 		t.Error("create msg fails", err)
 	}
@@ -115,8 +116,8 @@ func TestCreateNewUser(t *testing.T) {
 	if err != nil {
 		t.Error("create universe fail", err)
 	}
-	// create new user by dob msg
-	newUser, err := CreateNewUser(universe, dobMsg)
+	// create new user by birth msg
+	newUser, err := CreateNewUser(universe, birthMsg)
 	if err != nil {
 		t.Error("create new user fail", err)
 	} else {

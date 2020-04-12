@@ -27,8 +27,8 @@ import (
 const (
 	// TypeText is the content without any functions, not just text
 	TypeText = iota
-	// TypeDOB is the type which contain the cosign to create new user in pdu
-	TypeDOB
+	// TypeBirth is the type which contain the cosign to create new user in pdu
+	TypeBirth
 )
 
 // MsgValue is the mas value
@@ -37,8 +37,8 @@ type MsgValue struct {
 	Content     []byte
 }
 
-// DOBMsgContent is the bod msg content, which can create new user
-type DOBMsgContent struct {
+// BirthMsgContent is the birth msg content, which can create new user
+type BirthMsgContent struct {
 	User    User
 	Parents [2]ParentSig
 }
@@ -49,15 +49,15 @@ type ParentSig struct {
 	Signature []byte
 }
 
-// CreateDOBMsgContent create the dob msg content , which usually from the new user, not sign by parents yet
-func CreateDOBMsgContent(name string, extra string, auth *Auth) (*DOBMsgContent, error) {
-	user := User{Name: name, DOBExtra: extra, Auth: auth}
-	return &DOBMsgContent{User: user}, nil
+// CreateBirthMsgContent create the birth msg content , which usually from the new user, not sign by parents yet
+func CreateBirthMsgContent(name string, extra string, auth *Auth) (*BirthMsgContent, error) {
+	user := User{Name: name, BirthExtra: extra, Auth: auth}
+	return &BirthMsgContent{User: user}, nil
 
 }
 
-// SignByParent used to sign the dob msg by both parents
-func (mv *DOBMsgContent) SignByParent(user *User, privKey crypto.PrivateKey) error {
+// SignByParent used to sign the birth msg by both parents
+func (mv *BirthMsgContent) SignByParent(user *User, privKey crypto.PrivateKey) error {
 
 	jsonByte, err := json.Marshal(mv.User)
 	if err != nil {

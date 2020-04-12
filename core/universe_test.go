@@ -100,8 +100,8 @@ func TestNewUniverse(t *testing.T) {
 
 	// Test 5: Create lots of txt msg with reference, add into universe,
 	// Each valid message will add into messageDAG in universe, and the ID of msg
-	// will be keep in timespaceDAG for check reference and check DOB
-	// In this step, the count of msg is more than tp need for bod.
+	// will be keep in timespaceDAG for check reference and check birth
+	// In this step, the count of msg is more than tp need for birth.
 	value2 := MsgValue{
 		ContentType: TypeText,
 		Content:     []byte("hey u!"),
@@ -131,11 +131,11 @@ func TestNewUniverse(t *testing.T) {
 
 }
 
-func TestUniverse_AddBODMsg(t *testing.T) {
-	// Test 6: Create dob msg(create new user msg), and verify
+func TestUniverse_AddBirthMsg(t *testing.T) {
+	// Test 6: Create birth msg(create new user msg), and verify
 	// new msg reference first & second msg
-	valueDob := MsgValue{
-		ContentType: TypeDOB,
+	valueBirth := MsgValue{
+		ContentType: TypeBirth,
 	}
 	_, pubKeyA2, err := universeEngine.GenKey(crypto.MultipleSignatures, 5)
 	if err != nil {
@@ -143,46 +143,46 @@ func TestUniverse_AddBODMsg(t *testing.T) {
 	}
 
 	auth := Auth{PublicKey: *pubKeyA2}
-	content, err := CreateDOBMsgContent("A2", "1234", &auth)
+	content, err := CreateBirthMsgContent("A2", "1234", &auth)
 	if err != nil {
-		t.Error("create bod content fail", err)
+		t.Error("create birth content fail", err)
 	}
 	content.SignByParent(Adam, *priKeyAdam)
 	content.SignByParent(Eve, *priKeyEve)
 
-	valueDob.Content, err = json.Marshal(content)
+	valueBirth.Content, err = json.Marshal(content)
 	if err != nil {
 		t.Error("content marshal fail", err)
 	}
 
-	msgDob, err := CreateMsg(Eve, &valueDob, priKeyEve, &ref, &MsgReference{SenderID: Eve.ID(), MsgID: firstMsgIDFromEve})
+	msgBirth, err := CreateMsg(Eve, &valueBirth, priKeyEve, &ref, &MsgReference{SenderID: Eve.ID(), MsgID: firstMsgIDFromEve})
 	if err != nil {
 		t.Error("create msg fail", err)
 	}
-	verifyMsg(msgDob)
+	verifyMsg(msgBirth)
 
 	// Test 7: Marshal & unmarshal JSON for msg
-	msgBytes, err := json.Marshal(msgDob)
+	msgBytes, err := json.Marshal(msgBirth)
 	//log.Info(common.Bytes2String(msgBytes))
-	var msgDob2 Message
+	var msgBirth2 Message
 	if err != nil {
 		t.Error("marshal fail", err)
 	} else {
-		json.Unmarshal(msgBytes, &msgDob2)
-		verifyMsg(&msgDob2)
-		if msgBytes2, err := json.Marshal(msgDob2); err != nil || common.Bytes2String(msgBytes) != common.Bytes2String(msgBytes2) {
+		json.Unmarshal(msgBytes, &msgBirth2)
+		verifyMsg(&msgBirth2)
+		if msgBytes2, err := json.Marshal(msgBirth2); err != nil || common.Bytes2String(msgBytes) != common.Bytes2String(msgBytes2) {
 			t.Error("marshal or unmarshal fail", err)
 		}
 	}
 
-	// verify the signature in the content of DOBMsg
-	var dobContent DOBMsgContent
-	json.Unmarshal(msgDob2.Value.Content, &dobContent)
-	jsonBytes, _ := json.Marshal(dobContent.User)
-	sigAdam := crypto.Signature{Signature: dobContent.Parents[1].Signature,
-		PublicKey: universe.GetUserByID(dobContent.Parents[1].UserID).Auth.PublicKey}
-	sigEve := crypto.Signature{Signature: dobContent.Parents[0].Signature,
-		PublicKey: universe.GetUserByID(dobContent.Parents[0].UserID).Auth.PublicKey}
+	// verify the signature in the content of BirthMsg
+	var birthContent BirthMsgContent
+	json.Unmarshal(msgBirth2.Value.Content, &birthContent)
+	jsonBytes, _ := json.Marshal(birthContent.User)
+	sigAdam := crypto.Signature{Signature: birthContent.Parents[1].Signature,
+		PublicKey: universe.GetUserByID(birthContent.Parents[1].UserID).Auth.PublicKey}
+	sigEve := crypto.Signature{Signature: birthContent.Parents[0].Signature,
+		PublicKey: universe.GetUserByID(birthContent.Parents[0].UserID).Auth.PublicKey}
 
 	if res, err := universeEngine.Verify(jsonBytes, &sigAdam); err != nil || res == false {
 		t.Error("verify Adam fail", err)
@@ -191,12 +191,12 @@ func TestUniverse_AddBODMsg(t *testing.T) {
 		t.Error("verify Eve fail", err)
 	}
 
-	// Test 8: Create new User from dob message
+	// Test 8: Create new User from birth message
 	// user create from msg3 and msg4 should be same user
-	if err := universe.AddMsg(msgDob); err != nil {
+	if err := universe.AddMsg(msgBirth); err != nil {
 		t.Error("add msg3 fail", err)
 	}
-	if err := universe.AddMsg(&msgDob2); err != ErrMsgAlreadyExist {
+	if err := universe.AddMsg(&msgBirth2); err != ErrMsgAlreadyExist {
 		t.Errorf("add msg4 fail, err should be %s, but now err : %s", ErrMsgAlreadyExist, err)
 	}
 
@@ -268,8 +268,8 @@ func TestUniverse_AddUserOnSpaceTime(t *testing.T) {
 
 	// Test 11: Create new user, new user is valid in both
 	// space-time with different life length left.
-	valueDob := MsgValue{
-		ContentType: TypeDOB,
+	valueBirth := MsgValue{
+		ContentType: TypeBirth,
 	}
 	_, pubKeyA3, err := universeEngine.GenKey(crypto.MultipleSignatures, 3)
 	if err != nil {
@@ -277,22 +277,22 @@ func TestUniverse_AddUserOnSpaceTime(t *testing.T) {
 	}
 
 	auth := Auth{PublicKey: *pubKeyA3}
-	content, err := CreateDOBMsgContent("A3", "789", &auth)
+	content, err := CreateBirthMsgContent("A3", "789", &auth)
 	if err != nil {
-		t.Error("create bod content fail, err:", err)
+		t.Error("create birth content fail, err:", err)
 	}
 	content.SignByParent(Adam, *priKeyAdam)
 	content.SignByParent(Eve, *priKeyEve)
 
-	valueDob.Content, err = json.Marshal(content)
+	valueBirth.Content, err = json.Marshal(content)
 	if err != nil {
 		t.Error("content marshal fail , err:", err)
 	}
 	refAdam := MsgReference{SenderID: Adam.ID(), MsgID: AdamPartMsgIDs[len(AdamPartMsgIDs)-1]}
-	if msgDob, err := CreateMsg(Eve, &valueDob, priKeyEve, &ref, &refAdam); err != nil {
+	if msgBirth, err := CreateMsg(Eve, &valueBirth, priKeyEve, &ref, &refAdam); err != nil {
 		t.Error("create msg fail , err :", err)
-	} else if err := universe.AddMsg(msgDob); err != nil {
-		t.Error("add user dob msg fail, err:", err)
+	} else if err := universe.AddMsg(msgBirth); err != nil {
+		t.Error("add user birth msg fail, err:", err)
 	}
 
 	// display the user state in each of the space time

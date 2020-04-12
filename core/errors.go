@@ -49,6 +49,6 @@ var (
 	// ErrCreateRootUserFail returns when create root user fail
 	ErrCreateRootUserFail = errors.New("create root user fail")
 
-	// ErrContentTypeNotDOB returns when try to add user from a not dob message
-	ErrContentTypeNotDOB = errors.New("content type is not TypeDOB")
+	// ErrContentTypeNotBirth returns when try to add user from a not birth message
+	ErrContentTypeNotBirth = errors.New("content type is not TypeBirth")
 )

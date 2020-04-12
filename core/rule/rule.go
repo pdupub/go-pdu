@@ -20,8 +20,8 @@ const (
 	// MortalLifetime is valid life time for mortal account
 	// It means any msg from this account, if need to proof the msg be sent during the account life time.
 	// The reference of that msg must contain at least one msg from the time proof account, which used
-	// in DOBMsg when create this account. And the reference must choose from the msg from used as reference
-	// dob message to next 2^16 messages from the same time proof account.
+	// in BirthMsg when create this account. And the reference must choose from the msg from used as reference
+	// birth message to next 2^16 messages from the same time proof account.
 	MortalLifetime uint64 = 1 << 12 // 16
 
 	// ReproductionInterval is valid time interval for reproduction

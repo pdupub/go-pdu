@@ -23,24 +23,24 @@ const (
 	UserStatusNormal = iota
 )
 
-// UserInfo contain the information except pass by DOBMsg
+// UserInfo contain the information except pass by BirthMsg
 // the state related to nature rule is start by nature
 // the other state start by local
 type UserInfo struct {
 	natureState      int    // validation state depend on nature rule
-	natureLastCosign uint64 // last DOB cosign
+	natureLastCosign uint64 // last Birth cosign
 	natureLifeMaxSeq uint64 // max time sequence this use can use as reference in this space time
-	natureDOBSeq     uint64 // sequence of dob in this space time
+	natureBirthSeq   uint64 // sequence of birth in this space time
 	localNickname    string
 }
 
 // NewUserInfo create new user info for userstate in space time
-func NewUserInfo(name string, life uint64, BODSeq uint64) *UserInfo {
-	// when create new user info , the nature BOD sequence also set to natureLastCosign, for easy to validate nex cosign
-	return &UserInfo{natureState: UserStatusNormal, natureLastCosign: BODSeq, natureLifeMaxSeq: life, natureDOBSeq: BODSeq, localNickname: name}
+func NewUserInfo(name string, life uint64, BirthSeq uint64) *UserInfo {
+	// when create new user info , the nature Birth sequence also set to natureLastCosign, for easy to validate nex cosign
+	return &UserInfo{natureState: UserStatusNormal, natureLastCosign: BirthSeq, natureLifeMaxSeq: life, natureBirthSeq: BirthSeq, localNickname: name}
 }
 
 // String used to print user info
 func (ui UserInfo) String() string {
-	return fmt.Sprintf("localNickname:\t%s\tnatureState:\t%d\tnatureLastCosign:\t%d\tnatureLifeMaxSeq:\t%d\tnatureDOBSeq:\t%d\t", ui.localNickname, ui.natureState, ui.natureLastCosign, ui.natureLifeMaxSeq, ui.natureDOBSeq)
+	return fmt.Sprintf("localNickname:\t%s\tnatureState:\t%d\tnatureLastCosign:\t%d\tnatureLifeMaxSeq:\t%d\tnatureBirthSeq:\t%d\t", ui.localNickname, ui.natureState, ui.natureLastCosign, ui.natureLifeMaxSeq, ui.natureBirthSeq)
 }
