@@ -28,6 +28,15 @@ import (
 	"github.com/pdupub/go-pdu/crypto"
 )
 
+const (
+	// DefaultDimensionNum is the default number of demension for calculating distance
+	DefaultDimensionNum = 4
+	// DefaultPerimeter is the default perimeter of universe for calculating distance
+	DefaultPerimeter = 1e+10
+	// MaxDimensionNum is the max number of demension
+	MaxDimensionNum = 11
+)
+
 // User is the author of any msg in pdu
 type User struct {
 	Name       string   `json:"name"`
@@ -116,6 +125,56 @@ func (u User) Gender() bool {
 // Value return the vertex.value
 func (u User) Value() interface{} {
 	return nil
+}
+
+// Distance return the distance from user to common.Hash base on setting perimeter and dimension
+func (u User) Distance(location common.Hash, dimension int, perimeter *big.Int) (distance *big.Int, err error) {
+	return u.distance(location, dimension, perimeter)
+}
+
+// StandardDistance return the distance from user to common.Hash base on default setting perimeter and dimension
+func (u User) StandardDistance(location common.Hash) (distance *big.Int, err error) {
+	return u.distance(location, DefaultDimensionNum, big.NewInt(DefaultPerimeter))
+}
+
+func (u User) distance(location common.Hash, dimension int, perimeter *big.Int) (distance *big.Int, err error) {
+	coordinates, err := u.GetCoordinates(location, dimension, perimeter)
+	if err != nil {
+		return nil, err
+	}
+	squareSum := big.NewInt(0)
+	for _, coordinate := range coordinates {
+		squareSum = squareSum.Add(squareSum, new(big.Int).Mul(coordinate, coordinate))
+	}
+	return squareSum.Sqrt(squareSum), nil
+}
+
+// GetCoordinates returns the coordinates of location, use u.ID as origin point
+func (u User) GetCoordinates(location common.Hash, dimension int, perimeter *big.Int) ([]*big.Int, error) {
+	if dimension <= 0 || dimension > MaxDimensionNum {
+		return nil, ErrDimensionNumberNotSuitable
+	}
+	if perimeter.Cmp(big.NewInt(0)) == 0 {
+		return nil, ErrPerimeterIsZero
+	}
+	perimeter.Abs(perimeter)
+	coordinates := make([]*big.Int, dimension)
+	dimensionSize := common.HashLength / dimension
+	selfLocation := u.ID()
+	maxDistance := new(big.Int).Rsh(perimeter, 1)
+
+	for i := 0; i < dimension; i++ {
+		if i == dimension-1 {
+			coordinates[i] = new(big.Int).Sub(new(big.Int).SetBytes(location[i*dimensionSize:]), new(big.Int).SetBytes(selfLocation[i*dimensionSize:]))
+		} else {
+			coordinates[i] = new(big.Int).Sub(new(big.Int).SetBytes(location[i*dimensionSize:(i+1)*dimensionSize]), new(big.Int).SetBytes(selfLocation[i*dimensionSize:(i+1)*dimensionSize]))
+		}
+		coordinates[i].Add(coordinates[i], maxDistance)
+		coordinates[i].Mod(coordinates[i], perimeter)
+		coordinates[i].Sub(coordinates[i], maxDistance)
+
+	}
+	return coordinates, nil
 }
 
 // ParentsID return the ID of user parents,

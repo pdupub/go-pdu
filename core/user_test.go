@@ -18,6 +18,7 @@ package core
 
 import (
 	"encoding/json"
+	"math/big"
 	"testing"
 
 	"github.com/pdupub/go-pdu/crypto"
@@ -125,6 +126,47 @@ func TestCreateNewUser(t *testing.T) {
 			t.Error("json Encode & Decode fail ")
 		}
 	}
+}
+
+func TestUserDistance(t *testing.T) {
+	Adam, _, Eve, _ := createRootUsers()
+	// default setting for standard distance
+	distance1, err := Adam.StandardDistance(Eve.ID())
+	if err != nil {
+		t.Error("get standard distance fail", err)
+	}
+	distance2, err := Eve.StandardDistance(Adam.ID())
+	if err != nil {
+		t.Error("get standard distance fail", err)
+	}
+
+	if distance1.Cmp(distance2) != 0 {
+		t.Error("distance should be equal")
+	}
+
+	// distance for same location
+	distance3, err := Adam.StandardDistance(Adam.ID())
+	if err != nil {
+		t.Error("get standard distance fail", err)
+	}
+	if distance3.Cmp(big.NewInt(0)) != 0 {
+		t.Error("distance to self should be zero")
+	}
+
+	// custom distance
+	distance4, err := Adam.Distance(Eve.ID(), 6, big.NewInt(1e+4))
+	if err != nil {
+		t.Error("get distance fail", err)
+	}
+	distance5, err := Eve.Distance(Adam.ID(), 6, big.NewInt(1e+4))
+	if err != nil {
+		t.Error("get distance fail", err)
+	}
+
+	if distance4.Cmp(distance5) != 0 {
+		t.Error("distance should be equal")
+	}
+
 }
 
 func copy(u *User) *User {

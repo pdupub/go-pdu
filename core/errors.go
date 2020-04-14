@@ -51,4 +51,10 @@ var (
 
 	// ErrContentTypeNotBirth returns when try to add user from a not birth message
 	ErrContentTypeNotBirth = errors.New("content type is not TypeBirth")
+
+	// ErrDimensionNumberNotSuitable returns if the dimension is zero or too large
+	ErrDimensionNumberNotSuitable = errors.New("number of dimension is not suitable")
+
+	// ErrPerimeterIsZero returns if perimeter is zero
+	ErrPerimeterIsZero = errors.New("perimeter should not be zero")
 )
