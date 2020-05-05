@@ -43,11 +43,11 @@ var createCmd = &cobra.Command{
 		}
 		fmt.Println("Database initialized successfully", dataDir)
 
-		if err := initUniverseAndSave(udb); err != nil {
+		if err := createNewUniverse(udb); err != nil {
 			os.RemoveAll(dataDir)
 			return err
 		}
-		if err := addUniverseSettings(udb); err != nil {
+		if err := initUniverseSettings(udb); err != nil {
 			os.RemoveAll(dataDir)
 			return err
 		}
@@ -61,15 +61,13 @@ var createCmd = &cobra.Command{
 	},
 }
 
-func addUniverseSettings(udb db.UDB) (err error) {
-	var dimension, perimeter, redshift int64
-
+func readUniverseDimension() int64 {
 	for {
 		var dimensionInput string
 		fmt.Printf("Universe Dimension (%d): ", core.DefaultDimensionNum)
 		scanLine(&dimensionInput)
 		if dimensionInput != "" {
-			dimension, err = strconv.ParseInt(dimensionInput, 10, 64)
+			dimension, err := strconv.ParseInt(dimensionInput, 10, 64)
 			if err != nil {
 				fmt.Println(err)
 				continue
@@ -78,21 +76,20 @@ func addUniverseSettings(udb db.UDB) (err error) {
 				fmt.Println(core.ErrDimensionNumberNotSuitable)
 				continue
 			}
+			return dimension
 		} else {
-			dimension = core.DefaultDimensionNum
+			return core.DefaultDimensionNum
 		}
-		break
 	}
-	if err := udb.Set(db.BucketConfig, db.ConfigUniverseDimension, big.NewInt(dimension).Bytes()); err != nil {
-		return err
-	}
+}
 
+func readUniversePerimeter() int64 {
 	for {
 		var perimeterInput string
 		fmt.Printf("Universe Perimeter (%e): ", core.DefaultPerimeter)
 		scanLine(&perimeterInput)
 		if perimeterInput != "" {
-			perimeter, err = strconv.ParseInt(perimeterInput, 10, 64)
+			perimeter, err := strconv.ParseInt(perimeterInput, 10, 64)
 			if err != nil {
 				fmt.Println(err)
 				continue
@@ -104,15 +101,14 @@ func addUniverseSettings(udb db.UDB) (err error) {
 			if perimeter < 0 {
 				perimeter = -perimeter
 			}
+			return perimeter
 		} else {
-			perimeter = core.DefaultPerimeter
+			return core.DefaultPerimeter
 		}
-		break
 	}
-	if err := udb.Set(db.BucketConfig, db.ConfigUniversePerimeter, big.NewInt(perimeter).Bytes()); err != nil {
-		return err
-	}
+}
 
+func readUniverseRedshift(perimeter int64) int64 {
 	for {
 		var redshiftInput string
 		var defaultRedshift int64
@@ -120,16 +116,30 @@ func addUniverseSettings(udb db.UDB) (err error) {
 		fmt.Printf("Universe Red-shift (%d): ", defaultRedshift)
 		scanLine(&redshiftInput)
 		if redshiftInput != "" {
-			redshift, err = strconv.ParseInt(redshiftInput, 10, 64)
+			redshift, err := strconv.ParseInt(redshiftInput, 10, 64)
 			if err != nil {
 				fmt.Println(err)
 				continue
 			}
+			return redshift
 		} else {
-			redshift = defaultRedshift
+			return defaultRedshift
 		}
-		break
 	}
+}
+
+func initUniverseSettings(udb db.UDB) (err error) {
+	dimension := readUniverseDimension()
+	if err := udb.Set(db.BucketConfig, db.ConfigUniverseDimension, big.NewInt(dimension).Bytes()); err != nil {
+		return err
+	}
+
+	perimeter := readUniversePerimeter()
+	if err := udb.Set(db.BucketConfig, db.ConfigUniversePerimeter, big.NewInt(perimeter).Bytes()); err != nil {
+		return err
+	}
+
+	redshift := readUniverseRedshift(perimeter)
 	if err := udb.Set(db.BucketConfig, db.ConfigUniverseRedshiftConstant, big.NewInt(redshift).Bytes()); err != nil {
 		return err
 	}
@@ -137,7 +147,7 @@ func addUniverseSettings(udb db.UDB) (err error) {
 	return nil
 }
 
-func initUniverseAndSave(udb db.UDB) error {
+func createNewUniverse(udb db.UDB) error {
 	// create root users
 	users, priKeys, err := createRootUsers()
 	if err != nil {
