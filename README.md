@@ -32,13 +32,13 @@ Usage:
 
 Available Commands:
   account     Account generate or inspect
+  console     Console of pdu
   create      Create a new PDU Universe
   help        Help about any command
   start       Start to run PDU Universe
 
 Flags:
-  -c, --config string   config file
-  -h, --help            help for pdu
+  -h, --help   help for pdu
 
 Use "pdu [command] --help" for more information about a command.
 ```

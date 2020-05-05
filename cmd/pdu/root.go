@@ -17,16 +17,17 @@
 package main
 
 import (
+	"os"
+
 	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "pdu",
 	Short: "PDU command line interface (" + params.Version + ")",
-	Long: `Parallel Digital Universe 
+	Long: `Parallel Digital Universe
 A decentralized identity-based social network
 Website: https://pdu.pub`,
 	/*
