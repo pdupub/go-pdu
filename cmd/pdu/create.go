@@ -77,9 +77,8 @@ func readUniverseDimension() int64 {
 				continue
 			}
 			return dimension
-		} else {
-			return core.DefaultDimensionNum
 		}
+		return core.DefaultDimensionNum
 	}
 }
 
@@ -102,9 +101,8 @@ func readUniversePerimeter() int64 {
 				perimeter = -perimeter
 			}
 			return perimeter
-		} else {
-			return core.DefaultPerimeter
 		}
+		return core.DefaultPerimeter
 	}
 }
 
@@ -122,9 +120,8 @@ func readUniverseRedshift(perimeter int64) int64 {
 				continue
 			}
 			return redshift
-		} else {
-			return defaultRedshift
 		}
+		return defaultRedshift
 	}
 }
 
