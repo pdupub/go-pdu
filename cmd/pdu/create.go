@@ -19,7 +19,9 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/pdupub/go-pdu/common"
@@ -45,7 +47,10 @@ var createCmd = &cobra.Command{
 			os.RemoveAll(dataDir)
 			return err
 		}
-
+		if err := addUniverseSettings(udb); err != nil {
+			os.RemoveAll(dataDir)
+			return err
+		}
 		fmt.Println("Create universe and space-time successfully")
 
 		if err := udb.Close(); err != nil {
@@ -56,7 +61,84 @@ var createCmd = &cobra.Command{
 	},
 }
 
+func addUniverseSettings(udb db.UDB) (err error) {
+	var dimension, perimeter, redshift int64
+
+	for {
+		var dimensionInput string
+		fmt.Printf("Universe Dimension (%d): ", core.DefaultDimensionNum)
+		scanLine(&dimensionInput)
+		if dimensionInput != "" {
+			dimension, err = strconv.ParseInt(dimensionInput, 10, 64)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			if dimension <= 0 || dimension > core.MaxDimensionNum {
+				fmt.Println(core.ErrDimensionNumberNotSuitable)
+				continue
+			}
+		} else {
+			dimension = core.DefaultDimensionNum
+		}
+		break
+	}
+	if err := udb.Set(db.BucketConfig, db.ConfigUniverseDimension, big.NewInt(dimension).Bytes()); err != nil {
+		return err
+	}
+
+	for {
+		var perimeterInput string
+		fmt.Printf("Universe Perimeter (%e): ", core.DefaultPerimeter)
+		scanLine(&perimeterInput)
+		if perimeterInput != "" {
+			perimeter, err = strconv.ParseInt(perimeterInput, 10, 64)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			if perimeter == 0 {
+				fmt.Println(core.ErrPerimeterIsZero)
+				continue
+			}
+			if perimeter < 0 {
+				perimeter = -perimeter
+			}
+		} else {
+			perimeter = core.DefaultPerimeter
+		}
+		break
+	}
+	if err := udb.Set(db.BucketConfig, db.ConfigUniversePerimeter, big.NewInt(perimeter).Bytes()); err != nil {
+		return err
+	}
+
+	for {
+		var redshiftInput string
+		var defaultRedshift int64
+		defaultRedshift = perimeter / 1e+4
+		fmt.Printf("Universe Red-shift (%d): ", defaultRedshift)
+		scanLine(&redshiftInput)
+		if redshiftInput != "" {
+			redshift, err = strconv.ParseInt(redshiftInput, 10, 64)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+		} else {
+			redshift = defaultRedshift
+		}
+		break
+	}
+	if err := udb.Set(db.BucketConfig, db.ConfigUniverseRedshiftConstant, big.NewInt(redshift).Bytes()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func initUniverseAndSave(udb db.UDB) error {
+	// create root users
 	users, priKeys, err := createRootUsers()
 	if err != nil {
 		return err
@@ -67,6 +149,8 @@ func initUniverseAndSave(udb db.UDB) error {
 	}
 
 	fmt.Println("Create root users successfully", users[0].Gender(), users[1].Gender())
+
+	// create universe by root users
 	universe, err := core.NewUniverse(users[0], users[1])
 	if err != nil {
 		return err
@@ -76,6 +160,7 @@ func initUniverseAndSave(udb db.UDB) error {
 		return errors.New("root users miss match")
 	}
 
+	// create first msg
 	msg, err := createFirstMsg(users, priKeys)
 	if err != nil {
 		return err

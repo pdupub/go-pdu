@@ -54,6 +54,16 @@ const (
 
 	// ConfigLocalNodeKey is the local node key
 	ConfigLocalNodeKey = "local_node_key"
+
+	// ConfigUniverseDimension is universe dimension, depends on how your view the universe,
+	// just related to calculate the distance between two common.Hash in this universe.
+	ConfigUniverseDimension = "universe_dimension"
+
+	// ConfigUniversePerimeter is local universe perimeter, same as dimension.
+	ConfigUniversePerimeter = "universe_perimeter"
+
+	// ConfigUniverseRedshiftConstant is local constant for dynamice universe model.
+	ConfigUniverseRedshiftConstant = "universe_red_shift"
 )
 
 const (
