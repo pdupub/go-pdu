@@ -61,20 +61,20 @@ func CreateNewUser(universe *Universe, msg *Message) (*User, error) {
 	if msg.Value.ContentType != TypeBirth {
 		return nil, ErrContentTypeNotBirth
 	}
-	var birthContent BirthMsgContent
-	if err := json.Unmarshal(msg.Value.Content, &birthContent); err != nil {
+	var contentBirth ContentBirth
+	if err := json.Unmarshal(msg.Value.Content, &contentBirth); err != nil {
 		return nil, err
 	}
-	newUser := birthContent.User
+	newUser := contentBirth.User
 	newUser.BirthMsg = msg
 	// calculate the life time of new user
-	p0 := universe.userD.GetVertex(birthContent.Parents[0].UserID)
+	p0 := universe.userD.GetVertex(contentBirth.Parents[0].UserID)
 	if p0 == nil {
 		return nil, ErrUserNotExist
 	}
 	maxParentLifeTime := p0.Value().(*User).LifeTime
 
-	p1 := universe.userD.GetVertex(birthContent.Parents[1].UserID)
+	p1 := universe.userD.GetVertex(contentBirth.Parents[1].UserID)
 	if p1 == nil {
 		return nil, ErrUserNotExist
 	}
@@ -184,12 +184,12 @@ func (u User) ParentsID() [2]common.Hash {
 	var parentsID [2]common.Hash
 	if u.BirthMsg != nil {
 		// get parents from birthMsg
-		var birthContent BirthMsgContent
-		if err := json.Unmarshal(u.BirthMsg.Value.Content, &birthContent); err != nil {
+		var contentBirth ContentBirth
+		if err := json.Unmarshal(u.BirthMsg.Value.Content, &contentBirth); err != nil {
 			return parentsID
 		}
-		parentsID[0] = birthContent.Parents[0].UserID
-		parentsID[1] = birthContent.Parents[1].UserID
+		parentsID[0] = contentBirth.Parents[0].UserID
+		parentsID[1] = contentBirth.Parents[1].UserID
 	}
 	return parentsID
 }

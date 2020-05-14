@@ -16,14 +16,6 @@
 
 package core
 
-import (
-	"encoding/json"
-
-	"github.com/pdupub/go-pdu/common"
-	"github.com/pdupub/go-pdu/crypto"
-	"github.com/pdupub/go-pdu/crypto/utils"
-)
-
 const (
 	// TypeText is the content without any functions, not just text
 	TypeText = iota
@@ -35,49 +27,4 @@ const (
 type MsgValue struct {
 	ContentType int
 	Content     []byte
-}
-
-// BirthMsgContent is the birth msg content, which can create new user
-type BirthMsgContent struct {
-	User    User
-	Parents [2]ParentSig
-}
-
-// ParentSig contains the signature from both parents
-type ParentSig struct {
-	UserID    common.Hash
-	Signature []byte
-}
-
-// CreateBirthMsgContent create the birth msg content , which usually from the new user, not sign by parents yet
-func CreateBirthMsgContent(name string, extra string, auth *Auth) (*BirthMsgContent, error) {
-	user := User{Name: name, BirthExtra: extra, Auth: auth}
-	return &BirthMsgContent{User: user}, nil
-
-}
-
-// SignByParent used to sign the birth msg by both parents
-func (mv *BirthMsgContent) SignByParent(user *User, privKey crypto.PrivateKey) error {
-
-	jsonByte, err := json.Marshal(mv.User)
-	if err != nil {
-		return err
-	}
-	var signature *crypto.Signature
-	engine, err := utils.SelectEngine(privKey.Source)
-	if err != nil {
-		return err
-	}
-
-	signature, err = engine.Sign(jsonByte, &privKey)
-	if err != nil {
-		return err
-	}
-
-	if user.Gender() {
-		mv.Parents[1] = ParentSig{UserID: user.ID(), Signature: signature.Signature}
-	} else {
-		mv.Parents[0] = ParentSig{UserID: user.ID(), Signature: signature.Signature}
-	}
-	return nil
 }

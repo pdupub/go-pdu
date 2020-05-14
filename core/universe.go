@@ -281,15 +281,15 @@ func (u *Universe) addUserByMsg(msg *Message) error {
 		return ErrUserAlreadyExist
 	}
 
-	var birthContent BirthMsgContent
-	err = json.Unmarshal(user.BirthMsg.Value.Content, &birthContent)
+	var contentBirth ContentBirth
+	err = json.Unmarshal(user.BirthMsg.Value.Content, &contentBirth)
 	if err != nil {
 		return err
 	}
 
 	userAdded := false
 	for _, ref := range msg.Reference {
-		if err := u.addUserToSpaceTime(ref, birthContent, user); err != nil {
+		if err := u.addUserToSpaceTime(ref, contentBirth, user); err != nil {
 			continue
 		}
 		// at least add into one space time
@@ -300,7 +300,7 @@ func (u *Universe) addUserByMsg(msg *Message) error {
 		return ErrNewUserAddFail
 	}
 
-	userVertex, err := dag.NewVertex(user.ID(), user, birthContent.Parents[0].UserID, birthContent.Parents[1].UserID)
+	userVertex, err := dag.NewVertex(user.ID(), user, contentBirth.Parents[0].UserID, contentBirth.Parents[1].UserID)
 	if err != nil {
 		return err
 	}
@@ -314,9 +314,9 @@ func (u *Universe) addUserByMsg(msg *Message) error {
 // addUserToSpaceTime used to add new user to spacetime base on ref.SenderID, the age of parents in this spacetime
 // should fit the nature rule.
 // TODO: ref.SenderID not must be spacetime, the new user's life length can be calculated by any ref msg.
-func (u *Universe) addUserToSpaceTime(ref *MsgReference, birthContent BirthMsgContent, user *User) error {
+func (u *Universe) addUserToSpaceTime(ref *MsgReference, contentBirth ContentBirth, user *User) error {
 	if vertex := u.stD.GetVertex(ref.SenderID); vertex != nil {
-		return vertex.Value().(*SpaceTime).AddUser(ref, birthContent, user)
+		return vertex.Value().(*SpaceTime).AddUser(ref, contentBirth, user)
 	}
 	return ErrAddUserToSpaceTimeFail
 }

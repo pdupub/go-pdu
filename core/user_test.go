@@ -97,7 +97,7 @@ func TestCreateNewUser(t *testing.T) {
 	// build auth for new user
 	auth := Auth{PublicKey: *pubKey}
 	// build birth msg content
-	content, err := CreateBirthMsgContent("A2", "1234", &auth)
+	content, err := CreateContentBirth("A2", "1234", &auth)
 	if err != nil {
 		t.Error("create birth content fail", err)
 	}

@@ -143,7 +143,7 @@ func TestUniverse_AddBirthMsg(t *testing.T) {
 	}
 
 	auth := Auth{PublicKey: *pubKeyA2}
-	content, err := CreateBirthMsgContent("A2", "1234", &auth)
+	content, err := CreateContentBirth("A2", "1234", &auth)
 	if err != nil {
 		t.Error("create birth content fail", err)
 	}
@@ -176,13 +176,13 @@ func TestUniverse_AddBirthMsg(t *testing.T) {
 	}
 
 	// verify the signature in the content of BirthMsg
-	var birthContent BirthMsgContent
-	json.Unmarshal(msgBirth2.Value.Content, &birthContent)
-	jsonBytes, _ := json.Marshal(birthContent.User)
-	sigAdam := crypto.Signature{Signature: birthContent.Parents[1].Signature,
-		PublicKey: universe.GetUserByID(birthContent.Parents[1].UserID).Auth.PublicKey}
-	sigEve := crypto.Signature{Signature: birthContent.Parents[0].Signature,
-		PublicKey: universe.GetUserByID(birthContent.Parents[0].UserID).Auth.PublicKey}
+	var contentBirth ContentBirth
+	json.Unmarshal(msgBirth2.Value.Content, &contentBirth)
+	jsonBytes, _ := json.Marshal(contentBirth.User)
+	sigAdam := crypto.Signature{Signature: contentBirth.Parents[1].Signature,
+		PublicKey: universe.GetUserByID(contentBirth.Parents[1].UserID).Auth.PublicKey}
+	sigEve := crypto.Signature{Signature: contentBirth.Parents[0].Signature,
+		PublicKey: universe.GetUserByID(contentBirth.Parents[0].UserID).Auth.PublicKey}
 
 	if res, err := universeEngine.Verify(jsonBytes, &sigAdam); err != nil || res == false {
 		t.Error("verify Adam fail", err)
@@ -277,7 +277,7 @@ func TestUniverse_AddUserOnSpaceTime(t *testing.T) {
 	}
 
 	auth := Auth{PublicKey: *pubKeyA3}
-	content, err := CreateBirthMsgContent("A3", "789", &auth)
+	content, err := CreateContentBirth("A3", "789", &auth)
 	if err != nil {
 		t.Error("create birth content fail, err:", err)
 	}

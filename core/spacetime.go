@@ -180,15 +180,15 @@ func (s *SpaceTime) UpdateTimeProof(msg *Message) error {
 }
 
 // AddUser add user info to this space time
-func (s *SpaceTime) AddUser(ref *MsgReference, birthContent BirthMsgContent, user *User) error {
+func (s *SpaceTime) AddUser(ref *MsgReference, contentBirth ContentBirth, user *User) error {
 	if tp := s.timeProofD.GetVertex(ref.MsgID); tp != nil {
 		msgSeq := tp.Value().(uint64)
-		p0 := s.userStateD.GetVertex(birthContent.Parents[0].UserID)
+		p0 := s.userStateD.GetVertex(contentBirth.Parents[0].UserID)
 		if p0 == nil {
 			return ErrAddUserToSpaceTimeFail
 		}
 		userInfo0 := p0.Value().(*UserInfo)
-		p1 := s.userStateD.GetVertex(birthContent.Parents[1].UserID)
+		p1 := s.userStateD.GetVertex(contentBirth.Parents[1].UserID)
 		if p1 == nil {
 			return ErrAddUserToSpaceTimeFail
 		}
