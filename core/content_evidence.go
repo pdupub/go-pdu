@@ -17,12 +17,12 @@
 package core
 
 const (
-	// LeakedPrivateKey is the evidence can proof a private key has been leaked.
-	// usually contain 1 anonymous msg(TypeText), the content is private key
+	// LeakedPrivateKey is the evidence can prove a private key has been leaked.
+	// Usually contain 1 anonymous msg(TypeText), the content is private key
 	// and 1 msg sign by this private key.
 	LeakedPrivateKey = iota
 
-	// ExcessiveBirth is the evidence can proof a user build msg try to create next
+	// ExcessiveBirth is the evidence can prove a user build msg try to create next
 	// new user against the nature rule.
 	ExcessiveBirth
 )
@@ -35,7 +35,7 @@ type ContentEvidence struct {
 	Msgs         []*Message
 }
 
-// CreateContentEvidence create the evidence msg content to proof user illeagal behavior
+// CreateContentEvidence create the evidence msg content contain proof of user illeagal behavior
 func CreateContentEvidence(evidenceType int, msgs []*Message) *ContentEvidence {
 	return &ContentEvidence{EvidenceType: evidenceType, Msgs: msgs}
 }
