@@ -16,6 +16,8 @@
 
 package core
 
+import "crypto"
+
 const (
 	// LeakedPrivateKey is the evidence can prove a private key has been leaked.
 	// Usually contain 1 anonymous msg(TypeText), the content is private key
@@ -38,4 +40,26 @@ type ContentEvidence struct {
 // CreateContentEvidence create the evidence msg content contain proof of user illeagal behavior
 func CreateContentEvidence(evidenceType int, msgs []*Message) *ContentEvidence {
 	return &ContentEvidence{EvidenceType: evidenceType, Msgs: msgs}
+}
+
+// CreateLPCE create the evidence of leaked privatekey
+func CreateLPCE(privKey crypto.PrivateKey, msg *Message) (*ContentEvidence, error) {
+	// check relation of privKey & msg.SenderID.Auth
+
+	// create anonymous msg which content is privKey
+	msgPrivateKey := &Message{}
+	// create content evidence by two messages
+
+	return &ContentEvidence{EvidenceType: LeakedPrivateKey, Msgs: []*Message{msgPrivateKey, msg}}, nil
+}
+
+// CreateEBCE creaste the evidence of ExcessiveBirth
+func CreateEBCE(msgs ...*Message) (*ContentEvidence, error) {
+	// check all msgs from same SenderID
+
+	// check if two msgs in spacetime
+
+	// two msgs illeagal at least on one spacetime local universe
+
+	return &ContentEvidence{EvidenceType: ExcessiveBirth, Msgs: msgs}, nil
 }

@@ -58,7 +58,7 @@ func (e PEngine) GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.Publ
 		if err != nil {
 			return nil, nil, err
 		}
-		return &crypto.PrivateKey{Source: e.name, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: e.name, SigType: crypto.Signature2PublicKey, PubKey: pk.PublicKey}, nil
+		return &crypto.PrivateKey{Source: e.name, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: e.name, SigType: crypto.Signature2PublicKey, PubKey: &pk.PublicKey}, nil
 
 	case crypto.MultipleSignatures:
 		if len(params) == 1 {
@@ -71,7 +71,7 @@ func (e PEngine) GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.Publ
 				return nil, nil, err
 			}
 			privKeys = append(privKeys, pk)
-			pubKeys = append(pubKeys, pk.PublicKey)
+			pubKeys = append(pubKeys, &pk.PublicKey)
 		}
 		return &crypto.PrivateKey{Source: e.name, SigType: crypto.MultipleSignatures, PriKey: privKeys}, &crypto.PublicKey{Source: e.name, SigType: crypto.MultipleSignatures, PubKey: pubKeys}, nil
 	default:
@@ -208,8 +208,69 @@ func (e PEngine) Verify(hash []byte, sig *crypto.Signature) (bool, error) {
 	}
 }
 
-// UnmarshalJSON unmarshal public key from json
-func (e PEngine) UnmarshalJSON(input []byte) (*crypto.PublicKey, error) {
+// Unmarshal unmarshal private & public key from json
+func (e PEngine) Unmarshal(privKeyBytes, pubKeyBytes []byte) (privKey *crypto.PrivateKey, pubKey *crypto.PublicKey, err error) {
+
+	if len(pubKeyBytes) > 0 {
+		if pubKey, err = e.unmarshalPubKey(pubKeyBytes); err != nil {
+			return
+		}
+	}
+	if len(privKeyBytes) > 0 {
+		if privKey, err = e.unmarshalPrivKey(privKeyBytes); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (e PEngine) unmarshalPrivKey(input []byte) (*crypto.PrivateKey, error) {
+	p := crypto.PrivateKey{}
+	aMap := make(map[string]interface{})
+	err := json.Unmarshal(input, &aMap)
+	if err != nil {
+		return nil, err
+	}
+	p.Source = aMap["source"].(string)
+	p.SigType = aMap["sigType"].(string)
+
+	if p.Source == e.name {
+		if p.SigType == crypto.Signature2PublicKey {
+			pk := aMap["privKey"].(interface{})
+			d, err := common.String2Hash(pk.(string))
+			if err != nil {
+				return nil, err
+			}
+			privKey, err := parsePriKey(common.Hash2Bytes(d))
+			if err != nil {
+				return nil, err
+			}
+			p.PriKey = privKey
+		} else if p.SigType == crypto.MultipleSignatures {
+			pk := aMap["privKey"].([]interface{})
+			var privKeys []interface{}
+			for i := 0; i < len(pk); i++ {
+				d, err := common.String2Hash(pk[i].(string))
+				if err != nil {
+					return nil, err
+				}
+				privKey, err := parsePriKey(common.Hash2Bytes(d))
+				if err != nil {
+					return nil, err
+				}
+				privKeys = append(privKeys, privKey)
+			}
+			p.PriKey = privKeys
+		} else {
+			return nil, crypto.ErrSigTypeNotSupport
+		}
+	} else {
+		return nil, crypto.ErrSourceNotMatch
+	}
+	return &p, nil
+}
+
+func (e PEngine) unmarshalPubKey(input []byte) (*crypto.PublicKey, error) {
 	p := crypto.PublicKey{}
 	aMap := make(map[string]interface{})
 	err := json.Unmarshal(input, &aMap)
@@ -221,23 +282,37 @@ func (e PEngine) UnmarshalJSON(input []byte) (*crypto.PublicKey, error) {
 
 	if p.Source == e.name {
 		if p.SigType == crypto.Signature2PublicKey {
-			pubKey := new(ecdsa.PublicKey)
-			pubKey.Curve = elliptic.P256()
-			pubKey.X, pubKey.Y = big.NewInt(0), big.NewInt(0)
 			pk := aMap["pubKey"].([]interface{})
-			pubKey.X.UnmarshalText([]byte(pk[0].(string)))
-			pubKey.Y.UnmarshalText([]byte(pk[1].(string)))
-			p.PubKey = *pubKey
+			x, err := common.String2Hash(pk[0].(string))
+			if err != nil {
+				return nil, err
+			}
+			y, err := common.String2Hash(pk[1].(string))
+			if err != nil {
+				return nil, err
+			}
+			pubKey, err := parsePubKey(append(common.Hash2Bytes(x), common.Hash2Bytes(y)...))
+			if err != nil {
+				return nil, err
+			}
+			p.PubKey = pubKey
 		} else if p.SigType == crypto.MultipleSignatures {
 			pk := aMap["pubKey"].([]interface{})
-			var pubKeys []ecdsa.PublicKey
+			var pubKeys []interface{}
 			for i := 0; i < len(pk)/2; i++ {
-				pubKey := new(ecdsa.PublicKey)
-				pubKey.Curve = elliptic.P256()
-				pubKey.X, pubKey.Y = big.NewInt(0), big.NewInt(0)
-				pubKey.X.UnmarshalText([]byte(pk[i*2].(string)))
-				pubKey.Y.UnmarshalText([]byte(pk[i*2+1].(string)))
-				pubKeys = append(pubKeys, *pubKey)
+				x, err := common.String2Hash(pk[i*2].(string))
+				if err != nil {
+					return nil, err
+				}
+				y, err := common.String2Hash(pk[i*2+1].(string))
+				if err != nil {
+					return nil, err
+				}
+				pubKey, err := parsePubKey(append(common.Hash2Bytes(x), common.Hash2Bytes(y)...))
+				if err != nil {
+					return nil, err
+				}
+				pubKeys = append(pubKeys, pubKey)
 			}
 			p.PubKey = pubKeys
 		} else {
@@ -250,39 +325,88 @@ func (e PEngine) UnmarshalJSON(input []byte) (*crypto.PublicKey, error) {
 	return &p, nil
 }
 
-// MarshalJSON marshal public key to json
-func (e PEngine) MarshalJSON(a crypto.PublicKey) ([]byte, error) {
+// Marshal marshal private & public key to json
+func (e PEngine) Marshal(privKey *crypto.PrivateKey, pubKey *crypto.PublicKey) (privKeyBytes []byte, pubKeyBytes []byte, err error) {
+	if privKey != nil {
+		if privKeyBytes, err = e.marshalPrivKey(privKey); err != nil {
+			return
+		}
+	}
+	if pubKey != nil {
+		if pubKeyBytes, err = e.marshalPubKey(pubKey); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (e PEngine) marshalPrivKey(a *crypto.PrivateKey) ([]byte, error) {
 	aMap := make(map[string]interface{})
 	aMap["source"] = a.Source
 	aMap["sigType"] = a.SigType
 	if a.Source == e.name {
 		if a.SigType == crypto.Signature2PublicKey {
-			pk := a.PubKey.(ecdsa.PublicKey)
+			pk, err := parsePriKey(a.PriKey)
+			if err != nil {
+				return nil, err
+			}
+			aMap["privKey"] = common.Bytes2String(pk.D.Bytes())
+		} else if a.SigType == crypto.MultipleSignatures {
+			switch a.PriKey.(type) {
+			case []interface{}:
+				pks := a.PriKey.([]interface{})
+				privKey := make([]string, len(pks))
+				for i, v := range pks {
+					pk, err := parsePriKey(v)
+					if err != nil {
+						return nil, err
+					}
+					privKey[i] = common.Bytes2String(pk.D.Bytes())
+				}
+				aMap["privKey"] = privKey
+			default:
+				return nil, crypto.ErrSigTypeNotSupport
+			}
+		} else {
+			return nil, crypto.ErrSigTypeNotSupport
+		}
+	} else {
+		return nil, crypto.ErrSourceNotMatch
+	}
+	return json.Marshal(aMap)
+}
+
+func (e PEngine) marshalPubKey(a *crypto.PublicKey) ([]byte, error) {
+	aMap := make(map[string]interface{})
+	aMap["source"] = a.Source
+	aMap["sigType"] = a.SigType
+	if a.Source == e.name {
+		if a.SigType == crypto.Signature2PublicKey {
+			pk, err := parsePubKey(a.PubKey)
+			if err != nil {
+				return nil, err
+			}
 			pubKey := make([]string, 2)
-			pubKey[0] = pk.X.String()
-			pubKey[1] = pk.Y.String()
+			pubKey[0] = common.Bytes2String(pk.X.Bytes())
+			pubKey[1] = common.Bytes2String(pk.Y.Bytes())
 			aMap["pubKey"] = pubKey
 		} else if a.SigType == crypto.MultipleSignatures {
 			switch a.PubKey.(type) {
-			case []ecdsa.PublicKey:
-				pks := a.PubKey.([]ecdsa.PublicKey)
-				pubKey := make([]string, len(pks)*2)
-				for i, pk := range pks {
-					pubKey[i*2] = pk.X.String()
-					pubKey[i*2+1] = pk.Y.String()
-				}
-				aMap["pubKey"] = pubKey
 			case []interface{}:
 				pks := a.PubKey.([]interface{})
 				pubKey := make([]string, len(pks)*2)
 				for i, v := range pks {
-					pk := v.(ecdsa.PublicKey)
-					pubKey[i*2] = pk.X.String()
-					pubKey[i*2+1] = pk.Y.String()
+					pk, err := parsePubKey(v)
+					if err != nil {
+						return nil, err
+					}
+					pubKey[i*2] = common.Bytes2String(pk.X.Bytes())
+					pubKey[i*2+1] = common.Bytes2String(pk.Y.Bytes())
 				}
 				aMap["pubKey"] = pubKey
+			default:
+				return nil, crypto.ErrSigTypeNotSupport
 			}
-
 		} else {
 			return nil, crypto.ErrSigTypeNotSupport
 		}
@@ -340,16 +464,16 @@ func (e PEngine) encryptKey(priKey *ecdsa.PrivateKey, pass string) (*crypto.Encr
 	encryptedKeyJSONV3 := crypto.EncryptedKeyJSONV3{
 		Address: hex.EncodeToString(key.Address[:]),
 		Crypto:  cryptoStruct,
-		Id:      key.Id.String(),
+		ID:      key.Id.String(),
 		Version: crypto.EncryptedVersion,
 	}
 	return &encryptedKeyJSONV3, nil
 }
 
 // DecryptKey decrypt private key from file
-func (e PEngine) DecryptKey(keyJson []byte, pass string) (*crypto.PrivateKey, *crypto.PublicKey, error) {
+func (e PEngine) DecryptKey(keyJSON []byte, pass string) (*crypto.PrivateKey, *crypto.PublicKey, error) {
 	var k crypto.EncryptedPrivateKey
-	if err := json.Unmarshal(keyJson, &k); err != nil {
+	if err := json.Unmarshal(keyJSON, &k); err != nil {
 		return nil, nil, err
 	} else if k.Source != crypto.PDU {
 		return nil, nil, crypto.ErrSourceNotMatch

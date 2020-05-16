@@ -40,8 +40,14 @@ var (
 	universeEngine                        crypto.Engine
 )
 
+const (
+	//defaultEngineName = crypto.PDU
+	//defaultEngineName = crypto.ETH
+	defaultEngineName = crypto.BTC
+)
+
 func TestNewUniverse(t *testing.T) {
-	universeEngine, _ = utils.SelectEngine(crypto.ETH)
+	universeEngine, _ = utils.SelectEngine(defaultEngineName)
 
 	// Test 1: Create root users, Adam and Eve , create universe
 	// The gender of user relate to public key (random), so createRootUser

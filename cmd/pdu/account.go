@@ -94,14 +94,14 @@ func generate() error {
 	if err != nil {
 		return err
 	}
-	keyJson, err := engine.EncryptKey(privateKey, string(passwd))
+	keyJSON, err := engine.EncryptKey(privateKey, string(passwd))
 	if err != nil {
 		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(accOutput), 0700); err != nil {
 		return fmt.Errorf("could not create directory %s", filepath.Dir(accOutput))
 	}
-	if err := ioutil.WriteFile(accOutput, keyJson, 0600); err != nil {
+	if err := ioutil.WriteFile(accOutput, keyJSON, 0600); err != nil {
 		return fmt.Errorf("failed to write keyfile to %s: %v", accOutput, err)
 	}
 	fmt.Println(accOutput, "is created success.")

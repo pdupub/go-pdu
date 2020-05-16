@@ -18,9 +18,10 @@ package pdu
 
 import (
 	"crypto/ecdsa"
-	"github.com/pdupub/go-pdu/crypto"
 	"math/big"
 	"testing"
+
+	"github.com/pdupub/go-pdu/crypto"
 )
 
 func TestS2PKSignature(t *testing.T) {
@@ -286,6 +287,156 @@ func TestParsePubKey(t *testing.T) {
 
 }
 
+func TestMarshal(t *testing.T) {
+	E := New()
+
+	privKey, _, err := E.GenKey(crypto.Signature2PublicKey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	privKeyBytes, err := E.marshalPrivKey(privKey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	uPrivKey, err := E.unmarshalPrivKey(privKeyBytes)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if privKey.Source != uPrivKey.Source {
+		t.Error("source not match")
+	}
+	if privKey.SigType != uPrivKey.SigType {
+		t.Error("sig type not match")
+	}
+	if privKey.PriKey.(*ecdsa.PrivateKey).D.Cmp(uPrivKey.PriKey.(*ecdsa.PrivateKey).D) != 0 {
+		t.Error("private key not match")
+	}
+
+	size := 3
+	privKey, _, err = E.GenKey(crypto.MultipleSignatures, size)
+	if err != nil {
+		t.Error(err)
+	}
+
+	privKeyBytes, err = E.marshalPrivKey(privKey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	uPrivKey, err = E.unmarshalPrivKey(privKeyBytes)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if privKey.Source != uPrivKey.Source {
+		t.Error("source not match")
+	}
+	if privKey.SigType != uPrivKey.SigType {
+		t.Error("sig type not match")
+	}
+
+	for i := 0; i < size; i++ {
+		if privKey.PriKey.([]interface{})[i].(*ecdsa.PrivateKey).D.Cmp(uPrivKey.PriKey.([]interface{})[i].(*ecdsa.PrivateKey).D) != 0 {
+			t.Error("private key not match")
+		}
+	}
+
+	_, pubKey, err := E.GenKey(crypto.Signature2PublicKey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	pubKeyBytes, err := E.marshalPubKey(pubKey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	uPubKey, err := E.unmarshalPubKey(pubKeyBytes)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if pubKey.Source != uPubKey.Source {
+		t.Error("source not match")
+	}
+	if pubKey.SigType != uPubKey.SigType {
+		t.Error("sig type not match")
+	}
+
+	if pubKey.PubKey.(*ecdsa.PublicKey).X.Cmp(uPubKey.PubKey.(*ecdsa.PublicKey).X) != 0 {
+		t.Error("private key not match")
+	}
+	if pubKey.PubKey.(*ecdsa.PublicKey).Y.Cmp(uPubKey.PubKey.(*ecdsa.PublicKey).Y) != 0 {
+		t.Error("private key not match")
+	}
+
+	_, pubKey, err = E.GenKey(crypto.MultipleSignatures, size)
+	if err != nil {
+		t.Error(err)
+	}
+
+	pubKeyBytes, err = E.marshalPubKey(pubKey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	uPubKey, err = E.unmarshalPubKey(pubKeyBytes)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if pubKey.Source != uPubKey.Source {
+		t.Error("source not match")
+	}
+	if pubKey.SigType != uPubKey.SigType {
+		t.Error("sig type not match")
+	}
+
+	for i := 0; i < size; i++ {
+		if pubKey.PubKey.([]interface{})[i].(*ecdsa.PublicKey).X.Cmp(uPubKey.PubKey.([]interface{})[i].(*ecdsa.PublicKey).X) != 0 {
+			t.Error("public key not match")
+		}
+		if pubKey.PubKey.([]interface{})[i].(*ecdsa.PublicKey).Y.Cmp(uPubKey.PubKey.([]interface{})[i].(*ecdsa.PublicKey).Y) != 0 {
+			t.Error("public key not match")
+		}
+	}
+
+	privKey, pubKey, err = E.GenKey(crypto.MultipleSignatures, size)
+	if err != nil {
+		t.Error(err)
+	}
+
+	privKeyBytes, pubKeyBytes, err = E.Marshal(privKey, pubKey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	uPrivKey, uPubKey, err = E.Unmarshal(privKeyBytes, pubKeyBytes)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if pubKey.Source != uPubKey.Source {
+		t.Error("source not match")
+	}
+	if pubKey.SigType != uPubKey.SigType {
+		t.Error("sig type not match")
+	}
+
+	for i := 0; i < size; i++ {
+		if pubKey.PubKey.([]interface{})[i].(*ecdsa.PublicKey).X.Cmp(uPubKey.PubKey.([]interface{})[i].(*ecdsa.PublicKey).X) != 0 {
+			t.Error("public key not match")
+		}
+		if pubKey.PubKey.([]interface{})[i].(*ecdsa.PublicKey).Y.Cmp(uPubKey.PubKey.([]interface{})[i].(*ecdsa.PublicKey).Y) != 0 {
+			t.Error("public key not match")
+		}
+	}
+
+}
+
 func TestSign(t *testing.T) {
 	E := New()
 
@@ -331,12 +482,12 @@ func TestEEngine_EncryptKey(t *testing.T) {
 
 	privateKey := &crypto.PrivateKey{Source: crypto.PDU, SigType: crypto.Signature2PublicKey, PriKey: pk}
 
-	keyJson, err := E.EncryptKey(privateKey, "123")
+	keyJSON, err := E.EncryptKey(privateKey, "123")
 	if err != nil {
 		t.Error("encrypt key fail", err)
 	}
 
-	newPrivateKey, newPublicKey, err := E.DecryptKey(keyJson, "123")
+	newPrivateKey, newPublicKey, err := E.DecryptKey(keyJSON, "123")
 	if err != nil {
 		t.Error("decrypt key fail")
 	}
@@ -378,12 +529,12 @@ func TestEEngine_EncryptKeyMS(t *testing.T) {
 	pks = append(pks, pk1, pk2, pk3)
 	privateKey := &crypto.PrivateKey{Source: crypto.PDU, SigType: crypto.MultipleSignatures, PriKey: pks}
 
-	keyJson, err := E.EncryptKey(privateKey, "123")
+	keyJSON, err := E.EncryptKey(privateKey, "123")
 	if err != nil {
 		t.Error("encrypt key fail", err)
 	}
 
-	newPrivateKey, _, err := E.DecryptKey(keyJson, "123")
+	newPrivateKey, _, err := E.DecryptKey(keyJSON, "123")
 	if err != nil {
 		t.Error("decrypt key fail")
 	}

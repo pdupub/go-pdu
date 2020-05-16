@@ -41,7 +41,7 @@ func (a *Auth) UnmarshalJSON(input []byte) error {
 	if err != nil {
 		return err
 	}
-	pk, err := engine.UnmarshalJSON(input)
+	_, pk, err := engine.Unmarshal(nil, input)
 	if err != nil {
 		return err
 	}
@@ -55,5 +55,6 @@ func (a Auth) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return engine.MarshalJSON(a.PublicKey)
+	_, pkBytes, err := engine.Marshal(nil, &a.PublicKey)
+	return pkBytes, err
 }

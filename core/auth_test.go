@@ -19,13 +19,14 @@ package core
 import (
 	"crypto/ecdsa"
 	"encoding/json"
-	"github.com/pdupub/go-pdu/crypto"
-	"github.com/pdupub/go-pdu/crypto/ethereum"
 	"testing"
+
+	"github.com/pdupub/go-pdu/crypto"
+	"github.com/pdupub/go-pdu/crypto/utils"
 )
 
 func TestAuth_MarshalJSON(t *testing.T) {
-	engine := ethereum.New()
+	engine, _ := utils.SelectEngine(defaultEngineName)
 	_, pubKey, err := engine.GenKey(crypto.Signature2PublicKey)
 	if err != nil {
 		t.Errorf("pdu genereate key fail, err: %s", err)
@@ -49,8 +50,8 @@ func TestAuth_MarshalJSON(t *testing.T) {
 		t.Errorf("pubkey info mismatch")
 	}
 
-	pubKey1 := pubKey.PubKey.(ecdsa.PublicKey)
-	pubKey2 := targetAuth.PubKey.(ecdsa.PublicKey)
+	pubKey1 := pubKey.PubKey.(*ecdsa.PublicKey)
+	pubKey2 := targetAuth.PubKey.(*ecdsa.PublicKey)
 	if pubKey1.X.Cmp(pubKey2.X) != 0 || pubKey1.Y.Cmp(pubKey2.Y) != 0 {
 		t.Errorf("public key mismatch")
 	}

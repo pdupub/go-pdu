@@ -18,6 +18,7 @@ package ethereum
 
 import (
 	"crypto/ecdsa"
+
 	eth "github.com/ethereum/go-ethereum/crypto"
 	"github.com/pdupub/go-pdu/crypto"
 
@@ -324,12 +325,12 @@ func TestEEngine_EncryptKey(t *testing.T) {
 
 	privateKey := &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PriKey: pk}
 
-	keyJson, err := E.EncryptKey(privateKey, "123")
+	keyJSON, err := E.EncryptKey(privateKey, "123")
 	if err != nil {
 		t.Error("encrypt key fail", err)
 	}
 
-	newPrivateKey, newPublicKey, err := E.DecryptKey(keyJson, "123")
+	newPrivateKey, newPublicKey, err := E.DecryptKey(keyJSON, "123")
 	if err != nil {
 		t.Error("decrypt key fail")
 	}

@@ -18,6 +18,7 @@ package bitcoin
 
 import (
 	"crypto/ecdsa"
+
 	btc "github.com/btcsuite/btcd/btcec"
 	"github.com/pdupub/go-pdu/crypto"
 
@@ -329,12 +330,12 @@ func TestEEngine_EncryptKey(t *testing.T) {
 
 	privateKey := &crypto.PrivateKey{Source: crypto.BTC, SigType: crypto.Signature2PublicKey, PriKey: pk}
 
-	keyJson, err := E.EncryptKey(privateKey, "123")
+	keyJSON, err := E.EncryptKey(privateKey, "123")
 	if err != nil {
 		t.Error("encrypt key fail", err)
 	}
 
-	newPrivateKey, newPublicKey, err := E.DecryptKey(keyJson, "123")
+	newPrivateKey, newPublicKey, err := E.DecryptKey(keyJSON, "123")
 	if err != nil {
 		t.Error("decrypt key fail")
 	}

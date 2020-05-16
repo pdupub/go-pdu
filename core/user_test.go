@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/pdupub/go-pdu/crypto"
-	"github.com/pdupub/go-pdu/crypto/ethereum"
+	"github.com/pdupub/go-pdu/crypto/utils"
 )
 
 const (
@@ -34,7 +34,7 @@ var (
 )
 
 func TestCreateRootUsersS2PK(t *testing.T) {
-	userEngine = ethereum.New()
+	userEngine, _ = utils.SelectEngine(defaultEngineName)
 	var f, m bool
 	for i := 0; i < retryCnt; i++ {
 		if _, pubKey, err := userEngine.GenKey(crypto.Signature2PublicKey); err != nil {
@@ -58,16 +58,17 @@ func TestCreateRootUsersS2PK(t *testing.T) {
 		}
 	}
 }
+
 func TestCreateRootUsersMS(t *testing.T) {
 	var f, m bool
 	for i := 0; i < retryCnt; i++ {
 		if _, pubKey, err := userEngine.GenKey(crypto.MultipleSignatures, 3); err != nil {
-
+			t.Error("generate key fail", err)
 		} else {
 			user := CreateRootUser(*pubKey, "name", "extra")
 
 			if user.ID() != copy(user).ID() {
-				t.Errorf("%s : %s json Encode & Decode fail ", userEngine.Name(), crypto.Signature2PublicKey)
+				t.Errorf("%s : %s json Encode & Decode fail ", userEngine.Name(), crypto.MultipleSignatures)
 			}
 			if user.Gender() {
 				m = true

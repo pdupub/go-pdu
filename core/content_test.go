@@ -16,17 +16,14 @@
 
 package core
 
-const (
-	// TypeText is the content without any functions, not just text
-	TypeText = iota
-	// TypeBirth is the type which contain the cosign to create new user in pdu
-	TypeBirth
-	// TypeEvidence is the type which contain the illegal evidence of user
-	TypeEvidence
+import (
+	"testing"
 )
 
-// MsgValue is the mas value
-type MsgValue struct {
-	ContentType int
-	Content     []byte
+func TestContentBirth(t *testing.T) {
+
+}
+
+func TestContentEvidence(t *testing.T) {
+
 }

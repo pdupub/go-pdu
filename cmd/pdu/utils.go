@@ -111,7 +111,7 @@ func unlockKeyByCmd() (*crypto.PrivateKey, *crypto.PublicKey, error) {
 	var keyFile string
 	fmt.Print("KeyFile path: ")
 	fmt.Scan(&keyFile)
-	keyJson, err := ioutil.ReadFile(keyFile)
+	keyJSON, err := ioutil.ReadFile(keyFile)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -121,11 +121,11 @@ func unlockKeyByCmd() (*crypto.PrivateKey, *crypto.PublicKey, error) {
 		return nil, nil, err
 	}
 
-	return utils.DecryptKey(keyJson, string(passwd))
+	return utils.DecryptKey(keyJSON, string(passwd))
 }
 
 func unlockKeyByFile(keyFile, passFile string) (*crypto.PrivateKey, *crypto.PublicKey, error) {
-	keyJson, err := ioutil.ReadFile(keyFile)
+	keyJSON, err := ioutil.ReadFile(keyFile)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -135,7 +135,7 @@ func unlockKeyByFile(keyFile, passFile string) (*crypto.PrivateKey, *crypto.Publ
 		return nil, nil, err
 	}
 
-	return utils.DecryptKey(keyJson, strings.TrimSpace(string(passwd)))
+	return utils.DecryptKey(keyJSON, strings.TrimSpace(string(passwd)))
 }
 
 func scanLine(input *string) {

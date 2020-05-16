@@ -18,6 +18,7 @@ package crypto
 
 import (
 	"errors"
+
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 )
 
@@ -81,8 +82,8 @@ type Engine interface {
 	GenKey(params ...interface{}) (*PrivateKey, *PublicKey, error)
 	Sign([]byte, *PrivateKey) (*Signature, error)
 	Verify([]byte, *Signature) (bool, error)
-	UnmarshalJSON([]byte) (*PublicKey, error)
-	MarshalJSON(PublicKey) ([]byte, error)
+	Unmarshal([]byte, []byte) (*PrivateKey, *PublicKey, error)
+	Marshal(*PrivateKey, *PublicKey) ([]byte, []byte, error)
 	EncryptKey(*PrivateKey, string) ([]byte, error)
 	DecryptKey([]byte, string) (*PrivateKey, *PublicKey, error)
 }
@@ -98,7 +99,7 @@ type EncryptedPrivateKey struct {
 type EncryptedKeyJSONV3 struct {
 	Address string              `json:"address"`
 	Crypto  keystore.CryptoJSON `json:"crypto"`
-	Id      string              `json:"id"`
+	ID      string              `json:"id"`
 	Version int                 `json:"version"`
 }
 
