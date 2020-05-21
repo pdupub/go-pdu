@@ -503,8 +503,8 @@ func TestEEngine_EncryptKey(t *testing.T) {
 		t.Error("private key not equal")
 	}
 
-	if pk.X.Cmp(newPublicKey.PubKey.(ecdsa.PublicKey).X) != 0 ||
-		pk.Y.Cmp(newPublicKey.PubKey.(ecdsa.PublicKey).Y) != 0 {
+	if pk.X.Cmp(newPublicKey.PubKey.(*ecdsa.PublicKey).X) != 0 ||
+		pk.Y.Cmp(newPublicKey.PubKey.(*ecdsa.PublicKey).Y) != 0 {
 		t.Error("public key not equal")
 	}
 

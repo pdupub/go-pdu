@@ -471,9 +471,9 @@ func (e EEngine) DecryptKey(keyJSON []byte, pass string) (*crypto.PrivateKey, *c
 		pk.PublicKey.X, pk.PublicKey.Y = pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
 
 		priKeys = append(priKeys, pk)
-		pubKeys = append(pubKeys, pk.PublicKey)
+		pubKeys = append(pubKeys, &pk.PublicKey)
 		if k.SigType == crypto.Signature2PublicKey {
-			return &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PubKey: pk.PublicKey}, nil
+			return &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PubKey: &pk.PublicKey}, nil
 		}
 	}
 	return &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.MultipleSignatures, PriKey: priKeys}, &crypto.PublicKey{Source: crypto.ETH, SigType: crypto.MultipleSignatures, PubKey: pubKeys}, nil

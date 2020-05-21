@@ -487,9 +487,9 @@ func (e BEngine) DecryptKey(keyJSON []byte, pass string) (*crypto.PrivateKey, *c
 			return nil, nil, err
 		}
 		priKeys = append(priKeys, pk)
-		pubKeys = append(pubKeys, pk.PublicKey)
+		pubKeys = append(pubKeys, &pk.PublicKey)
 		if k.SigType == crypto.Signature2PublicKey {
-			return &crypto.PrivateKey{Source: crypto.BTC, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: crypto.BTC, SigType: crypto.Signature2PublicKey, PubKey: pk.PublicKey}, nil
+			return &crypto.PrivateKey{Source: crypto.BTC, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: crypto.BTC, SigType: crypto.Signature2PublicKey, PubKey: &pk.PublicKey}, nil
 		}
 	}
 	return &crypto.PrivateKey{Source: crypto.BTC, SigType: crypto.MultipleSignatures, PriKey: priKeys}, &crypto.PublicKey{Source: crypto.BTC, SigType: crypto.MultipleSignatures, PubKey: pubKeys}, nil
