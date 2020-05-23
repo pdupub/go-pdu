@@ -459,10 +459,7 @@ func TestMarshalPrivateKey(t *testing.T) {
 func TestMarshalPublicKey(t *testing.T) {
 	E := New()
 	size := 3
-	_, pubKey, err := E.GenKey(crypto.Signature2PublicKey)
-	if err != nil {
-		t.Error(err)
-	}
+	_, pubKey, _ := E.GenKey(crypto.Signature2PublicKey)
 
 	pubKeyBytes, err := E.marshalPubKey(pubKey)
 	if err != nil {
