@@ -403,7 +403,7 @@ func TestEEngine_EncryptKeyMS(t *testing.T) {
 
 }
 
-func TestMarshal(t *testing.T) {
+func TestMarshalPrivateKey(t *testing.T) {
 	E := New()
 
 	privKey, _, err := E.GenKey(crypto.Signature2PublicKey)
@@ -461,6 +461,10 @@ func TestMarshal(t *testing.T) {
 		}
 	}
 
+}
+func TestMarshalPublicKey(t *testing.T) {
+	E := New()
+	size := 3
 	_, pubKey, err := E.GenKey(crypto.Signature2PublicKey)
 	if err != nil {
 		t.Error(err)
@@ -520,18 +524,21 @@ func TestMarshal(t *testing.T) {
 			t.Error("public key not match")
 		}
 	}
-
-	privKey, pubKey, err = E.GenKey(crypto.MultipleSignatures, size)
+}
+func TestMarshal(t *testing.T) {
+	E := New()
+	size := 3
+	privKey, pubKey, err := E.GenKey(crypto.MultipleSignatures, size)
 	if err != nil {
 		t.Error(err)
 	}
 
-	privKeyBytes, pubKeyBytes, err = E.Marshal(privKey, pubKey)
+	privKeyBytes, pubKeyBytes, err := E.Marshal(privKey, pubKey)
 	if err != nil {
 		t.Error(err)
 	}
 
-	uPrivKey, uPubKey, err = E.Unmarshal(privKeyBytes, pubKeyBytes)
+	uPrivKey, uPubKey, err := E.Unmarshal(privKeyBytes, pubKeyBytes)
 	if err != nil {
 		t.Error(err)
 	}
@@ -549,6 +556,12 @@ func TestMarshal(t *testing.T) {
 		}
 		if pubKey.PubKey.([]interface{})[i].(*ecdsa.PublicKey).Y.Cmp(uPubKey.PubKey.([]interface{})[i].(*ecdsa.PublicKey).Y) != 0 {
 			t.Error("public key not match")
+		}
+	}
+
+	for i := 0; i < size; i++ {
+		if privKey.PriKey.([]interface{})[i].(*btc.PrivateKey).D.Cmp(uPrivKey.PriKey.([]interface{})[i].(*btc.PrivateKey).D) != 0 {
+			t.Error("private key not match")
 		}
 	}
 
