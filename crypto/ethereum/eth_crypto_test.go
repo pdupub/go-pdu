@@ -481,10 +481,8 @@ func TestMarshalPublicKey(t *testing.T) {
 		t.Error("sig type not match")
 	}
 
-	if pubKey.PubKey.(*ecdsa.PublicKey).X.Cmp(uPubKey.PubKey.(*ecdsa.PublicKey).X) != 0 {
-		t.Error("private key not match")
-	}
-	if pubKey.PubKey.(*ecdsa.PublicKey).Y.Cmp(uPubKey.PubKey.(*ecdsa.PublicKey).Y) != 0 {
+	if pubKey.PubKey.(*ecdsa.PublicKey).X.Cmp(uPubKey.PubKey.(*ecdsa.PublicKey).X) != 0 ||
+		pubKey.PubKey.(*ecdsa.PublicKey).Y.Cmp(uPubKey.PubKey.(*ecdsa.PublicKey).Y) != 0 {
 		t.Error("private key not match")
 	}
 
