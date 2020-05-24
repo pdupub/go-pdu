@@ -47,35 +47,7 @@ func (e BEngine) Name() string {
 
 // GenKey generate the private and public key pair
 func (e BEngine) GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.PublicKey, error) {
-	if len(params) == 0 {
-		return nil, nil, crypto.ErrSigTypeNotSupport
-	}
-	sigType := params[0].(string)
-	switch sigType {
-	case crypto.Signature2PublicKey:
-		pk, err := genKey()
-		if err != nil {
-			return nil, nil, err
-		}
-		return &crypto.PrivateKey{Source: e.name, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: e.name, SigType: crypto.Signature2PublicKey, PubKey: &pk.PublicKey}, nil
-
-	case crypto.MultipleSignatures:
-		if len(params) == 1 {
-			return nil, nil, crypto.ErrParamsMissing
-		}
-		var privKeys, pubKeys []interface{}
-		for i := 0; i < params[1].(int); i++ {
-			pk, err := genKey()
-			if err != nil {
-				return nil, nil, err
-			}
-			privKeys = append(privKeys, pk)
-			pubKeys = append(pubKeys, &pk.PublicKey)
-		}
-		return &crypto.PrivateKey{Source: e.name, SigType: crypto.MultipleSignatures, PriKey: privKeys}, &crypto.PublicKey{Source: e.name, SigType: crypto.MultipleSignatures, PubKey: pubKeys}, nil
-	default:
-		return nil, nil, crypto.ErrSigTypeNotSupport
-	}
+	return crypto.GenKey(e.name, genKey, params...)
 }
 
 // parsePriKey parse the private key
@@ -304,11 +276,11 @@ func (e BEngine) unmarshalPubKey(input []byte) (*crypto.PublicKey, error) {
 			if err != nil {
 				return nil, err
 			}
-			pubKey, err := btc.ParsePubKey(pk, btc.S256())
+			pubKey, err := parsePubKey(pk)
 			if err != nil {
 				return nil, err
 			}
-			p.PubKey = pubKey.ToECDSA()
+			p.PubKey = pubKey
 		} else if p.SigType == crypto.MultipleSignatures {
 			pks := aMap["pubKey"].([]interface{})
 			var pubKeys []interface{}
@@ -317,11 +289,11 @@ func (e BEngine) unmarshalPubKey(input []byte) (*crypto.PublicKey, error) {
 				if err != nil {
 					return nil, err
 				}
-				pubKey, err := btc.ParsePubKey(pk, btc.S256())
+				pubKey, err := parsePubKey(pk)
 				if err != nil {
 					return nil, err
 				}
-				pubKeys = append(pubKeys, pubKey.ToECDSA())
+				pubKeys = append(pubKeys, pubKey)
 			}
 			p.PubKey = pubKeys
 		} else {
@@ -496,6 +468,10 @@ func (e BEngine) DecryptKey(keyJSON []byte, pass string) (*crypto.PrivateKey, *c
 
 }
 
-func genKey() (*btc.PrivateKey, error) {
-	return btc.NewPrivateKey(btc.S256())
+func genKey() (interface{}, interface{}, error) {
+	privKey, err := btc.NewPrivateKey(btc.S256())
+	if err != nil {
+		return nil, nil, err
+	}
+	return privKey, &privKey.PublicKey, nil
 }

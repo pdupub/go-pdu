@@ -24,9 +24,18 @@ import (
 	"github.com/pdupub/go-pdu/crypto"
 )
 
+func tGenKey() (*ecdsa.PrivateKey, *ecdsa.PublicKey, error) {
+
+	privKey, pubKey, err := genKey()
+	if err != nil {
+		return nil, nil, err
+	}
+	return privKey.(*ecdsa.PrivateKey), pubKey.(*ecdsa.PublicKey), nil
+}
+
 func TestS2PKSignature(t *testing.T) {
 	E := New()
-	pk, err := genKey()
+	pk, _, err := tGenKey()
 	if err != nil {
 		t.Errorf("generate key pair fail, err : %s", err)
 	}
@@ -60,7 +69,7 @@ func TestS2PKSignature(t *testing.T) {
 func TestS2PKVerify(t *testing.T) {
 	E := New()
 
-	pk, err := genKey()
+	pk, _, err := tGenKey()
 	if err != nil {
 		t.Errorf("generate key pair fail, err : %s", err)
 	}
@@ -111,15 +120,15 @@ func TestS2PKVerify(t *testing.T) {
 func TestMSSignature(t *testing.T) {
 	E := New()
 
-	pk1, err := genKey()
+	pk1, _, err := tGenKey()
 	if err != nil {
 		t.Errorf("generate key pair fail, err : %s", err)
 	}
-	pk2, err := genKey()
+	pk2, _, err := tGenKey()
 	if err != nil {
 		t.Errorf("generate key pair fail, err : %s", err)
 	}
-	pk3, err := genKey()
+	pk3, _, err := tGenKey()
 	if err != nil {
 		t.Errorf("generate key pair fail, err : %s", err)
 	}
@@ -153,9 +162,9 @@ func TestMSSignature(t *testing.T) {
 func TestMSVerify(t *testing.T) {
 	E := New()
 
-	pk1, _ := genKey()
-	pk2, _ := genKey()
-	pk3, _ := genKey()
+	pk1, _, _ := tGenKey()
+	pk2, _, _ := tGenKey()
+	pk3, _, _ := tGenKey()
 	content := "hello world"
 	var pks []interface{}
 	sig, _ := E.Sign([]byte(content), &crypto.PrivateKey{Source: crypto.PDU, SigType: crypto.MultipleSignatures, PriKey: append(pks, pk1.D, pk2.D, pk3.D)})
@@ -325,7 +334,7 @@ func TestSign(t *testing.T) {
 func TestEEngine_EncryptKey(t *testing.T) {
 	E := New()
 
-	pk, err := genKey()
+	pk, _, err := tGenKey()
 	if err != nil {
 		t.Error("generate key pair fail", err)
 	}
@@ -363,15 +372,15 @@ func TestEEngine_EncryptKey(t *testing.T) {
 func TestEEngine_EncryptKeyMS(t *testing.T) {
 	E := New()
 
-	pk1, err := genKey()
+	pk1, _, err := tGenKey()
 	if err != nil {
 		t.Error("generate key pair fail", err)
 	}
-	pk2, err := genKey()
+	pk2, _, err := tGenKey()
 	if err != nil {
 		t.Error("generate key pair fail", err)
 	}
-	pk3, err := genKey()
+	pk3, _, err := tGenKey()
 	if err != nil {
 		t.Error("generate key pair fail", err)
 	}

@@ -108,3 +108,38 @@ type EncryptedKeyJListV3 []*EncryptedKeyJSONV3
 
 // EncryptedVersion is version of EncryptedKeyJSONV3
 const EncryptedVersion = 3
+
+type funcGenKey func() (interface{}, interface{}, error)
+
+// GenKey generate the private and public key pair
+func GenKey(source string, genKey funcGenKey, params ...interface{}) (*PrivateKey, *PublicKey, error) {
+	if len(params) == 0 {
+		return nil, nil, ErrSigTypeNotSupport
+	}
+	sigType := params[0].(string)
+	switch sigType {
+	case Signature2PublicKey:
+		privKey, pubKey, err := genKey()
+		if err != nil {
+			return nil, nil, err
+		}
+		return &PrivateKey{Source: source, SigType: Signature2PublicKey, PriKey: privKey}, &PublicKey{Source: source, SigType: Signature2PublicKey, PubKey: pubKey}, nil
+
+	case MultipleSignatures:
+		if len(params) == 1 {
+			return nil, nil, ErrParamsMissing
+		}
+		var privKeys, pubKeys []interface{}
+		for i := 0; i < params[1].(int); i++ {
+			privKey, pubKey, err := genKey()
+			if err != nil {
+				return nil, nil, err
+			}
+			privKeys = append(privKeys, privKey)
+			pubKeys = append(pubKeys, pubKey)
+		}
+		return &PrivateKey{Source: source, SigType: MultipleSignatures, PriKey: privKeys}, &PublicKey{Source: source, SigType: MultipleSignatures, PubKey: pubKeys}, nil
+	default:
+		return nil, nil, ErrSigTypeNotSupport
+	}
+}
