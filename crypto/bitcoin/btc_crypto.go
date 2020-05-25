@@ -96,51 +96,24 @@ func parsePubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
 	return pk, nil
 }
 
-// Sign is used to create signature of content by private key
-func (e BEngine) Sign(hash []byte, priKey *crypto.PrivateKey) (*crypto.Signature, error) {
-	if priKey.Source != e.name {
-		return nil, crypto.ErrSourceNotMatch
+func sign(hash []byte, privKey interface{}) ([]byte, *ecdsa.PublicKey, error) {
+	pk, err := parsePriKey(privKey)
+	if err != nil {
+		return nil, nil, err
 	}
-	switch priKey.SigType {
-	case crypto.Signature2PublicKey:
-		pk, err := parsePriKey(priKey.PriKey)
-		if err != nil {
-			return nil, err
-		}
-		signature, err := pk.Sign(hash)
-		if err != nil {
-			return nil, err
-		}
-		return &crypto.Signature{
-			PublicKey: crypto.PublicKey{Source: e.name, SigType: priKey.SigType, PubKey: pk.PublicKey},
-			Signature: signature.Serialize(),
-		}, nil
-	case crypto.MultipleSignatures:
-		pks := priKey.PriKey.([]interface{})
-		var pubKeys []interface{}
-		var signatures []byte
-		for _, item := range pks {
-			pk, err := parsePriKey(item)
-			if err != nil {
-				return nil, err
-			}
-			signature, err := pk.Sign(hash)
-			if err != nil {
-				return nil, err
-			}
-			signatures = append(signatures, signature.Serialize()...)
-			pubKeys = append(pubKeys, pk.PublicKey)
-		}
-		return &crypto.Signature{
-			PublicKey: crypto.PublicKey{Source: e.name, SigType: priKey.SigType, PubKey: pubKeys},
-			Signature: signatures,
-		}, nil
-	default:
-		return nil, crypto.ErrSigTypeNotSupport
+	signature, err := pk.Sign(hash)
+	if err != nil {
+		return nil, nil, err
 	}
+	return signature.Serialize(), &pk.PublicKey, nil
 }
 
-func (e BEngine) verify(hash []byte, pubKey interface{}, sig []byte) (bool, error) {
+// Sign is used to create signature of content by private key
+func (e BEngine) Sign(hash []byte, priKey *crypto.PrivateKey) (*crypto.Signature, error) {
+	return crypto.Sign(e.name, hash, priKey, sign)
+}
+
+func verify(hash []byte, pubKey interface{}, sig []byte) (bool, error) {
 	signature, err := btc.ParseSignature(sig, btc.S256())
 	if err != nil {
 		return false, err
@@ -152,50 +125,33 @@ func (e BEngine) verify(hash []byte, pubKey interface{}, sig []byte) (bool, erro
 	return signature.Verify(hash, (*btc.PublicKey)(pk)), nil
 }
 
+func parseMulSig(signature []byte) [][]byte {
+	currentSigLeft := -1
+	var currentSig []byte
+	var sigs [][]byte
+	for _, v := range signature {
+		if currentSigLeft == -1 {
+			currentSigLeft = 0
+			currentSig = []byte{}
+			currentSig = append(currentSig, v)
+		} else if currentSigLeft == 0 {
+			currentSigLeft = int(v)
+			currentSig = append(currentSig, v)
+		} else {
+			currentSig = append(currentSig, v)
+			currentSigLeft--
+			if currentSigLeft == 0 {
+				sigs = append(sigs, currentSig)
+				currentSigLeft = -1
+			}
+		}
+	}
+	return sigs
+}
+
 // Verify is used to verify the signature
 func (e BEngine) Verify(hash []byte, sig *crypto.Signature) (bool, error) {
-	if sig.Source != e.name {
-		return false, crypto.ErrSourceNotMatch
-	}
-	switch sig.SigType {
-	case crypto.Signature2PublicKey:
-		return e.verify(hash, sig.PubKey, sig.Signature)
-	case crypto.MultipleSignatures:
-		pks := sig.PubKey.([]interface{})
-
-		currentSigLeft := -1
-		var currentSig []byte
-		var sigs [][]byte
-		for _, v := range sig.Signature {
-			if currentSigLeft == -1 {
-				currentSigLeft = 0
-				currentSig = []byte{}
-				currentSig = append(currentSig, v)
-			} else if currentSigLeft == 0 {
-				currentSigLeft = int(v)
-				currentSig = append(currentSig, v)
-			} else {
-				currentSig = append(currentSig, v)
-				currentSigLeft--
-				if currentSigLeft == 0 {
-					sigs = append(sigs, currentSig)
-					currentSigLeft = -1
-				}
-			}
-		}
-
-		if len(pks) != len(sigs) {
-			return false, crypto.ErrSigPubKeyNotMatch
-		}
-		for i, pubkey := range pks {
-			if verify, err := e.verify(hash, pubkey, sigs[i]); err != nil || !verify {
-				return verify, err
-			}
-		}
-		return true, nil
-	default:
-		return false, crypto.ErrSigTypeNotSupport
-	}
+	return crypto.Verify(e.name, hash, sig, verify, parseMulSig)
 }
 
 // Unmarshal unmarshal private & public key

@@ -17,6 +17,7 @@
 package crypto
 
 import (
+	"crypto/ecdsa"
 	"errors"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -141,5 +142,70 @@ func GenKey(source string, genKey funcGenKey, params ...interface{}) (*PrivateKe
 		return &PrivateKey{Source: source, SigType: MultipleSignatures, PriKey: privKeys}, &PublicKey{Source: source, SigType: MultipleSignatures, PubKey: pubKeys}, nil
 	default:
 		return nil, nil, ErrSigTypeNotSupport
+	}
+}
+
+type funcSign func([]byte, interface{}) ([]byte, *ecdsa.PublicKey, error)
+
+// Sign is used to create signature of content by private key
+func Sign(source string, hash []byte, priKey *PrivateKey, sign funcSign) (*Signature, error) {
+	switch priKey.SigType {
+	case Signature2PublicKey:
+		signature, pubKey, err := sign(hash, priKey.PriKey)
+		if err != nil {
+			return nil, err
+		}
+		return &Signature{
+			PublicKey: PublicKey{Source: source, SigType: priKey.SigType, PubKey: pubKey},
+			Signature: signature,
+		}, nil
+	case MultipleSignatures:
+		pks := priKey.PriKey.([]interface{})
+		var pubKeys []interface{}
+		var signatures []byte
+		for _, item := range pks {
+			signature, pubKey, err := sign(hash, item)
+			if err != nil {
+				return nil, err
+			}
+			signatures = append(signatures, signature...)
+			pubKeys = append(pubKeys, pubKey)
+		}
+		return &Signature{
+			PublicKey: PublicKey{Source: source, SigType: priKey.SigType, PubKey: pubKeys},
+			Signature: signatures,
+		}, nil
+	default:
+		return nil, ErrSigTypeNotSupport
+	}
+}
+
+type funcVerify func(hash []byte, pubKey interface{}, signature []byte) (bool, error)
+
+type funcParseMulSig func(signature []byte) [][]byte
+
+// Verify is used to verify the signature
+func Verify(source string, hash []byte, sig *Signature, verify funcVerify, parseMulSig funcParseMulSig) (bool, error) {
+	if sig.Source != source {
+		return false, ErrSourceNotMatch
+	}
+
+	switch sig.SigType {
+	case Signature2PublicKey:
+		return verify(hash, sig.PubKey, sig.Signature)
+	case MultipleSignatures:
+		pks := sig.PubKey.([]interface{})
+		sigs := parseMulSig(sig.Signature)
+		if len(pks) != len(sigs) {
+			return false, ErrSigPubKeyNotMatch
+		}
+		for i, pubkey := range pks {
+			if verify, err := verify(hash, pubkey, sigs[i]); err != nil || !verify {
+				return verify, err
+			}
+		}
+		return true, nil
+	default:
+		return false, ErrSigTypeNotSupport
 	}
 }

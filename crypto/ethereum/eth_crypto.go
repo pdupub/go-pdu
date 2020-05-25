@@ -88,51 +88,24 @@ func parsePubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
 	return pk, nil
 }
 
-// Sign is used to create signature of content by private key
-func (e EEngine) Sign(hash []byte, priKey *crypto.PrivateKey) (*crypto.Signature, error) {
-	if priKey.Source != e.name {
-		return nil, crypto.ErrSourceNotMatch
+func sign(hash []byte, privKey interface{}) ([]byte, *ecdsa.PublicKey, error) {
+	pk, err := parsePriKey(privKey)
+	if err != nil {
+		return nil, nil, err
 	}
-	switch priKey.SigType {
-	case crypto.Signature2PublicKey:
-		pk, err := parsePriKey(priKey.PriKey)
-		if err != nil {
-			return nil, err
-		}
-		signature, err := eth.Sign(signHash(hash), pk)
-		if err != nil {
-			return nil, err
-		}
-		return &crypto.Signature{
-			PublicKey: crypto.PublicKey{Source: e.name, SigType: priKey.SigType, PubKey: pk.PublicKey},
-			Signature: signature,
-		}, nil
-	case crypto.MultipleSignatures:
-		pks := priKey.PriKey.([]interface{})
-		var pubKeys []interface{}
-		var signatures []byte
-		for _, item := range pks {
-			pk, err := parsePriKey(item)
-			if err != nil {
-				return nil, err
-			}
-			signature, err := eth.Sign(signHash(hash), pk)
-			if err != nil {
-				return nil, err
-			}
-			signatures = append(signatures, signature...)
-			pubKeys = append(pubKeys, pk.PublicKey)
-		}
-		return &crypto.Signature{
-			PublicKey: crypto.PublicKey{Source: e.name, SigType: priKey.SigType, PubKey: pubKeys},
-			Signature: signatures,
-		}, nil
-	default:
-		return nil, crypto.ErrSigTypeNotSupport
+	signature, err := eth.Sign(signHash(hash), pk)
+	if err != nil {
+		return nil, nil, err
 	}
+	return signature, &pk.PublicKey, nil
 }
 
-func (e EEngine) verify(hash []byte, pubKey interface{}, signature []byte) (bool, error) {
+// Sign is used to create signature of content by private key
+func (e EEngine) Sign(hash []byte, priKey *crypto.PrivateKey) (*crypto.Signature, error) {
+	return crypto.Sign(e.name, hash, priKey, sign)
+}
+
+func verify(hash []byte, pubKey interface{}, signature []byte) (bool, error) {
 	pk, err := parsePubKey(pubKey)
 	if err != nil {
 		return false, err
@@ -148,28 +121,18 @@ func (e EEngine) verify(hash []byte, pubKey interface{}, signature []byte) (bool
 	return true, nil
 }
 
+func parseMulSig(signature []byte) [][]byte {
+	size := len(signature) / 65
+	sigs := make([][]byte, size)
+	for i := 0; i < size; i++ {
+		sigs[i] = signature[i*65 : (i+1)*65]
+	}
+	return sigs
+}
+
 // Verify is used to verify the signature
 func (e EEngine) Verify(hash []byte, sig *crypto.Signature) (bool, error) {
-	if sig.Source != e.name {
-		return false, crypto.ErrSourceNotMatch
-	}
-	switch sig.SigType {
-	case crypto.Signature2PublicKey:
-		return e.verify(hash, sig.PubKey, sig.Signature)
-	case crypto.MultipleSignatures:
-		pks := sig.PubKey.([]interface{})
-		if len(pks) != len(sig.Signature)/65 {
-			return false, crypto.ErrSigPubKeyNotMatch
-		}
-		for i, pubkey := range pks {
-			if verify, err := e.verify(hash, pubkey, sig.Signature[i*65:(i+1)*65]); err != nil || !verify {
-				return verify, err
-			}
-		}
-		return true, nil
-	default:
-		return false, crypto.ErrSigTypeNotSupport
-	}
+	return crypto.Verify(e.name, hash, sig, verify, parseMulSig)
 }
 
 // Unmarshal unmarshal private & public key from json
