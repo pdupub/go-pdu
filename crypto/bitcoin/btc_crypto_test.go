@@ -324,11 +324,6 @@ func TestSign(t *testing.T) {
 
 }
 
-func fromECDSAPub(publicKey *ecdsa.PublicKey) []byte {
-	pk := (*btc.PublicKey)(publicKey)
-	return pk.SerializeUncompressed()
-}
-
 func TestEEngine_EncryptKey(t *testing.T) {
 	E := New()
 

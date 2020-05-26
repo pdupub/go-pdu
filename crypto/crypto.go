@@ -18,10 +18,12 @@ package crypto
 
 import (
 	"crypto/ecdsa"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/google/uuid"
 )
 
 var (
@@ -42,6 +44,9 @@ var (
 
 	// ErrSigPubKeyNotMatch is returned if the signature and key not match for MS
 	ErrSigPubKeyNotMatch = errors.New("count of signature and public key not match")
+
+	// ErrInvalidPubkey is returned if the public key is invalid
+	ErrInvalidPubkey = errors.New("invalid public key")
 )
 
 const (
@@ -150,6 +155,10 @@ type funcSign func([]byte, interface{}) ([]byte, *ecdsa.PublicKey, error)
 
 // Sign is used to create signature of content by private key
 func Sign(source string, hash []byte, priKey *PrivateKey, sign funcSign) (*Signature, error) {
+	if priKey.Source != source {
+		return nil, ErrSourceNotMatch
+	}
+
 	switch priKey.SigType {
 	case Signature2PublicKey:
 		signature, pubKey, err := sign(hash, priKey.PriKey)
@@ -238,4 +247,59 @@ func DecryptKey(source string, keyJSON []byte, pass string, parseKey funcParseKe
 		}
 	}
 	return &PrivateKey{Source: source, SigType: MultipleSignatures, PriKey: priKeys}, &PublicKey{Source: source, SigType: MultipleSignatures, PubKey: pubKeys}, nil
+}
+
+// EncryptSignleKey encrypt single private key
+func EncryptSignleKey(keyBytes, address []byte, pass string) (*EncryptedKeyJSONV3, error) {
+	cryptoStruct, err := keystore.EncryptDataV3(keyBytes, []byte(pass), keystore.StandardScryptN, keystore.StandardScryptP)
+	if err != nil {
+		return nil, err
+	}
+	uuid, err := uuid.NewUUID()
+	if err != nil {
+		return nil, err
+	}
+
+	encryptedKeyJSONV3 := EncryptedKeyJSONV3{
+		Address: hex.EncodeToString(address),
+		Crypto:  cryptoStruct,
+		ID:      uuid.String(),
+		Version: EncryptedVersion,
+	}
+	return &encryptedKeyJSONV3, nil
+}
+
+type funcPrivKeyToKeyBytes func(interface{}) ([]byte, []byte, error)
+
+// EncryptKey encryptKey into file
+func EncryptKey(source string, priKey *PrivateKey, pass string, privKeyToKeyBytes funcPrivKeyToKeyBytes) ([]byte, error) {
+	if priKey.Source != source {
+		return nil, ErrSourceNotMatch
+	}
+	var ekl EncryptedKeyJListV3
+	if priKey.SigType == Signature2PublicKey {
+		keyBytes, address, err := privKeyToKeyBytes(priKey.PriKey)
+		if err != nil {
+			return nil, err
+		}
+		ekj, err := EncryptSignleKey(keyBytes, address, pass)
+		if err != nil {
+			return nil, err
+		}
+		ekl = append(ekl, ekj)
+
+	} else if priKey.SigType == MultipleSignatures {
+		for _, v := range priKey.PriKey.([]interface{}) {
+			keyBytes, address, err := privKeyToKeyBytes(v)
+			if err != nil {
+				return nil, err
+			}
+			ekj, err := EncryptSignleKey(keyBytes, address, pass)
+			if err != nil {
+				return nil, err
+			}
+			ekl = append(ekl, ekj)
+		}
+	}
+	return json.Marshal(EncryptedPrivateKey{Source: source, SigType: priKey.SigType, EPK: ekl})
 }

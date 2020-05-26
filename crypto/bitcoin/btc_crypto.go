@@ -25,9 +25,7 @@ import (
 	btc "github.com/btcsuite/btcd/btcec"
 	"github.com/pdupub/go-pdu/crypto"
 
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	eth "github.com/ethereum/go-ethereum/common"
-	"github.com/pborman/uuid"
+	eth "github.com/ethereum/go-ethereum/crypto"
 )
 
 // BEngine is the engine of BTC
@@ -77,6 +75,11 @@ func parsePriKey(priKey interface{}) (*btc.PrivateKey, error) {
 		return nil, crypto.ErrKeyTypeNotSupport
 	}
 	return pk, nil
+}
+
+func fromECDSAPub(publicKey *ecdsa.PublicKey) []byte {
+	pk := (*btc.PublicKey)(publicKey)
+	return pk.SerializeUncompressed()
 }
 
 // parsePubKey parse the public key
@@ -323,18 +326,14 @@ func (e BEngine) marshalPubKey(a *crypto.PublicKey) ([]byte, error) {
 	aMap["sigType"] = a.SigType
 	if a.Source == e.name {
 		if a.SigType == crypto.Signature2PublicKey {
-			pk := a.PubKey.(*ecdsa.PublicKey)
-			bpk := (btc.PublicKey)(*pk)
-			aMap["pubKey"] = hex.EncodeToString(bpk.SerializeUncompressed())
+			aMap["pubKey"] = hex.EncodeToString(fromECDSAPub(a.PubKey.(*ecdsa.PublicKey)))
 		} else if a.SigType == crypto.MultipleSignatures {
 			switch a.PubKey.(type) {
 			case []interface{}:
 				pks := a.PubKey.([]interface{})
 				pubKey := make([]string, len(pks))
 				for i, v := range pks {
-					pk := v.(*ecdsa.PublicKey)
-					bpk := (btc.PublicKey)(*pk)
-					pubKey[i] = hex.EncodeToString(bpk.SerializeUncompressed())
+					pubKey[i] = hex.EncodeToString(fromECDSAPub(v.(*ecdsa.PublicKey)))
 				}
 				aMap["pubKey"] = pubKey
 			}
@@ -350,59 +349,18 @@ func (e BEngine) marshalPubKey(a *crypto.PublicKey) ([]byte, error) {
 
 // EncryptKey encryptKey into file
 func (e BEngine) EncryptKey(priKey *crypto.PrivateKey, pass string) ([]byte, error) {
-	if priKey.Source != crypto.BTC {
-		return nil, crypto.ErrSourceNotMatch
-	}
-	var ekl crypto.EncryptedKeyJListV3
-	if priKey.SigType == crypto.Signature2PublicKey {
-		pk, err := parsePriKey(priKey.PriKey)
-		if err != nil {
-			return nil, err
-		}
-		ekj, err := e.encryptKey(pk.ToECDSA(), pass)
-		if err != nil {
-			return nil, err
-		}
-		ekl = append(ekl, ekj)
-
-	} else if priKey.SigType == crypto.MultipleSignatures {
-		for _, v := range priKey.PriKey.([]interface{}) {
-			pk, err := parsePriKey(v)
-			if err != nil {
-				return nil, err
-			}
-			ekj, err := e.encryptKey(pk.ToECDSA(), pass)
-			if err != nil {
-				return nil, err
-			}
-			ekl = append(ekl, ekj)
-		}
-
-	}
-	return json.Marshal(crypto.EncryptedPrivateKey{Source: crypto.BTC, SigType: priKey.SigType, EPK: ekl})
-
+	return crypto.EncryptKey(e.name, priKey, pass, privKeyToKeyBytes)
 }
 
-func (e BEngine) encryptKey(priKey *ecdsa.PrivateKey, pass string) (*crypto.EncryptedKeyJSONV3, error) {
-	id := uuid.NewRandom()
-	key := &keystore.Key{
-		Id:         id,
-		Address:    eth.Address{},
-		PrivateKey: priKey,
-	}
-
-	keyBytes := key.PrivateKey.D.Bytes()
-	cryptoStruct, err := keystore.EncryptDataV3(keyBytes, []byte(pass), keystore.StandardScryptN, keystore.StandardScryptP)
+func privKeyToKeyBytes(priKey interface{}) ([]byte, []byte, error) {
+	btcpk, err := parsePriKey(priKey)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	encryptedKeyJSONV3 := crypto.EncryptedKeyJSONV3{
-		Address: hex.EncodeToString(key.Address[:]),
-		Crypto:  cryptoStruct,
-		ID:      key.Id.String(),
-		Version: crypto.EncryptedVersion,
-	}
-	return &encryptedKeyJSONV3, nil
+	pk := btcpk.ToECDSA()
+	address := eth.PubkeyToAddress(pk.PublicKey)
+	keyBytes := pk.D.Bytes()
+	return keyBytes, address[:], nil
 }
 
 // DecryptKey decrypt private key from file

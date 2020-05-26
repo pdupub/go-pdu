@@ -24,9 +24,7 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	eth "github.com/ethereum/go-ethereum/common"
-	"github.com/pborman/uuid"
+	eth "github.com/ethereum/go-ethereum/crypto"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/crypto"
 )
@@ -51,7 +49,7 @@ func (e PEngine) GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.Publ
 	return crypto.GenKey(e.name, genKey, params...)
 }
 
-// parsePriKey parse the private key
+// parseKey parse the private key, return private key and public key
 func parseKey(privKey interface{}) (interface{}, interface{}, error) {
 	pk, err := parsePriKey(privKey)
 	if err != nil {
@@ -60,7 +58,7 @@ func parseKey(privKey interface{}) (interface{}, interface{}, error) {
 	return pk, &pk.PublicKey, nil
 }
 
-// parsePriKey parse the private key
+// parsePriKey parse the private key, return private key
 func parsePriKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 	pk := new(ecdsa.PrivateKey)
 	switch priKey.(type) {
@@ -81,6 +79,21 @@ func parsePriKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 	return pk, nil
 }
 
+func toECDSAPub(pub []byte) (*ecdsa.PublicKey, error) {
+	x, y := elliptic.Unmarshal(elliptic.P256(), pub)
+	if x == nil {
+		return nil, crypto.ErrInvalidPubkey
+	}
+	return &ecdsa.PublicKey{Curve: elliptic.P256(), X: x, Y: y}, nil
+}
+
+func fromECDSAPub(pub *ecdsa.PublicKey) []byte {
+	if pub == nil || pub.X == nil || pub.Y == nil {
+		return nil
+	}
+	return elliptic.Marshal(elliptic.P256(), pub.X, pub.Y)
+}
+
 // parsePubKey parse the public key
 func parsePubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
 	pk := new(ecdsa.PublicKey)
@@ -90,13 +103,9 @@ func parsePubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
 	case ecdsa.PublicKey:
 		*pk = pubKey.(ecdsa.PublicKey)
 	case []byte:
-		pk.Curve = elliptic.P256()
-		pk.X = new(big.Int).SetBytes(pubKey.([]byte)[:32])
-		pk.Y = new(big.Int).SetBytes(pubKey.([]byte)[32:])
+		return toECDSAPub(pubKey.([]byte))
 	case *big.Int:
-		pk.Curve = elliptic.P256()
-		pk.X = new(big.Int).SetBytes(pubKey.(*big.Int).Bytes()[:32])
-		pk.Y = new(big.Int).SetBytes(pubKey.(*big.Int).Bytes()[32:])
+		return toECDSAPub(pubKey.(*big.Int).Bytes())
 	default:
 		return nil, crypto.ErrKeyTypeNotSupport
 	}
@@ -104,7 +113,6 @@ func parsePubKey(pubKey interface{}) (*ecdsa.PublicKey, error) {
 }
 
 func sign(hash []byte, privKey interface{}) ([]byte, *ecdsa.PublicKey, error) {
-
 	pk, err := parsePriKey(privKey)
 	if err != nil {
 		return nil, nil, err
@@ -179,11 +187,11 @@ func (e PEngine) unmarshalPrivKey(input []byte) (*crypto.PrivateKey, error) {
 	if p.Source == e.name {
 		if p.SigType == crypto.Signature2PublicKey {
 			pk := aMap["privKey"].(interface{})
-			d, err := common.String2Hash(pk.(string))
+			d, err := hex.DecodeString(pk.(string))
 			if err != nil {
 				return nil, err
 			}
-			privKey, err := parsePriKey(common.Hash2Bytes(d))
+			privKey, err := parsePriKey(d)
 			if err != nil {
 				return nil, err
 			}
@@ -192,11 +200,11 @@ func (e PEngine) unmarshalPrivKey(input []byte) (*crypto.PrivateKey, error) {
 			pk := aMap["privKey"].([]interface{})
 			var privKeys []interface{}
 			for i := 0; i < len(pk); i++ {
-				d, err := common.String2Hash(pk[i].(string))
+				d, err := hex.DecodeString(pk[i].(string))
 				if err != nil {
 					return nil, err
 				}
-				privKey, err := parsePriKey(common.Hash2Bytes(d))
+				privKey, err := parsePriKey(d)
 				if err != nil {
 					return nil, err
 				}
@@ -224,33 +232,24 @@ func (e PEngine) unmarshalPubKey(input []byte) (*crypto.PublicKey, error) {
 
 	if p.Source == e.name {
 		if p.SigType == crypto.Signature2PublicKey {
-			pk := aMap["pubKey"].([]interface{})
-			x, err := common.String2Hash(pk[0].(string))
+			pk, err := hex.DecodeString(aMap["pubKey"].(string))
 			if err != nil {
 				return nil, err
 			}
-			y, err := common.String2Hash(pk[1].(string))
-			if err != nil {
-				return nil, err
-			}
-			pubKey, err := parsePubKey(append(common.Hash2Bytes(x), common.Hash2Bytes(y)...))
+			pubKey, err := parsePubKey(pk)
 			if err != nil {
 				return nil, err
 			}
 			p.PubKey = pubKey
 		} else if p.SigType == crypto.MultipleSignatures {
-			pk := aMap["pubKey"].([]interface{})
+			pks := aMap["pubKey"].([]interface{})
 			var pubKeys []interface{}
-			for i := 0; i < len(pk)/2; i++ {
-				x, err := common.String2Hash(pk[i*2].(string))
+			for _, v := range pks {
+				pk, err := hex.DecodeString(v.(string))
 				if err != nil {
 					return nil, err
 				}
-				y, err := common.String2Hash(pk[i*2+1].(string))
-				if err != nil {
-					return nil, err
-				}
-				pubKey, err := parsePubKey(append(common.Hash2Bytes(x), common.Hash2Bytes(y)...))
+				pubKey, err := parsePubKey(pk)
 				if err != nil {
 					return nil, err
 				}
@@ -292,7 +291,7 @@ func (e PEngine) marshalPrivKey(a *crypto.PrivateKey) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			aMap["privKey"] = common.Bytes2String(pk.D.Bytes())
+			aMap["privKey"] = hex.EncodeToString(pk.D.Bytes())
 		} else if a.SigType == crypto.MultipleSignatures {
 			switch a.PriKey.(type) {
 			case []interface{}:
@@ -303,7 +302,7 @@ func (e PEngine) marshalPrivKey(a *crypto.PrivateKey) ([]byte, error) {
 					if err != nil {
 						return nil, err
 					}
-					privKey[i] = common.Bytes2String(pk.D.Bytes())
+					privKey[i] = hex.EncodeToString(pk.D.Bytes())
 				}
 				aMap["privKey"] = privKey
 			default:
@@ -328,22 +327,18 @@ func (e PEngine) marshalPubKey(a *crypto.PublicKey) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			pubKey := make([]string, 2)
-			pubKey[0] = common.Bytes2String(pk.X.Bytes())
-			pubKey[1] = common.Bytes2String(pk.Y.Bytes())
-			aMap["pubKey"] = pubKey
+			aMap["pubKey"] = hex.EncodeToString(fromECDSAPub(pk))
 		} else if a.SigType == crypto.MultipleSignatures {
 			switch a.PubKey.(type) {
 			case []interface{}:
 				pks := a.PubKey.([]interface{})
-				pubKey := make([]string, len(pks)*2)
+				pubKey := make([]string, len(pks))
 				for i, v := range pks {
 					pk, err := parsePubKey(v)
 					if err != nil {
 						return nil, err
 					}
-					pubKey[i*2] = common.Bytes2String(pk.X.Bytes())
-					pubKey[i*2+1] = common.Bytes2String(pk.Y.Bytes())
+					pubKey[i] = hex.EncodeToString(fromECDSAPub(pk))
 				}
 				aMap["pubKey"] = pubKey
 			default:
@@ -360,56 +355,17 @@ func (e PEngine) marshalPubKey(a *crypto.PublicKey) ([]byte, error) {
 
 // EncryptKey encryptKey into file
 func (e PEngine) EncryptKey(priKey *crypto.PrivateKey, pass string) ([]byte, error) {
-	if priKey.Source != crypto.PDU {
-		return nil, crypto.ErrSourceNotMatch
-	}
-	var ekl crypto.EncryptedKeyJListV3
-	if priKey.SigType == crypto.Signature2PublicKey {
-		pk, err := parsePriKey(priKey.PriKey)
-		if err != nil {
-			return nil, err
-		}
-		ekj, err := e.encryptKey(pk, pass)
-		if err != nil {
-			return nil, err
-		}
-		ekl = append(ekl, ekj)
-	} else if priKey.SigType == crypto.MultipleSignatures {
-		for _, v := range priKey.PriKey.([]interface{}) {
-			pk, err := parsePriKey(v)
-			if err != nil {
-				return nil, err
-			}
-			ekj, err := e.encryptKey(pk, pass)
-			if err != nil {
-				return nil, err
-			}
-			ekl = append(ekl, ekj)
-		}
-	}
-	return json.Marshal(crypto.EncryptedPrivateKey{Source: crypto.PDU, SigType: priKey.SigType, EPK: ekl})
+	return crypto.EncryptKey(e.name, priKey, pass, privKeyToKeyBytes)
 }
 
-func (e PEngine) encryptKey(priKey *ecdsa.PrivateKey, pass string) (*crypto.EncryptedKeyJSONV3, error) {
-	id := uuid.NewRandom()
-	key := &keystore.Key{
-		Id:         id,
-		Address:    eth.Address{},
-		PrivateKey: priKey,
-	}
-
-	keyBytes := key.PrivateKey.D.Bytes()
-	cryptoStruct, err := keystore.EncryptDataV3(keyBytes, []byte(pass), keystore.StandardScryptN, keystore.StandardScryptP)
+func privKeyToKeyBytes(priKey interface{}) ([]byte, []byte, error) {
+	pk, err := parsePriKey(priKey)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	encryptedKeyJSONV3 := crypto.EncryptedKeyJSONV3{
-		Address: hex.EncodeToString(key.Address[:]),
-		Crypto:  cryptoStruct,
-		ID:      key.Id.String(),
-		Version: crypto.EncryptedVersion,
-	}
-	return &encryptedKeyJSONV3, nil
+	address := eth.PubkeyToAddress(pk.PublicKey)
+	keyBytes := pk.D.Bytes()
+	return keyBytes, address[:], nil
 }
 
 // DecryptKey decrypt private key from file

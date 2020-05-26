@@ -41,9 +41,9 @@ var (
 )
 
 const (
-	//defaultEngineName = crypto.PDU
+	defaultEngineName = crypto.PDU
 	//defaultEngineName = crypto.ETH
-	defaultEngineName = crypto.BTC
+	//defaultEngineName = crypto.BTC
 )
 
 func TestNewUniverse(t *testing.T) {

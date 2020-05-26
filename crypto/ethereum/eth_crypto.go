@@ -22,13 +22,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/common/math"
 	eth "github.com/ethereum/go-ethereum/crypto"
 
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/pborman/uuid"
 	"github.com/pdupub/go-pdu/crypto"
 )
 
@@ -343,58 +340,17 @@ func (e EEngine) marshalPubKey(a *crypto.PublicKey) ([]byte, error) {
 
 // EncryptKey encryptKey into file
 func (e EEngine) EncryptKey(priKey *crypto.PrivateKey, pass string) ([]byte, error) {
-
-	if priKey.Source != crypto.ETH {
-		return nil, crypto.ErrSourceNotMatch
-	}
-	var ekl crypto.EncryptedKeyJListV3
-	if priKey.SigType == crypto.Signature2PublicKey {
-		pk, err := parsePriKey(priKey.PriKey)
-		if err != nil {
-			return nil, err
-		}
-		ekj, err := e.encryptKey(pk, pass)
-		if err != nil {
-			return nil, err
-		}
-		ekl = append(ekl, ekj)
-
-	} else if priKey.SigType == crypto.MultipleSignatures {
-		for _, v := range priKey.PriKey.([]interface{}) {
-			pk, err := parsePriKey(v)
-			if err != nil {
-				return nil, err
-			}
-			ekj, err := e.encryptKey(pk, pass)
-			if err != nil {
-				return nil, err
-			}
-			ekl = append(ekl, ekj)
-		}
-	}
-	return json.Marshal(crypto.EncryptedPrivateKey{Source: crypto.ETH, SigType: priKey.SigType, EPK: ekl})
+	return crypto.EncryptKey(e.name, priKey, pass, privKeyToKeyBytes)
 }
 
-func (e EEngine) encryptKey(priKey *ecdsa.PrivateKey, pass string) (*crypto.EncryptedKeyJSONV3, error) {
-	id := uuid.NewRandom()
-	key := &keystore.Key{
-		Id:         id,
-		Address:    eth.PubkeyToAddress(priKey.PublicKey),
-		PrivateKey: priKey,
-	}
-
-	keyBytes := math.PaddedBigBytes(key.PrivateKey.D, 32)
-	cryptoStruct, err := keystore.EncryptDataV3(keyBytes, []byte(pass), keystore.StandardScryptN, keystore.StandardScryptP)
+func privKeyToKeyBytes(priKey interface{}) ([]byte, []byte, error) {
+	pk, err := parsePriKey(priKey)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	encryptedKeyJSONV3 := crypto.EncryptedKeyJSONV3{
-		Address: hex.EncodeToString(key.Address[:]),
-		Crypto:  cryptoStruct,
-		ID:      key.Id.String(),
-		Version: crypto.EncryptedVersion,
-	}
-	return &encryptedKeyJSONV3, nil
+	address := eth.PubkeyToAddress(pk.PublicKey)
+	keyBytes := pk.D.Bytes()
+	return keyBytes, address[:], nil
 }
 
 // DecryptKey decrypt private key from file
