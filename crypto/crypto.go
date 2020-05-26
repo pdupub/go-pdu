@@ -18,6 +18,7 @@ package crypto
 
 import (
 	"crypto/ecdsa"
+	"encoding/json"
 	"errors"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -208,4 +209,33 @@ func Verify(source string, hash []byte, sig *Signature, verify funcVerify, parse
 	default:
 		return false, ErrSigTypeNotSupport
 	}
+}
+
+type funcParseKey func(interface{}) (interface{}, interface{}, error)
+
+// DecryptKey decrypt private key from file
+func DecryptKey(source string, keyJSON []byte, pass string, parseKey funcParseKey) (*PrivateKey, *PublicKey, error) {
+	var k EncryptedPrivateKey
+	if err := json.Unmarshal(keyJSON, &k); err != nil {
+		return nil, nil, err
+	} else if k.Source != source {
+		return nil, nil, ErrSourceNotMatch
+	}
+	var priKeys, pubKeys []interface{}
+	for _, v := range k.EPK {
+		keyBytes, err := keystore.DecryptDataV3(v.Crypto, pass)
+		if err != nil {
+			return nil, nil, err
+		}
+		privKey, pubKey, err := parseKey(keyBytes)
+		if err != nil {
+			return nil, nil, err
+		}
+		priKeys = append(priKeys, privKey)
+		pubKeys = append(pubKeys, pubKey)
+		if k.SigType == Signature2PublicKey {
+			return &PrivateKey{Source: source, SigType: Signature2PublicKey, PriKey: privKey}, &PublicKey{Source: source, SigType: Signature2PublicKey, PubKey: pubKey}, nil
+		}
+	}
+	return &PrivateKey{Source: source, SigType: MultipleSignatures, PriKey: priKeys}, &PublicKey{Source: source, SigType: MultipleSignatures, PubKey: pubKeys}, nil
 }

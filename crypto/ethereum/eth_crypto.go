@@ -53,6 +53,15 @@ func (e EEngine) GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.Publ
 }
 
 // parsePriKey parse the private key
+func parseKey(privKey interface{}) (interface{}, interface{}, error) {
+	pk, err := parsePriKey(privKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	return pk, &pk.PublicKey, nil
+}
+
+// parsePriKey parse the private key
 func parsePriKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 	pk := new(ecdsa.PrivateKey)
 	switch priKey.(type) {
@@ -67,6 +76,9 @@ func parsePriKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 	default:
 		return nil, crypto.ErrKeyTypeNotSupport
 	}
+
+	pk.PublicKey.Curve = eth.S256()
+	pk.PublicKey.X, pk.PublicKey.Y = pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
 	return pk, nil
 }
 
@@ -387,32 +399,7 @@ func (e EEngine) encryptKey(priKey *ecdsa.PrivateKey, pass string) (*crypto.Encr
 
 // DecryptKey decrypt private key from file
 func (e EEngine) DecryptKey(keyJSON []byte, pass string) (*crypto.PrivateKey, *crypto.PublicKey, error) {
-
-	var k crypto.EncryptedPrivateKey
-	if err := json.Unmarshal(keyJSON, &k); err != nil {
-		return nil, nil, err
-	} else if k.Source != crypto.ETH {
-		return nil, nil, crypto.ErrSourceNotMatch
-	}
-	var priKeys, pubKeys []interface{}
-	for _, v := range k.EPK {
-		keyBytes, err := keystore.DecryptDataV3(v.Crypto, pass)
-		if err != nil {
-			return nil, nil, err
-		}
-		pk := eth.ToECDSAUnsafe(keyBytes)
-
-		pk.PublicKey.Curve = eth.S256()
-		pk.PublicKey.X, pk.PublicKey.Y = pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
-
-		priKeys = append(priKeys, pk)
-		pubKeys = append(pubKeys, &pk.PublicKey)
-		if k.SigType == crypto.Signature2PublicKey {
-			return &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: crypto.ETH, SigType: crypto.Signature2PublicKey, PubKey: &pk.PublicKey}, nil
-		}
-	}
-	return &crypto.PrivateKey{Source: crypto.ETH, SigType: crypto.MultipleSignatures, PriKey: priKeys}, &crypto.PublicKey{Source: crypto.ETH, SigType: crypto.MultipleSignatures, PubKey: pubKeys}, nil
-
+	return crypto.DecryptKey(e.name, keyJSON, pass, parseKey)
 }
 
 func signHash(data []byte) []byte {

@@ -52,6 +52,15 @@ func (e PEngine) GenKey(params ...interface{}) (*crypto.PrivateKey, *crypto.Publ
 }
 
 // parsePriKey parse the private key
+func parseKey(privKey interface{}) (interface{}, interface{}, error) {
+	pk, err := parsePriKey(privKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	return pk, &pk.PublicKey, nil
+}
+
+// parsePriKey parse the private key
 func parsePriKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 	pk := new(ecdsa.PrivateKey)
 	switch priKey.(type) {
@@ -60,16 +69,15 @@ func parsePriKey(priKey interface{}) (*ecdsa.PrivateKey, error) {
 	case ecdsa.PrivateKey:
 		*pk = priKey.(ecdsa.PrivateKey)
 	case []byte:
-		pk.PublicKey.Curve = elliptic.P256()
 		pk.D = new(big.Int).SetBytes(priKey.([]byte))
-		pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
 	case *big.Int:
-		pk.PublicKey.Curve = elliptic.P256()
 		pk.D = new(big.Int).Set(priKey.(*big.Int))
-		pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
 	default:
 		return nil, crypto.ErrKeyTypeNotSupport
 	}
+
+	pk.PublicKey.Curve = elliptic.P256()
+	pk.PublicKey.X, pk.PublicKey.Y = pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
 	return pk, nil
 }
 
@@ -406,33 +414,7 @@ func (e PEngine) encryptKey(priKey *ecdsa.PrivateKey, pass string) (*crypto.Encr
 
 // DecryptKey decrypt private key from file
 func (e PEngine) DecryptKey(keyJSON []byte, pass string) (*crypto.PrivateKey, *crypto.PublicKey, error) {
-	var k crypto.EncryptedPrivateKey
-	if err := json.Unmarshal(keyJSON, &k); err != nil {
-		return nil, nil, err
-	} else if k.Source != crypto.PDU {
-		return nil, nil, crypto.ErrSourceNotMatch
-	}
-	var priKeys, pubKeys []interface{}
-	for _, v := range k.EPK {
-		keyBytes, err := keystore.DecryptDataV3(v.Crypto, pass)
-		if err != nil {
-			return nil, nil, err
-		}
-		pk, err := parsePriKey(keyBytes)
-		if err != nil {
-			return nil, nil, err
-		}
-		pk.PublicKey.Curve = elliptic.P256()
-		pk.PublicKey.X, pk.PublicKey.Y = pk.PublicKey.Curve.ScalarBaseMult(pk.D.Bytes())
-
-		priKeys = append(priKeys, pk)
-		pubKeys = append(pubKeys, &pk.PublicKey)
-		if k.SigType == crypto.Signature2PublicKey {
-			return &crypto.PrivateKey{Source: crypto.PDU, SigType: crypto.Signature2PublicKey, PriKey: pk}, &crypto.PublicKey{Source: crypto.PDU, SigType: crypto.Signature2PublicKey, PubKey: &pk.PublicKey}, nil
-		}
-	}
-	return &crypto.PrivateKey{Source: crypto.PDU, SigType: crypto.MultipleSignatures, PriKey: priKeys}, &crypto.PublicKey{Source: crypto.PDU, SigType: crypto.MultipleSignatures, PubKey: pubKeys}, nil
-
+	return crypto.DecryptKey(e.name, keyJSON, pass, parseKey)
 }
 
 func genKey() (interface{}, interface{}, error) {
