@@ -303,3 +303,202 @@ func EncryptKey(source string, priKey *PrivateKey, pass string, privKeyToKeyByte
 	}
 	return json.Marshal(EncryptedPrivateKey{Source: source, SigType: priKey.SigType, EPK: ekl})
 }
+
+type funcParsePubKey func(interface{}) (*ecdsa.PublicKey, error)
+
+// Unmarshal unmarshal private & public key from json
+func Unmarshal(source string, privKeyBytes, pubKeyBytes []byte, parseKey funcParseKey, parsePubKey funcParsePubKey) (privKey *PrivateKey, pubKey *PublicKey, err error) {
+	if len(pubKeyBytes) > 0 {
+		if pubKey, err = unmarshalPubKey(source, pubKeyBytes, parsePubKey); err != nil {
+			return
+		}
+	}
+	if len(privKeyBytes) > 0 {
+		if privKey, err = unmarshalPrivKey(source, privKeyBytes, parseKey); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func unmarshalPrivKey(source string, input []byte, parseKey funcParseKey) (*PrivateKey, error) {
+	p := PrivateKey{}
+	aMap := make(map[string]interface{})
+	err := json.Unmarshal(input, &aMap)
+	if err != nil {
+		return nil, err
+	}
+	p.Source = aMap["source"].(string)
+	p.SigType = aMap["sigType"].(string)
+
+	if p.Source == source {
+		if p.SigType == Signature2PublicKey {
+			pk := aMap["privKey"].(interface{})
+			d, err := hex.DecodeString(pk.(string))
+			if err != nil {
+				return nil, err
+			}
+			privKey, _, err := parseKey(d)
+			if err != nil {
+				return nil, err
+			}
+			p.PriKey = privKey
+		} else if p.SigType == MultipleSignatures {
+			pk := aMap["privKey"].([]interface{})
+			var privKeys []interface{}
+			for i := 0; i < len(pk); i++ {
+				d, err := hex.DecodeString(pk[i].(string))
+				if err != nil {
+					return nil, err
+				}
+				privKey, _, err := parseKey(d)
+				if err != nil {
+					return nil, err
+				}
+				privKeys = append(privKeys, privKey)
+			}
+			p.PriKey = privKeys
+		} else {
+			return nil, ErrSigTypeNotSupport
+		}
+	} else {
+		return nil, ErrSourceNotMatch
+	}
+	return &p, nil
+}
+
+func unmarshalPubKey(source string, input []byte, parsePubKey funcParsePubKey) (*PublicKey, error) {
+	p := PublicKey{}
+	aMap := make(map[string]interface{})
+	err := json.Unmarshal(input, &aMap)
+	if err != nil {
+		return nil, err
+	}
+	p.Source = aMap["source"].(string)
+	p.SigType = aMap["sigType"].(string)
+
+	if p.Source == source {
+		if p.SigType == Signature2PublicKey {
+			pk, err := hex.DecodeString(aMap["pubKey"].(string))
+			if err != nil {
+				return nil, err
+			}
+			pubKey, err := parsePubKey(pk)
+			if err != nil {
+				return nil, err
+			}
+			p.PubKey = pubKey
+		} else if p.SigType == MultipleSignatures {
+			pks := aMap["pubKey"].([]interface{})
+			var pubKeys []interface{}
+			for _, v := range pks {
+				pk, err := hex.DecodeString(v.(string))
+				if err != nil {
+					return nil, err
+				}
+				pubKey, err := parsePubKey(pk)
+				if err != nil {
+					return nil, err
+				}
+				pubKeys = append(pubKeys, pubKey)
+			}
+			p.PubKey = pubKeys
+		} else {
+			return nil, ErrSigTypeNotSupport
+		}
+	} else {
+		return nil, ErrSourceNotMatch
+	}
+
+	return &p, nil
+}
+
+type funcParseKeyToString func(interface{}) (string, string, error)
+type funcParsePubKeyToString func(interface{}) (string, error)
+
+// Marshal marshal private & public key to json
+func Marshal(source string, privKey *PrivateKey, pubKey *PublicKey, parseKeyToString funcParseKeyToString, parsePubKeyToString funcParsePubKeyToString) (privKeyBytes []byte, pubKeyBytes []byte, err error) {
+	if privKey != nil {
+		if privKeyBytes, err = marshalPrivKey(source, privKey, parseKeyToString); err != nil {
+			return
+		}
+	}
+	if pubKey != nil {
+		if pubKeyBytes, err = marshalPubKey(source, pubKey, parsePubKeyToString); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func marshalPrivKey(source string, a *PrivateKey, parseKeyToString funcParseKeyToString) ([]byte, error) {
+	aMap := make(map[string]interface{})
+	aMap["source"] = a.Source
+	aMap["sigType"] = a.SigType
+	if a.Source == source {
+		if a.SigType == Signature2PublicKey {
+			pk, _, err := parseKeyToString(a.PriKey)
+			if err != nil {
+				return nil, err
+			}
+			aMap["privKey"] = pk
+		} else if a.SigType == MultipleSignatures {
+			switch a.PriKey.(type) {
+			case []interface{}:
+				pks := a.PriKey.([]interface{})
+				privKey := make([]string, len(pks))
+				for i, v := range pks {
+					pk, _, err := parseKeyToString(v)
+					if err != nil {
+						return nil, err
+					}
+					privKey[i] = pk
+				}
+				aMap["privKey"] = privKey
+			default:
+				return nil, ErrSigTypeNotSupport
+			}
+		} else {
+			return nil, ErrSigTypeNotSupport
+		}
+	} else {
+		return nil, ErrSourceNotMatch
+	}
+	return json.Marshal(aMap)
+}
+
+func marshalPubKey(source string, a *PublicKey, parsePubKeyToString funcParsePubKeyToString) ([]byte, error) {
+	aMap := make(map[string]interface{})
+	aMap["source"] = a.Source
+	aMap["sigType"] = a.SigType
+	if a.Source == source {
+		if a.SigType == Signature2PublicKey {
+			pk, err := parsePubKeyToString(a.PubKey)
+			if err != nil {
+				return nil, err
+			}
+			aMap["pubKey"] = pk
+		} else if a.SigType == MultipleSignatures {
+			switch a.PubKey.(type) {
+			case []interface{}:
+				pks := a.PubKey.([]interface{})
+				pubKey := make([]string, len(pks))
+				for i, v := range pks {
+					pk, err := parsePubKeyToString(v)
+					if err != nil {
+						return nil, err
+					}
+					pubKey[i] = pk
+				}
+				aMap["pubKey"] = pubKey
+			default:
+				return nil, ErrSigTypeNotSupport
+			}
+		} else {
+			return nil, ErrSigTypeNotSupport
+		}
+	} else {
+		return nil, ErrSourceNotMatch
+	}
+	return json.Marshal(aMap)
+}
