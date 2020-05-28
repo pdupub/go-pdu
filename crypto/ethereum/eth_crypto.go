@@ -165,8 +165,13 @@ func (e EEngine) Unmarshal(privKeyBytes, pubKeyBytes []byte) (privKey *crypto.Pr
 }
 
 // Marshal marshal private & public key to json
-func (e EEngine) Marshal(privKey *crypto.PrivateKey, pubKey *crypto.PublicKey) (privKeyBytes []byte, pubKeyBytes []byte, err error) {
+func (e EEngine) Marshal(privKey *crypto.PrivateKey, pubKey *crypto.PublicKey) ([]byte, []byte, error) {
 	return crypto.Marshal(e.name, privKey, pubKey, parseKeyToString, parsePubKeyToString)
+}
+
+// Display display private & public key
+func (e EEngine) DisplayKey(privKey *crypto.PrivateKey, pubKey *crypto.PublicKey) (map[string]interface{}, map[string]interface{}, error) {
+	return crypto.DisplayKey(e.name, privKey, pubKey, parseKeyToString, parsePubKeyToString)
 }
 
 // EncryptKey encryptKey into file

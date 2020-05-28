@@ -93,6 +93,7 @@ type Engine interface {
 	Marshal(*PrivateKey, *PublicKey) ([]byte, []byte, error)
 	EncryptKey(*PrivateKey, string) ([]byte, error)
 	DecryptKey([]byte, string) (*PrivateKey, *PublicKey, error)
+	DisplayKey(*PrivateKey, *PublicKey) (map[string]interface{}, map[string]interface{}, error)
 }
 
 // EncryptedPrivateKey is encrypted private key in json
@@ -418,20 +419,47 @@ type funcParsePubKeyToString func(interface{}) (string, error)
 
 // Marshal marshal private & public key to json
 func Marshal(source string, privKey *PrivateKey, pubKey *PublicKey, parseKeyToString funcParseKeyToString, parsePubKeyToString funcParsePubKeyToString) (privKeyBytes []byte, pubKeyBytes []byte, err error) {
+	m := make(map[string]interface{})
 	if privKey != nil {
-		if privKeyBytes, err = marshalPrivKey(source, privKey, parseKeyToString); err != nil {
+		m, err = DisplayPrivKey(source, privKey, parseKeyToString)
+		if err != nil {
+			return
+		}
+		if privKeyBytes, err = json.Marshal(m); err != nil {
 			return
 		}
 	}
 	if pubKey != nil {
-		if pubKeyBytes, err = marshalPubKey(source, pubKey, parsePubKeyToString); err != nil {
+		m, err = DisplayPubKey(source, pubKey, parsePubKeyToString)
+		if err != nil {
+			return
+		}
+		if pubKeyBytes, err = json.Marshal(m); err != nil {
 			return
 		}
 	}
 	return
 }
 
-func marshalPrivKey(source string, a *PrivateKey, parseKeyToString funcParseKeyToString) ([]byte, error) {
+// DisplayKey display private & public key
+func DisplayKey(source string, privKey *PrivateKey, pubKey *PublicKey, parseKeyToString funcParseKeyToString, parsePubKeyToString funcParsePubKeyToString) (privKeyM, pubKeyM map[string]interface{}, err error) {
+	if privKey != nil {
+		privKeyM, err = DisplayPrivKey(source, privKey, parseKeyToString)
+		if err != nil {
+			return
+		}
+	}
+	if pubKey != nil {
+		pubKeyM, err = DisplayPubKey(source, pubKey, parsePubKeyToString)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// DisplayPrivKey display the content of private key
+func DisplayPrivKey(source string, a *PrivateKey, parseKeyToString funcParseKeyToString) (map[string]interface{}, error) {
 	aMap := make(map[string]interface{})
 	aMap["source"] = a.Source
 	aMap["sigType"] = a.SigType
@@ -464,10 +492,11 @@ func marshalPrivKey(source string, a *PrivateKey, parseKeyToString funcParseKeyT
 	} else {
 		return nil, ErrSourceNotMatch
 	}
-	return json.Marshal(aMap)
+	return aMap, nil
 }
 
-func marshalPubKey(source string, a *PublicKey, parsePubKeyToString funcParsePubKeyToString) ([]byte, error) {
+// DisplayPubKey display the content of public key
+func DisplayPubKey(source string, a *PublicKey, parsePubKeyToString funcParsePubKeyToString) (map[string]interface{}, error) {
 	aMap := make(map[string]interface{})
 	aMap["source"] = a.Source
 	aMap["sigType"] = a.SigType
@@ -500,5 +529,5 @@ func marshalPubKey(source string, a *PublicKey, parsePubKeyToString funcParsePub
 	} else {
 		return nil, ErrSourceNotMatch
 	}
-	return json.Marshal(aMap)
+	return aMap, nil
 }

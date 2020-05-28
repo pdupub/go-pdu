@@ -183,6 +183,11 @@ func (e PEngine) Marshal(privKey *crypto.PrivateKey, pubKey *crypto.PublicKey) (
 	return crypto.Marshal(e.name, privKey, pubKey, parseKeyToString, parsePubKeyToString)
 }
 
+// Display display private & public key
+func (e PEngine) DisplayKey(privKey *crypto.PrivateKey, pubKey *crypto.PublicKey) (map[string]interface{}, map[string]interface{}, error) {
+	return crypto.DisplayKey(e.name, privKey, pubKey, parseKeyToString, parsePubKeyToString)
+}
+
 // EncryptKey encryptKey into file
 func (e PEngine) EncryptKey(priKey *crypto.PrivateKey, pass string) ([]byte, error) {
 	return crypto.EncryptKey(e.name, priKey, pass, privKeyToKeyBytes)

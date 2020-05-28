@@ -59,3 +59,13 @@ func DecryptKey(keyJSON []byte, passwd string) (*crypto.PrivateKey, *crypto.Publ
 
 	return engine.DecryptKey(keyJSON, passwd)
 }
+
+// DisplayKey decrypt private key from keyJSON file
+func DisplayKey(privKey *crypto.PrivateKey, pubKey *crypto.PublicKey) (map[string]interface{}, map[string]interface{}, error) {
+	var engine crypto.Engine
+	engine, err := SelectEngine(privKey.Source)
+	if err != nil {
+		return nil, nil, err
+	}
+	return engine.DisplayKey(privKey, pubKey)
+}
