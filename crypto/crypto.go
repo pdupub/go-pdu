@@ -93,7 +93,7 @@ type Engine interface {
 	Marshal(*PrivateKey, *PublicKey) ([]byte, []byte, error)
 	EncryptKey(*PrivateKey, string) ([]byte, error)
 	DecryptKey([]byte, string) (*PrivateKey, *PublicKey, error)
-	DisplayKey(*PrivateKey, *PublicKey) (map[string]interface{}, map[string]interface{}, error)
+	MappingKey(*PrivateKey, *PublicKey) (map[string]interface{}, map[string]interface{}, error)
 }
 
 // EncryptedPrivateKey is encrypted private key in json
@@ -414,7 +414,7 @@ func unmarshalPubKey(source string, input []byte, parsePubKey funcParsePubKey) (
 func Marshal(source string, privKey *PrivateKey, pubKey *PublicKey, parseKeyToString funcParseKeyToString, parsePubKeyToString funcParsePubKeyToString) (privKeyBytes []byte, pubKeyBytes []byte, err error) {
 	m := make(map[string]interface{})
 	if privKey != nil {
-		m, err = DisplayPrivKey(source, privKey, parseKeyToString)
+		m, err = MappingPrivKey(source, privKey, parseKeyToString)
 		if err != nil {
 			return
 		}
@@ -423,7 +423,7 @@ func Marshal(source string, privKey *PrivateKey, pubKey *PublicKey, parseKeyToSt
 		}
 	}
 	if pubKey != nil {
-		m, err = DisplayPubKey(source, pubKey, parsePubKeyToString)
+		m, err = MappingPubKey(source, pubKey, parsePubKeyToString)
 		if err != nil {
 			return
 		}
@@ -434,16 +434,16 @@ func Marshal(source string, privKey *PrivateKey, pubKey *PublicKey, parseKeyToSt
 	return
 }
 
-// DisplayKey display private & public key
-func DisplayKey(source string, privKey *PrivateKey, pubKey *PublicKey, parseKeyToString funcParseKeyToString, parsePubKeyToString funcParsePubKeyToString) (privKeyM, pubKeyM map[string]interface{}, err error) {
+// MappingKey build private & public key content into map for display or marshal
+func MappingKey(source string, privKey *PrivateKey, pubKey *PublicKey, parseKeyToString funcParseKeyToString, parsePubKeyToString funcParsePubKeyToString) (privKeyM, pubKeyM map[string]interface{}, err error) {
 	if privKey != nil {
-		privKeyM, err = DisplayPrivKey(source, privKey, parseKeyToString)
+		privKeyM, err = MappingPrivKey(source, privKey, parseKeyToString)
 		if err != nil {
 			return
 		}
 	}
 	if pubKey != nil {
-		pubKeyM, err = DisplayPubKey(source, pubKey, parsePubKeyToString)
+		pubKeyM, err = MappingPubKey(source, pubKey, parsePubKeyToString)
 		if err != nil {
 			return
 		}
@@ -451,8 +451,8 @@ func DisplayKey(source string, privKey *PrivateKey, pubKey *PublicKey, parseKeyT
 	return
 }
 
-// DisplayPrivKey display the content of private key
-func DisplayPrivKey(source string, a *PrivateKey, parseKeyToString funcParseKeyToString) (map[string]interface{}, error) {
+// MappingPrivKey display the content of private key
+func MappingPrivKey(source string, a *PrivateKey, parseKeyToString funcParseKeyToString) (map[string]interface{}, error) {
 	aMap := make(map[string]interface{})
 	aMap["source"] = a.Source
 	aMap["sigType"] = a.SigType
@@ -488,8 +488,8 @@ func DisplayPrivKey(source string, a *PrivateKey, parseKeyToString funcParseKeyT
 	return aMap, nil
 }
 
-// DisplayPubKey display the content of public key
-func DisplayPubKey(source string, a *PublicKey, parsePubKeyToString funcParsePubKeyToString) (map[string]interface{}, error) {
+// MappingPubKey display the content of public key
+func MappingPubKey(source string, a *PublicKey, parsePubKeyToString funcParsePubKeyToString) (map[string]interface{}, error) {
 	aMap := make(map[string]interface{})
 	aMap["source"] = a.Source
 	aMap["sigType"] = a.SigType

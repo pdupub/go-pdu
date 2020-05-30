@@ -191,9 +191,9 @@ func (e BEngine) Marshal(privKey *crypto.PrivateKey, pubKey *crypto.PublicKey) (
 	return crypto.Marshal(e.name, privKey, pubKey, parseKeyToString, parsePubKeyToString)
 }
 
-// Display display private & public key
-func (e BEngine) DisplayKey(privKey *crypto.PrivateKey, pubKey *crypto.PublicKey) (map[string]interface{}, map[string]interface{}, error) {
-	return crypto.DisplayKey(e.name, privKey, pubKey, parseKeyToString, parsePubKeyToString)
+// MappingKey build private & public key content into map for display or marshal
+func (e BEngine) MappingKey(privKey *crypto.PrivateKey, pubKey *crypto.PublicKey) (map[string]interface{}, map[string]interface{}, error) {
+	return crypto.MappingKey(e.name, privKey, pubKey, parseKeyToString, parsePubKeyToString)
 }
 
 // EncryptKey encryptKey into file

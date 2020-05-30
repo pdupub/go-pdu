@@ -18,6 +18,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/pdupub/go-pdu/crypto"
@@ -61,11 +62,38 @@ func DecryptKey(keyJSON []byte, passwd string) (*crypto.PrivateKey, *crypto.Publ
 }
 
 // DisplayKey decrypt private key from keyJSON file
-func DisplayKey(privKey *crypto.PrivateKey, pubKey *crypto.PublicKey) (map[string]interface{}, map[string]interface{}, error) {
+func DisplayKey(privKey *crypto.PrivateKey, pubKey *crypto.PublicKey) error {
 	var engine crypto.Engine
 	engine, err := SelectEngine(privKey.Source)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	return engine.DisplayKey(privKey, pubKey)
+	privM, pubM, err := engine.MappingKey(privKey, pubKey)
+	if err != nil {
+		return err
+	}
+	fmt.Println()
+	fmt.Println("Private Key:")
+	if source, ok := privM["source"]; ok {
+		fmt.Println("source\t", source)
+	}
+	if sigType, ok := privM["sigType"]; ok {
+		fmt.Println("sigType\t", sigType)
+	}
+	if k, ok := privM["privKey"]; ok {
+		fmt.Println("key\t", k)
+	}
+	fmt.Println()
+	fmt.Println("Public Key:")
+	if source, ok := pubM["source"]; ok {
+		fmt.Println("source\t", source)
+	}
+	if sigType, ok := pubM["sigType"]; ok {
+		fmt.Println("sigType\t", sigType)
+	}
+	if k, ok := pubM["pubKey"]; ok {
+		fmt.Println("key\t", k)
+	}
+
+	return nil
 }

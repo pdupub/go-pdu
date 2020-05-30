@@ -113,12 +113,7 @@ func inspect() error {
 	if err != nil {
 		return err
 	}
-	privKeyM, pubKeyM, err := utils.DisplayKey(priKey, pubKey)
-	if err != nil {
-		return err
-	}
-	fmt.Println("private key: ", privKeyM)
-	fmt.Println("publick key: ", pubKeyM)
+	utils.DisplayKey(priKey, pubKey)
 	return nil
 }
 
