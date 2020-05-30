@@ -412,7 +412,7 @@ func unmarshalPubKey(source string, input []byte, parsePubKey funcParsePubKey) (
 
 // Marshal marshal private & public key to json
 func Marshal(source string, privKey *PrivateKey, pubKey *PublicKey, parseKeyToString funcParseKeyToString, parsePubKeyToString funcParsePubKeyToString) (privKeyBytes []byte, pubKeyBytes []byte, err error) {
-	m := make(map[string]interface{})
+	var m map[string]interface{}
 	if privKey != nil {
 		m, err = MappingPrivKey(source, privKey, parseKeyToString)
 		if err != nil {
