@@ -118,6 +118,14 @@ type EncryptedKeyJListV3 []*EncryptedKeyJSONV3
 const EncryptedVersion = 3
 
 type funcGenKey func() (interface{}, interface{}, error)
+type funcSign func([]byte, interface{}) ([]byte, *ecdsa.PublicKey, error)
+type funcParseKey func(interface{}) (interface{}, interface{}, error)
+type funcVerify func(hash []byte, pubKey interface{}, signature []byte) (bool, error)
+type funcPrivKeyToKeyBytes func(interface{}) ([]byte, []byte, error)
+type funcParsePubKey func(interface{}) (*ecdsa.PublicKey, error)
+type funcParseKeyToString func(interface{}) (string, string, error)
+type funcParsePubKeyToString func(interface{}) (string, error)
+type funcParseMulSig func(signature []byte) [][]byte
 
 // GenKey generate the private and public key pair
 func GenKey(source string, genKey funcGenKey, params ...interface{}) (*PrivateKey, *PublicKey, error) {
@@ -151,8 +159,6 @@ func GenKey(source string, genKey funcGenKey, params ...interface{}) (*PrivateKe
 		return nil, nil, ErrSigTypeNotSupport
 	}
 }
-
-type funcSign func([]byte, interface{}) ([]byte, *ecdsa.PublicKey, error)
 
 // Sign is used to create signature of content by private key
 func Sign(source string, hash []byte, priKey *PrivateKey, sign funcSign) (*Signature, error) {
@@ -191,10 +197,6 @@ func Sign(source string, hash []byte, priKey *PrivateKey, sign funcSign) (*Signa
 	}
 }
 
-type funcVerify func(hash []byte, pubKey interface{}, signature []byte) (bool, error)
-
-type funcParseMulSig func(signature []byte) [][]byte
-
 // Verify is used to verify the signature
 func Verify(source string, hash []byte, sig *Signature, verify funcVerify, parseMulSig funcParseMulSig) (bool, error) {
 	if sig.Source != source {
@@ -220,8 +222,6 @@ func Verify(source string, hash []byte, sig *Signature, verify funcVerify, parse
 		return false, ErrSigTypeNotSupport
 	}
 }
-
-type funcParseKey func(interface{}) (interface{}, interface{}, error)
 
 // DecryptKey decrypt private key from file
 func DecryptKey(source string, keyJSON []byte, pass string, parseKey funcParseKey) (*PrivateKey, *PublicKey, error) {
@@ -270,8 +270,6 @@ func EncryptSignleKey(keyBytes, address []byte, pass string) (*EncryptedKeyJSONV
 	return &encryptedKeyJSONV3, nil
 }
 
-type funcPrivKeyToKeyBytes func(interface{}) ([]byte, []byte, error)
-
 // EncryptKey encryptKey into file
 func EncryptKey(source string, priKey *PrivateKey, pass string, privKeyToKeyBytes funcPrivKeyToKeyBytes) ([]byte, error) {
 	if priKey.Source != source {
@@ -304,8 +302,6 @@ func EncryptKey(source string, priKey *PrivateKey, pass string, privKeyToKeyByte
 	}
 	return json.Marshal(EncryptedPrivateKey{Source: source, SigType: priKey.SigType, EPK: ekl})
 }
-
-type funcParsePubKey func(interface{}) (*ecdsa.PublicKey, error)
 
 // Unmarshal unmarshal private & public key from json
 func Unmarshal(source string, privKeyBytes, pubKeyBytes []byte, parseKey funcParseKey, parsePubKey funcParsePubKey) (privKey *PrivateKey, pubKey *PublicKey, err error) {
@@ -413,9 +409,6 @@ func unmarshalPubKey(source string, input []byte, parsePubKey funcParsePubKey) (
 
 	return &p, nil
 }
-
-type funcParseKeyToString func(interface{}) (string, string, error)
-type funcParsePubKeyToString func(interface{}) (string, error)
 
 // Marshal marshal private & public key to json
 func Marshal(source string, privKey *PrivateKey, pubKey *PublicKey, parseKeyToString funcParseKeyToString, parsePubKeyToString funcParsePubKeyToString) (privKeyBytes []byte, pubKeyBytes []byte, err error) {
