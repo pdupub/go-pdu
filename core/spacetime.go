@@ -106,7 +106,7 @@ func (s *SpaceTime) createUserStateD(st *SpaceTime, ref *MsgReference, userD *da
 	refUserStateD := st.userStateD
 	for _, k := range refUserStateD.GetIDs() {
 		lifeMaxSeq := refUserStateD.GetVertex(k).Value().(*UserInfo).natureLifeMaxSeq - refSeq
-		userStateVertex, err := dag.NewVertex(k, NewUserInfo(userD.GetVertex(k).Value().(*User).Name, lifeMaxSeq, 0), userD.GetVertex(k).Parents()...)
+		userStateVertex, err := dag.NewVertex(k, NewUserInfo(userD.GetVertex(k).Value().(*User).Name, lifeMaxSeq, 0), userD.GetVertex(k).ParentIDs()...)
 		if err != nil {
 			return err
 		}

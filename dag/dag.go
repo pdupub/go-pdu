@@ -35,33 +35,41 @@ const (
 	defaultMaxParentsCount = 255
 )
 
-// DAG is directed acyclic graph
-type DAG struct {
-	mu              sync.Mutex
+// Config is the config of DAG
+type Config struct {
 	maxParentsCount int
 	strict          bool
-	store           map[interface{}]*Vertex
-	ids             []interface{}
-	rufd            uint                          // unfilled root count
-	awcf            map[interface{}][]interface{} // awaiting for confirmation
+	rufd            uint // unfilled root count
+}
+
+// DAG is directed acyclic graph
+type DAG struct {
+	mu     sync.Mutex
+	config *Config
+	store  map[interface{}]*Vertex
+	ids    []interface{}
+	awcf   map[interface{}][]interface{} // awaiting for confirmation
 }
 
 // NewDAG create new DAG by root vertexes
 func NewDAG(rootCnt uint, rootVertex ...*Vertex) (*DAG, error) {
-	dag := &DAG{
+	config := &Config{
 		maxParentsCount: defaultMaxParentsCount,
 		strict:          true,
-		store:           make(map[interface{}]*Vertex),
-		ids:             []interface{}{},
 		rufd:            rootCnt,
 	}
+	dag := &DAG{
+		config: config,
+		store:  make(map[interface{}]*Vertex),
+		ids:    []interface{}{},
+	}
 	for _, vertex := range rootVertex {
-		if dag.rufd == 0 {
+		if dag.config.rufd == 0 {
 			return nil, ErrRootNumberOutOfRange
-		} else if len(vertex.Parents()) == 0 {
+		} else if len(vertex.ParentIDs()) == 0 {
 			dag.store[vertex.ID()] = vertex
 			dag.ids = append(dag.ids, vertex.ID())
-			dag.rufd--
+			dag.config.rufd--
 		} else {
 			return nil, ErrRootVertexParentsExist
 		}
@@ -71,24 +79,24 @@ func NewDAG(rootCnt uint, rootVertex ...*Vertex) (*DAG, error) {
 
 // IsStrict return if all parents must exist when add vertex
 func (d *DAG) IsStrict() bool {
-	return d.strict
+	return d.config.strict
 }
 
 // RemoveStrict set strict to false, mean at least one parents exist in dag,
 // the vertex can be added, and the strict rule can not from false to true.
 func (d *DAG) RemoveStrict() {
-	d.strict = false
+	d.config.strict = false
 	d.awcf = make(map[interface{}][]interface{})
 }
 
 // SetMaxParentsCount set the max number of parents one vertex can get
 func (d *DAG) SetMaxParentsCount(maxCount int) {
-	d.maxParentsCount = maxCount
+	d.config.maxParentsCount = maxCount
 }
 
 // GetMaxParentsCount get the max number of parents
 func (d *DAG) GetMaxParentsCount() int {
-	return d.maxParentsCount
+	return d.config.maxParentsCount
 }
 
 // GetVertex can get vertex by ID
@@ -108,29 +116,31 @@ func (d *DAG) AddVertex(vertex *Vertex) error {
 		return ErrVertexAlreadyExist
 	}
 
-	if len(vertex.Parents()) > d.maxParentsCount {
+	if len(vertex.ParentIDs()) > d.config.maxParentsCount {
 		return ErrVertexParentNumberOutOfRange
 	}
 	// check parents cloud be found
 	sequenceExist := false
-	for _, pid := range vertex.Parents() {
-		if _, ok := d.store[pid]; !ok && d.strict {
+	for _, pid := range vertex.ParentIDs() {
+		if _, ok := d.store[pid]; !ok && d.config.strict {
 			return ErrVertexParentNotExist
 		}
 		sequenceExist = true
 	}
 	if !sequenceExist {
-		if d.rufd == 0 {
+		if d.config.rufd == 0 {
 			return ErrRootNumberOutOfRange
 		}
-		d.rufd--
+		d.config.rufd--
 	}
 
 	// check if is in awcf
-	if !d.strict {
-		if children, ok := d.awcf[vertex.ID()]; ok {
-			for _, cID := range children {
-				vertex.AddChild(cID)
+	if !d.config.strict {
+		if childrenIDs, ok := d.awcf[vertex.ID()]; ok {
+			for _, cID := range childrenIDs {
+				if childVertex, ok := d.store[cID]; ok {
+					vertex.AddChild(childVertex)
+				}
 			}
 		}
 		delete(d.awcf, vertex.ID())
@@ -140,10 +150,10 @@ func (d *DAG) AddVertex(vertex *Vertex) error {
 	d.ids = append(d.ids, vertex.ID())
 
 	// update the parent vertex children
-	for _, pid := range vertex.Parents() {
+	for _, pid := range vertex.ParentIDs() {
 		if v, ok := d.store[pid]; ok {
-			v.AddChild(vertex.ID())
-		} else if !d.strict {
+			v.AddChild(vertex)
+		} else if !d.config.strict {
 			if _, ok := d.awcf[pid]; ok {
 				d.awcf[pid] = append(d.awcf[pid], vertex.ID())
 			} else {
@@ -155,19 +165,20 @@ func (d *DAG) AddVertex(vertex *Vertex) error {
 }
 
 // DelVertex is used to remove vertex from DAG
-func (d *DAG) DelVertex(id interface{}) error {
+func (d *DAG) DelVertex(item interface{}) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	// check the key exist and no children
+	id := getItemID(item)
 	if v, ok := d.store[id]; !ok {
 		return ErrVertexNotExist
 	} else if len(v.Children()) > 0 {
 		return ErrVertexHasChildren
 	} else {
 		// remove this child vertex from parents
-		for _, pid := range v.Parents() {
-			if parent, ok := d.store[pid]; ok {
-				parent.DelChild(id)
+		for _, pid := range v.ParentIDs() {
+			if p, ok := d.store[pid]; ok {
+				p.DelChild(id)
 			}
 		}
 	}
@@ -188,7 +199,7 @@ func (d *DAG) GetIDs() []interface{} {
 
 // String is used to print the DAG content
 func (d *DAG) String() string {
-	result := fmt.Sprintf("maxParentsCount : %d - storeSize : %d \n", d.maxParentsCount, len(d.store))
+	result := fmt.Sprintf("maxParentsCount : %d - storeSize : %d \n", d.config.maxParentsCount, len(d.store))
 	for k, v := range d.store {
 		result += fmt.Sprintf("k = %v \n", k)
 		result += fmt.Sprintf("v = %v \n", v)

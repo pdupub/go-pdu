@@ -22,10 +22,6 @@ func TestVertex(t *testing.T) {
 	vertex1, _ := NewVertex("id-1", "hello world")
 	vertex2, _ := NewVertex("id-2", "hello world again")
 
-	if _, err := NewVertex(vertex2, "invalid id"); err != ErrVertexIDInvalid {
-		t.Errorf("vertex id should be invalid")
-	}
-
 	vertex1.AddChild(vertex2)
 	if !vertex1.HasChild(vertex2) {
 		t.Errorf("vertex2 should be child ")

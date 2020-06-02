@@ -24,30 +24,21 @@ import (
 type Vertex struct {
 	id       interface{}
 	value    interface{}
-	parents  map[interface{}]struct{}
-	children map[interface{}]struct{}
+	parents  map[interface{}]*Vertex
+	children map[interface{}]*Vertex
 }
 
 // NewVertex create vertex, id, value and parents must be set and is immutable
-// parents cloud be Vertex or just key
 func NewVertex(id interface{}, value interface{}, parents ...interface{}) (*Vertex, error) {
-	// Vertex & *Vertex can not be used as Vertex.ID
-	switch id.(type) {
-	case *Vertex:
-		return nil, ErrVertexIDInvalid
-	case Vertex:
-		return nil, ErrVertexIDInvalid
-	}
-
 	v := &Vertex{
 		id:       id,
 		value:    value,
-		parents:  make(map[interface{}]struct{}),
-		children: make(map[interface{}]struct{}),
+		parents:  make(map[interface{}]*Vertex),
+		children: make(map[interface{}]*Vertex),
 	}
 	for _, parent := range parents {
 		pk := getItemID(parent)
-		v.parents[pk] = struct{}{}
+		v.parents[pk] = nil
 	}
 	return v, nil
 }
@@ -57,8 +48,8 @@ func (v Vertex) ID() interface{} {
 	return v.id
 }
 
-// Parents is the vertexes which current vertex reference
-func (v Vertex) Parents() []interface{} {
+// ParentIDs is the vertexes which current vertex reference
+func (v Vertex) ParentIDs() []interface{} {
 	var pks []interface{}
 	for k := range v.parents {
 		pks = append(pks, k)
@@ -67,12 +58,12 @@ func (v Vertex) Parents() []interface{} {
 }
 
 // Children is the vertexes which reference this vertex
-func (v Vertex) Children() []interface{} {
-	var cks []interface{}
-	for k := range v.children {
-		cks = append(cks, k)
+func (v Vertex) Children() []*Vertex {
+	var cvs []*Vertex
+	for _, child := range v.children {
+		cvs = append(cvs, child)
 	}
-	return cks
+	return cvs
 }
 
 // Value is the content of vertex
@@ -87,22 +78,26 @@ func (v *Vertex) SetValue(value interface{}) {
 
 // AddChild just add the child for this vertex (usually the key or point of child object)
 // not add this vertex as parent of the child vertex or check their parents at the same time
-func (v *Vertex) AddChild(children ...interface{}) {
+func (v *Vertex) AddChild(children ...*Vertex) {
 	for _, child := range children {
-		ck := getItemID(child)
-		v.children[ck] = struct{}{}
+		v.children[child.ID()] = child
+		if parent, ok := child.parents[v.ID()]; !ok || parent == nil {
+			child.parents[v.ID()] = v
+		}
 	}
 }
 
 // DelChild remove the children vertexes
-func (v *Vertex) DelChild(children ...interface{}) {
-	for _, child := range children {
+// param children is Vertex, *Vertex or ID
+func (v *Vertex) DelChild(items ...interface{}) {
+	for _, child := range items {
 		ck := getItemID(child)
 		delete(v.children, ck)
 	}
 }
 
 // HasParent return true if this vertex have parents
+// param children is Vertex, *Vertex or ID
 func (v Vertex) HasParent(item interface{}) bool {
 	if _, ok := v.parents[getItemID(item)]; !ok {
 		return false
@@ -120,7 +115,7 @@ func (v Vertex) HasChild(item interface{}) bool {
 
 // String used to print the content of vertex
 func (v Vertex) String() string {
-	result := fmt.Sprintf("ID: %s - Parents: %d - Children: %d - Value: %v\n", v.id, len(v.Parents()), len(v.Children()), v.value)
+	result := fmt.Sprintf("ID: %s - Parents: %d - Children: %d - Value: %v\n", v.id, len(v.ParentIDs()), len(v.Children()), v.value)
 	return result
 }
 
