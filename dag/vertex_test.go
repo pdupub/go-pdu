@@ -16,15 +16,73 @@
 
 package dag
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
+
+func findTargetTest(v *Vertex, args ...interface{}) (bool, error) {
+	if len(args) != 1 {
+		return false, errors.New("argument is missing")
+	}
+
+	if v.ID() == args[0] {
+		return true, nil
+	}
+	return false, nil
+}
 
 func TestVertex(t *testing.T) {
 	vertex1, _ := NewVertex("id-1", "hello world")
 	vertex2, _ := NewVertex("id-2", "hello world again")
+	vertex3, _ := NewVertex("id-3", "hello world again")
+	vertex4, _ := NewVertex("id-4", "hello world again")
+	vertex5, _ := NewVertex("id-5", "hello world again")
+	vertex6, _ := NewVertex("id-6", "hello world again")
+
+	vertex7, _ := NewVertex("id-7", "hello world again")
+	vertex8, _ := NewVertex("id-8", "hello world again")
+	vertex9, _ := NewVertex("id-9", "hello world again")
+	vertex10, _ := NewVertex("id-10", "hello world again")
 
 	vertex1.AddChild(vertex2)
 	if !vertex1.HasChild(vertex2) {
 		t.Errorf("vertex2 should be child ")
+	}
+	vertex2.AddChild(vertex3)
+	vertex3.AddChild(vertex4)
+	vertex4.AddChild(vertex5)
+	vertex5.AddChild(vertex6)
+
+	// add some noise
+	vertex3.AddChild(vertex7)
+	vertex3.AddChild(vertex8)
+	vertex7.AddChild(vertex9)
+	vertex4.AddChild(vertex10)
+
+	pathRes := vertex1.Seek(findTargetTest, 5, SeekForward, "id-6")
+	if len(pathRes) != 5 || pathRes[0] != vertex6.ID() {
+		t.Error("path can not be found")
+	}
+
+	pathRes = vertex1.Seek(findTargetTest, 8, SeekForward, "id-6")
+	if len(pathRes) != 5 || pathRes[0] != vertex6.ID() {
+		t.Error("path can not be found")
+	}
+
+	pathRes = vertex1.Seek(findTargetTest, 4, SeekForward, "id-6")
+	if len(pathRes) != 0 {
+		t.Error("path should not be found")
+	}
+
+	pathRes = vertex3.Seek(findTargetTest, 3, SeekForward, "id-6")
+	if len(pathRes) != 3 || pathRes[0] != vertex6.ID() {
+		t.Error("path can not be found")
+	}
+
+	pathRes = vertex6.Seek(findTargetTest, 5, SeekBackward, "id-1")
+	if len(pathRes) != 5 || pathRes[0] != vertex1.ID() {
+		t.Error("path can not be found")
 	}
 
 	vertex2.AddChild(vertex1)

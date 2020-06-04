@@ -20,6 +20,16 @@ import (
 	"fmt"
 )
 
+const (
+	// SeekForward is the flag used to find the target from children
+	SeekForward = iota
+
+	// SeekBackward is the flag used to find the target from parents
+	SeekBackward
+)
+
+type funcJudge func(*Vertex, ...interface{}) (bool, error)
+
 // Vertex is a node in DAG
 type Vertex struct {
 	id       interface{}
@@ -57,6 +67,15 @@ func (v Vertex) ParentIDs() []interface{} {
 	return pks
 }
 
+// Parents return the parent vertexes
+func (v Vertex) Parents() []*Vertex {
+	var pvs []*Vertex
+	for _, parent := range v.parents {
+		pvs = append(pvs, parent)
+	}
+	return pvs
+}
+
 // Children is the vertexes which reference this vertex
 func (v Vertex) Children() []*Vertex {
 	var cvs []*Vertex
@@ -92,6 +111,11 @@ func (v *Vertex) AddChild(children ...*Vertex) {
 func (v *Vertex) DelChild(items ...interface{}) {
 	for _, child := range items {
 		ck := getItemID(child)
+		if cv, ok := v.children[ck]; ok {
+			if _, ok := cv.parents[v.ID()]; ok {
+				delete(cv.parents, v.ID())
+			}
+		}
 		delete(v.children, ck)
 	}
 }
@@ -111,6 +135,31 @@ func (v Vertex) HasChild(item interface{}) bool {
 		return false
 	}
 	return true
+}
+
+// Seek return ID slice if target is found, empty slice if target can be found
+func (v Vertex) Seek(judge funcJudge, maxSteps, direction int, seekArgs ...interface{}) []interface{} {
+	var fullPath []interface{}
+	if maxSteps <= 0 {
+		return fullPath
+	}
+	scope := v.children
+	if direction == SeekBackward {
+		scope = v.parents
+	}
+
+	for _, v := range scope {
+		if found, err := judge(v, seekArgs...); err == nil && found {
+			fullPath = []interface{}{v.ID()}
+			break
+		}
+		if path := v.Seek(judge, maxSteps-1, direction, seekArgs...); len(path) > 0 {
+			fullPath = append(path, v.ID())
+			break
+		}
+	}
+
+	return fullPath
 }
 
 // String used to print the content of vertex
