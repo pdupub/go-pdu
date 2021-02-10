@@ -17,9 +17,9 @@
 package core
 
 import (
+	dag "github.com/pdupub/go-dag"
 	"github.com/pdupub/go-pdu/common"
 	"github.com/pdupub/go-pdu/core/rule"
-	"github.com/pdupub/go-pdu/dag"
 )
 
 // SpaceTime contain time proof of this space time and the user info who is valid in this space time

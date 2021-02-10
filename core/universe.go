@@ -19,8 +19,8 @@ package core
 import (
 	"encoding/json"
 
+	dag "github.com/pdupub/go-dag"
 	"github.com/pdupub/go-pdu/common"
-	"github.com/pdupub/go-pdu/dag"
 )
 
 // Universe is the struct contain all the information can be received and validated.

@@ -15,6 +15,7 @@ require (
 	github.com/howeyc/gopass v0.0.0-20190910152052-7cb4b85ec19c
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pborman/uuid v1.2.0 // indirect
+	github.com/pdupub/go-dag v0.0.0-20210210033342-8e67f398f6d9
 	github.com/rjeczalik/notify v0.9.2 // indirect
 	github.com/spf13/cobra v0.0.4
 	github.com/spf13/viper v1.4.0

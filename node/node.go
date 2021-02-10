@@ -431,7 +431,7 @@ func (n *Node) runTimeProof(sig <-chan struct{}, wait chan<- struct{}) {
 				refs = append(refs, &core.MsgReference{SenderID: lastMsgByUser.SenderID, MsgID: lastMsgByUser.ID()})
 			}
 			// create new msg, use 1.2 as reference
-			tpMsgValue := &core.MsgValue{ContentType: core.TypeText, Content: []byte(string(rand.Intn(100000)))}
+			tpMsgValue := &core.MsgValue{ContentType: core.TypeText, Content: []byte(strconv.Itoa(rand.Intn(100000)))}
 			tpMsg, err := core.CreateMsg(n.tpUnlockedUser, tpMsgValue, n.tpUnlockedPrivateKey, refs...)
 			if err != nil {
 				log.Error(err)
