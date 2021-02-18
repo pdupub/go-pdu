@@ -19,7 +19,6 @@ matrix:
         - go test ./crypto/pdu
         - go test ./crypto/ethereum
         - go test ./crypto/bitcoin
-        - go test ./dag
         - go test ./core
 
     - os: linux
@@ -32,7 +31,6 @@ matrix:
         - go test ./crypto/pdu
         - go test ./crypto/ethereum
         - go test ./crypto/bitcoin
-        - go test ./dag
         - go test ./core
 
     - os: osx
@@ -43,5 +41,4 @@ matrix:
         - go test ./crypto/pdu
         - go test ./crypto/ethereum
         - go test ./crypto/bitcoin
-        - go test ./dag
         - go test ./core
