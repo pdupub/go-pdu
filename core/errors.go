@@ -1,4 +1,4 @@
-// Copyright 2019 The PDU Authors
+// Copyright 2021 The PDU Authors
 // This file is part of the PDU library.
 //
 // The PDU library is free software: you can redistribute it and/or modify
@@ -19,42 +19,45 @@ package core
 import "errors"
 
 var (
-	// ErrUserNotExist returns fail to find a user
-	ErrUserNotExist = errors.New("user not exist")
+	// ErrPhotonTypeNotCorrect returns if photon type not correct
+	ErrPhotonTypeNotCorrect = errors.New("photon type not correct")
 
-	// ErrMsgAlreadyExist returns try to add a message which already exist in universe
-	ErrMsgAlreadyExist = errors.New("msg already exist")
+	// ErrPhotonAlreadyExist returns if photon with same key already exist on entropy
+	ErrPhotonAlreadyExist = errors.New("photon already exist")
 
-	// ErrMsgNotFound returns fail to find a message
-	ErrMsgNotFound = errors.New("msg not found")
+	// ErrPhotonReferenceNotExist returns if photon reference not exist on entropy
+	ErrPhotonReferenceNotExist = errors.New("photon reference not exist")
 
-	// ErrTPAlreadyExist returns time proof message already exist
-	ErrTPAlreadyExist = errors.New("time proof already exist")
+	// ErrPhotonNotExist returns if photon not exist on entropy
+	ErrPhotonNotExist = errors.New("photon not exist")
 
-	// ErrUserAlreadyExist returns try a add a user who is already exist in unverse
-	ErrUserAlreadyExist = errors.New("user already exist")
+	// ErrPhotonReferenceMissing returns when try to add new photon without references
+	ErrPhotonReferenceMissing = errors.New("photon reference is missing")
 
-	// ErrNotSupportYet returns not support temp
-	ErrNotSupportYet = errors.New("not error, just not support yet")
+	// ErrPhotonReferenceNotCorrect returns if refs[0] already have child from same author ...
+	ErrPhotonReferenceNotCorrect = errors.New("photon reference is not correct")
 
-	// ErrNewUserAddFail returns add new user fail for unknown reason
-	ErrNewUserAddFail = errors.New("new user add fail")
+	// ErrPhotonMissingReferenceByAuthor returns when photon missing reference by same author
+	ErrPhotonMissingReferenceByAuthor = errors.New("photon missing reference by same author")
 
-	// ErrCreateSpaceTimeFail returns when create space time fail
-	ErrCreateSpaceTimeFail = errors.New("create space time fail")
+	// ErrSocietyIDConflict returns if address in the value not equal to key
+	ErrSocietyIDConflict = errors.New("Address conflict")
 
-	// ErrAddUserToSpaceTimeFail returns when add user to space time fail
-	ErrAddUserToSpaceTimeFail = errors.New("add user to space time fail")
+	// ErrCombinationParamsNotCorrect return if m < 1 or n < 1 or n > m
+	ErrCombinationParamsNotCorrect = errors.New("combination params m, n not correct")
 
-	// ErrCreateRootUserFail returns when create root user fail
-	ErrCreateRootUserFail = errors.New("create root user fail")
+	// ErrInitialGenerationNumMissing return if try to calc generation population without setting initial generation number
+	ErrInitialGenerationNumMissing = errors.New("initial generation number missing")
 
-	// ErrContentTypeNotBirth returns when try to add user from a not birth message
-	ErrContentTypeNotBirth = errors.New("content type is not TypeBirth")
+	// ErrCalcGenerationNumberBeyondLimit return if generation number is larger than the theoretical maximize value
+	ErrCalcGenerationNumberBeyondLimit = errors.New("calculate generation number beyond limit")
 
-	// ErrDimensionNumberNotSuitable returns if the dimension is zero or too large
-	ErrDimensionNumberNotSuitable = errors.New("number of dimension is not suitable")
+	// ErrAddIndividualWithoutEnoughParents return if try to create new ID without enough parents sign
+	ErrAddIndividualWithoutEnoughParents = errors.New("add individual without enough parents")
 
-	// ErrPerimeterIsZero returns if perimeter is zero
-	ErrPerimeterIsZero = errors.New("perimeter should not be zero")
+	// ErrAddIndividualBeyondChildrenMaxLimit return if parents sign the create msg have create children beyond limit
+	ErrAddIndividualBeyondChildrenMaxLimit = errors.New("add individual beyond children max limit")
+
+	// ErrIndividualNotExistInSociety return if individual not exist in society
+	ErrIndividualNotExistInSociety = errors.New("individual not exist in society")
 )

@@ -1,4 +1,4 @@
-// Copyright 2019 The PDU Authors
+// Copyright 2021 The PDU Authors
 // This file is part of the PDU library.
 //
 // The PDU library is free software: you can redistribute it and/or modify
@@ -20,12 +20,15 @@ import (
 	"fmt"
 )
 
-// Version
 const (
-	VersionMajor = 0          // Major version component of the current release
-	VersionMinor = 1          // Minor version component of the current release
-	VersionPatch = 0          // Patch version component of the current release
-	VersionMeta  = "unstable" // Version metadata to append to the version string
+	// VersionMajor is Major version component of the current release
+	VersionMajor = 0
+	// VersionMinor is Minor version component of the current release
+	VersionMinor = 2
+	// VersionPatch is Patch version component of the current release
+	VersionPatch = 0
+	// VersionMeta is Version metadata to append to the version string
+	VersionMeta = "unstable"
 )
 
 // Version holds the textual version string.

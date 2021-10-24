@@ -3,7 +3,6 @@ go:
   - tip
 before_install:
   - go get golang.org/x/tools/cmd/cover
-  - go get github.com/mattn/goveralls
 go_import_path: github.com/pdupub/go-pdu
 sudo: false
 matrix:
@@ -15,10 +14,6 @@ matrix:
       script:
         - make install
         - GO111MODULE=on
-        - goveralls -repotoken OtaVjZWgbWWgNkhlFMdlePbFZGogdkiFQ
-        - go test ./crypto/pdu
-        - go test ./crypto/ethereum
-        - go test ./crypto/bitcoin
         - go test ./core
 
     - os: linux
@@ -28,9 +23,6 @@ matrix:
       script:
         - make install
         - GO111MODULE=on
-        - go test ./crypto/pdu
-        - go test ./crypto/ethereum
-        - go test ./crypto/bitcoin
         - go test ./core
 
     - os: osx
@@ -38,7 +30,4 @@ matrix:
       script:
         - make install
         - GO111MODULE=on
-        - go test ./crypto/pdu
-        - go test ./crypto/ethereum
-        - go test ./crypto/bitcoin
         - go test ./core

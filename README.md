@@ -24,21 +24,29 @@ PDU is a decentralized identity-based social network, please read the WhitePaper
 
 ```
 Parallel Digital Universe
-A decentralized identity-based social network
-Website: https://pdu.pub
+	A decentralized identity-based social network
+	Website: https://pdu.pub
 
 Usage:
   pdu [command]
 
 Available Commands:
-  account     Account generate or inspect
-  console     Console of pdu
-  create      Create a new PDU Universe
+  auto        Auto Initialize PDU
+  ck          Create keystores
   help        Help about any command
-  start       Start to run PDU Universe
+  init        Initialize PDU
+  send        Send hello msg to node
+  start       Start run node
+  test        Test some tmp func
+  upload      Upload file to node
 
 Flags:
-  -h, --help   help for pdu
+      --db string            path of database (default "pdu.db")
+  -h, --help                 help for pdu
+      --nodes string         node list
+      --port int             port to start server or send msg (default 1323)
+      --projectPath string   project root path (default "./")
+      --url string           target url (default "http://127.0.0.1")
 
 Use "pdu [command] --help" for more information about a command.
 ```
@@ -59,9 +67,9 @@ get clone https://github.com/pdupub/go-pdu.git
 
 ```
 
-To build and run:
+To build:
 ```
-make install && pdu start
+make install 
 ```
 
 

@@ -1,0 +1,38 @@
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+  </head>
+  <body>
+    <script>
+        const data = {{ index . }}
+
+    </script>
+    <div class="container" id="container"></div>
+
+    <script>
+      window.onload = function () {
+        if (data.length > 0) {
+            detail = data[0]
+            var str='';
+            str += '<div>Exist:\t'+detail["exist"]+'</div>'
+            str += '<div>Count:\t'+detail["cnt"]+'</div>'
+            str += '<div>Name:\t'+detail["profile"]["name"]+'</div>'
+            str += '<div>Email:\t'+detail["profile"]["email"]+'</div>'
+            if (detail["profile"]["avatar"] != undefined ){
+              if (detail["profile"]["avatar"]["data"] != undefined && detail["profile"]["avatar"]["data"].length > 10) {
+                var imgFile = detail["profile"]["avatar"]["url"];
+                str += '<img data-src="holder.js/200x200" class="img-thumbnail" alt="200x200" style="width: 200px; height: 200px;" src="data:image/'+ imgFile.substring(imgFile.lastIndexOf(".")+1)+';base64, ' + detail["profile"]["avatar"]["data"] +'" data-holder-rendered="true">'
+              } else{
+                str += '<img data-src="holder.js/200x200" class="img-thumbnail" alt="200x200" style="width: 200px; height: 200px;" src="' + detail["profile"]["avatar"]["url"] +'" data-holder-rendered="true">'
+              }
+            }
+        }
+
+        document.getElementById("container").innerHTML=str;
+      }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js" integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
+  </body>
+</html>

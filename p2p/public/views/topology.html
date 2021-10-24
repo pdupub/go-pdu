@@ -1,0 +1,156 @@
+<html>
+    <header>
+        <!-- <script src="https://gw.alipayobjects.com/os/lib/antv/g6/3.7.1/dist/g6.min.js"></script> -->
+        <script src="/js/g6.min.js"></script>
+        <!-- <script src="/js/test.data.js"></script> -->
+    </header>
+    <body>
+        <h1>{{index . "name"}} Topology</h1>
+        <div id="container"></div>
+
+        <script>
+            const data = {{ index . "data"}}
+        </script>
+
+        <script>
+
+            const tooltip = new G6.Tooltip({
+            offsetX: 10,
+            offsetY: 10,
+            // the types of items that allow the tooltip show up
+            itemTypes: ['node', 'edge'],
+            // custom the tooltip's content
+            getContent: (e) => {
+                const outDiv = document.createElement('div');
+                outDiv.style.width = 'fit-content';
+                outDiv.style.padding = '0px 0px 0px 0px';
+                if (e.item.getType() == 'node') {
+                    html = `
+                    <h4>${e.item.getType()}</h4>
+                    <ul>  
+                        <li>ID: ${e.item.getModel().id}</li>
+                        <li>Label: ${e.item.getModel().label}</li>
+                    </ul>`;
+                } else {
+                    html = `
+                    <h4>${e.item.getType()}</h4>
+                    <ul>  
+                        <li>Source: ${e.item.getModel().source.substring(2,6)}...${e.item.getModel().source.substring(38,42)}</li>
+                        <li>Target: ${e.item.getModel().target.substring(2,6)}...${e.item.getModel().target.substring(38,42)}</li>
+                    </ul>`;
+
+                }
+                outDiv.innerHTML = html
+                return outDiv;
+            },
+            });
+
+            const colors = ['#BDD2FD','#BDEFDB','#C2C8D5','#FBE5A2','#F6C3B7','#B6E3F5','#D3C6EA','#FFD8B8','#AAD8D8','#FFD6E7'];
+            const strokes = ['#5B8FF9','#5AD8A6','#5D7092','#F6BD16','#E8684A','#6DC8EC','#9270CA','#FF9D4D','#269A99','#FF99C3'];
+            const node_size = [80, 20];
+            const margin = [20, 80];
+            const maxRowItemCnt = 8;
+
+            // node compare function
+            const node_compare = (a,b) => {
+                if (a.label < b.label) {return -1;}
+                return 1;
+            }
+            // nodes sort
+            data.nodes.sort(node_compare);
+
+            // make sure all label >= 0
+            let minCluster = 0;
+            data.nodes.forEach(function (node) {
+                node.cluster = Number(node.cluster);
+                node.label = node.value;
+                if (node.cluster < minCluster) {
+                    minCluster = node.cluster
+                }
+            });
+            if (minCluster < 0) {
+                data.nodes.forEach(function (node) {
+                    node.cluster = node.cluster - minCluster
+                });
+            };
+
+            // calculate nodes summary
+            const clusterMap = new Map();
+            let maxCluster = -1;
+            data.nodes.forEach(function (node) {
+                node.cluster = Number(node.cluster);
+                if (node.cluster >= 0 && clusterMap.get(node.cluster) === undefined) {
+                    clusterMap.set(node.cluster, {cnt: 1, index: 0, row: 1, rowIndex: 0});
+                } else {
+                    clusterMap.get(node.cluster).cnt++;
+                    clusterMap.get(node.cluster).row =  Math.ceil(clusterMap.get(node.cluster).cnt / maxRowItemCnt)
+                }
+                if (node.cluster > maxCluster) {
+                    maxCluster = node.cluster
+                }
+            });
+            
+            for (let g=0, lastRowIndex = 0; g <= maxCluster; g++) {
+                if (clusterMap.get(g) != undefined) {
+                    clusterMap.get(g).rowIndex = lastRowIndex;
+                    lastRowIndex += clusterMap.get(g).row;
+                }
+            }
+
+            // update (x,y) and color
+            data.nodes.forEach(function (node) {
+                if (!node.style) node.style = {};
+                node.style.fill = colors[node.cluster % colors.length];
+                node.style.stroke = strokes[node.cluster % strokes.length];
+                node.x = node_size[0] + (clusterMap.get(node.cluster).index % maxRowItemCnt) * (node_size[0] + margin[0]);
+                node.y = node_size[1] + (clusterMap.get(node.cluster).rowIndex + Math.floor(clusterMap.get(node.cluster).index / maxRowItemCnt)) * (node_size[1] + margin[1]);
+                clusterMap.get(node.cluster).index++
+            })
+
+            // calculate width, height of container
+            const width = (maxRowItemCnt + 1) * (node_size[0] + margin[0]);
+            const height = (clusterMap.get(maxCluster).rowIndex + clusterMap.get(maxCluster).row) * (node_size[1] + margin[1]);
+
+            const graph = new G6.Graph({
+                container: 'container',
+                width,
+                height,
+                linkCenter: true,
+                plugins: [tooltip],
+                modes: {
+                    default: ['drag-canvas', 'drag-node'],
+                },
+                defaultNode: {
+                    type: 'rect',
+                    size: node_size,
+                },
+                defaultEdge: {
+                    style: {
+                        endArrow: {
+                            path: 'M 0,0 L 8,4 L 8,-4 Z',
+                            fill: '#e2e2e2',
+                        },
+                    }
+                }
+            });
+
+            graph.data(data);
+            graph.render();
+
+            graph.on('node:mouseenter', (e) => {
+                graph.setItemState(e.item, 'active', true);
+            });
+            graph.on('node:mouseleave', (e) => {
+                graph.setItemState(e.item, 'active', false);
+            });
+            graph.on('edge:mouseenter', (e) => {
+                graph.setItemState(e.item, 'active', true);
+            });
+            graph.on('edge:mouseleave', (e) => {
+                graph.setItemState(e.item, 'active', false);
+            });
+
+        </script>
+    </body>
+</html>
+
