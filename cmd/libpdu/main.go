@@ -18,7 +18,7 @@ package main
 
 import "C"
 
-// other imports should be seperate from the special Cgo import
+// other imports should be separate from the special Cgo import
 import (
 	"encoding/base64"
 	"encoding/hex"

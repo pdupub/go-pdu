@@ -19,18 +19,19 @@ package p2p
 import (
 	"context"
 	"fmt"
-	graphql "github.com/graph-gophers/graphql-go"
-	"github.com/graph-gophers/graphql-go/relay"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
-	"github.com/pdupub/go-pdu/core"
-	"go.etcd.io/bbolt"
 	"html/template"
 	"net/http"
 	"os"
 	"os/signal"
 	"path"
 	"time"
+
+	graphql "github.com/graph-gophers/graphql-go"
+	"github.com/graph-gophers/graphql-go/relay"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
+	"github.com/pdupub/go-pdu/core"
+	"go.etcd.io/bbolt"
 )
 
 func New(templatePath, dbPath string, g *core.Genesis, port int, ignoreUnknownSource bool, peers []string) {
@@ -81,7 +82,7 @@ func New(templatePath, dbPath string, g *core.Genesis, port int, ignoreUnknownSo
 	e.Use(bn.Process)
 	// Routes
 
-	// node infomation
+	// node information
 	e.GET("/", bn.welcome)
 
 	// receive message from client & peers
