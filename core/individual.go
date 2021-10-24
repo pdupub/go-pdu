@@ -18,6 +18,7 @@ package core
 
 import "github.com/ethereum/go-ethereum/common"
 
+// Individual is the user in pdu system
 type Individual struct {
 	Addr  common.Address
 	Level uint

@@ -23,6 +23,7 @@ import (
 	"github.com/pdupub/go-dag"
 )
 
+// Entropy is the struct to store all events
 type Entropy struct {
 	*dag.DAG
 	bornMsg map[common.Address]string
@@ -33,10 +34,12 @@ func entropyIDFunc(v *dag.Vertex) (string, error) {
 	return common.Bytes2Hex(v.Value().(Event).Key), nil
 }
 
+// NewEntropy create new Entropy
 func NewEntropy() (*Entropy, error) {
 	return &Entropy{DAG: new(dag.DAG), bornMsg: make(map[common.Address]string), lastMsg: make(map[common.Address]string)}, nil
 }
 
+// GetLastEventID return the last event id by given author
 func (e Entropy) GetLastEventID(author common.Address) []byte {
 	if id, ok := e.lastMsg[author]; ok {
 		return common.Hex2Bytes(id)
@@ -44,6 +47,7 @@ func (e Entropy) GetLastEventID(author common.Address) []byte {
 	return nil
 }
 
+// AddEvent use to add new event to Entropy
 func (e *Entropy) AddEvent(idByte []byte, author common.Address, p *Photon, pidBytes ...[]byte) error {
 	id := common.Bytes2Hex(idByte)
 
@@ -98,6 +102,7 @@ func (e *Entropy) AddEvent(idByte []byte, author common.Address, p *Photon, pidB
 	return nil
 }
 
+// IsExist return if the event ID already in Entropy
 func (e *Entropy) IsExist(idByte []byte) bool {
 	_, ok := e.DAG.GetVertex(common.Bytes2Hex(idByte))
 	if !ok {
@@ -106,6 +111,7 @@ func (e *Entropy) IsExist(idByte []byte) bool {
 	return true
 }
 
+// CheckRefs return if the references of event is valid
 func (e *Entropy) CheckRefs(author common.Address, idBytes ...[]byte) error {
 	if len(idBytes) == 0 {
 		return ErrPhotonReferenceMissing
@@ -145,10 +151,12 @@ func (e Entropy) marshalPhotonFunc(v *dag.Vertex) (interface{}, error) {
 	return label, nil
 }
 
+// Dump whole Entropy to JSON
 func (e *Entropy) Dump(keys []string, parentLimit, childLimit int) (*dag.DAGData, error) {
 	return e.DAG.Dump(e.marshalPhotonFunc, keys, parentLimit, childLimit)
 }
 
+// DumpByAuthor create new DAG contain all events from same author and dump to JSON
 func (e Entropy) DumpByAuthor(author common.Address, keys []string, parentLimit, childLimit int) (*dag.DAGData, error) {
 	auD, err := e.GetEvents(author)
 	if err != nil {
@@ -157,6 +165,7 @@ func (e Entropy) DumpByAuthor(author common.Address, keys []string, parentLimit,
 	return auD.Dump(e.marshalPhotonFunc, keys, parentLimit, childLimit)
 }
 
+// GetEvents return all events by same author as DAG struct
 func (e Entropy) GetEvents(author common.Address) (*dag.DAG, error) {
 	id, ok := e.bornMsg[author]
 	if !ok {

@@ -22,6 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+// Event is struct contain Photon as vertex in entropy DAG
 type Event struct {
 	Key    []byte         `json:"key"`
 	Nonce  *big.Int       `json:"nonce"`

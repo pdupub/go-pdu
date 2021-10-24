@@ -23,11 +23,13 @@ import (
 	"github.com/pdupub/go-dag"
 )
 
+// GenerationLimit is limit of seek relatives of one user
 type GenerationLimit struct {
 	ParentsMinSize  int // minimize parents cnt need to sign for creating ID on current generation
 	ChildrenMaxSize int // maximize children cnt current generation can be envolve in creating
 }
 
+// Society is main struct store all users of system
 type Society struct {
 	GLimit []*GenerationLimit
 	*dag.DAG
@@ -36,6 +38,7 @@ type Society struct {
 
 func societyIDFunc(v *dag.Vertex) (string, error) { return v.Value().(Individual).Addr.Hex(), nil }
 
+// NewSociety is used to create new user system
 func NewSociety(roots ...common.Address) (*Society, error) {
 	var vs []*dag.Vertex
 	if len(roots) == 0 {
@@ -58,11 +61,13 @@ func NewSociety(roots ...common.Address) (*Society, error) {
 	return society, nil
 }
 
+// UpdateIndividualProfile update profile information which come from Photon of PhotonProfileType
 func (s *Society) UpdateIndividualProfile(author common.Address, profile *PProfile) error {
 	s.profiles[author] = profile
 	return nil
 }
 
+// GetIndividualProfile get profile by auther
 func (s *Society) GetIndividualProfile(author common.Address) *PProfile {
 	if profile, ok := s.profiles[author]; ok {
 		return profile
@@ -70,6 +75,7 @@ func (s *Society) GetIndividualProfile(author common.Address) *PProfile {
 	return new(PProfile)
 }
 
+// AddIndividual create new user
 func (s *Society) AddIndividual(id common.Address, pids ...common.Address) error {
 	if _, ok := s.DAG.GetVertex(id.Hex()); ok {
 		return dag.ErrVertexAlreadyExist
@@ -113,6 +119,7 @@ func (s *Society) AddIndividual(id common.Address, pids ...common.Address) error
 	return nil
 }
 
+// GetIndividual return individual if exist
 func (s *Society) GetIndividual(id common.Address) (*Individual, error) {
 	v, ok := s.DAG.GetVertex(id.Hex())
 	if !ok {
@@ -129,10 +136,12 @@ func (s Society) marshalIndividualFunc(v *dag.Vertex) (interface{}, error) {
 	return label, nil
 }
 
+// Dump dump Society to JSON
 func (s *Society) Dump(keys []string, parentLimit, childLimit int) (*dag.DAGData, error) {
 	return s.DAG.Dump(s.marshalIndividualFunc, keys, parentLimit, childLimit)
 }
 
+// MarshalJSON encode Society to JSON
 func (s *Society) MarshalJSON() ([]byte, error) {
 	fmtData, err := s.Dump(nil, -1, -1)
 	if err != nil {
@@ -141,6 +150,7 @@ func (s *Society) MarshalJSON() ([]byte, error) {
 	return json.Marshal(fmtData)
 }
 
+// UnmarshalJSON decode JSON to Society (unfinished)
 func (s *Society) UnmarshalJSON(b []byte) error {
 	fmtData := make(map[string]interface{})
 	if err := json.Unmarshal(b, &fmtData); err != nil {

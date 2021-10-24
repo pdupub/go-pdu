@@ -24,22 +24,29 @@ import (
 	"github.com/pdupub/go-pdu/identity"
 )
 
+// PhotonVersion is version of photon, use for parse data
 const PhotonVersion = 1
 
+// ResImage is type of resource (PIRes)
 const ResImage = 1
 
 const (
+	// PhotonTypeInfo is information photon
 	PhotonTypeInfo = iota
+	// PhotonTypeBorn is create user photon
 	PhotonTypeBorn
+	// PhotonTypeProfile is update user profile
 	PhotonTypeProfile
 )
 
+// Photon is main struct
 type Photon struct {
 	Type    int    `json:"t"`
 	Version int    `json:"v"`
 	Data    []byte `json:"d"`
 }
 
+// PIRes is struct of resource, image, video, audio ...
 type PIRes struct {
 	Format   int    `json:"format"`
 	Data     []byte `json:"data"`
@@ -47,17 +54,20 @@ type PIRes struct {
 	Checksum []byte `json:"cs"` // sha256
 }
 
+// PInfo is photon information struct
 type PInfo struct {
 	Text      string   `json:"text"`
 	Quote     []byte   `json:"quote"`
 	Resources []*PIRes `json:"resources"`
 }
 
+// PBorn is photon born struct
 type PBorn struct {
 	Addr       common.Address `json:"addr"`
 	Signatures [][]byte       `json:"sigs"`
 }
 
+// PProfile is photon profile struct
 type PProfile struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
@@ -68,6 +78,7 @@ type PProfile struct {
 	Extra    string `json:"extra"`
 }
 
+// NewPhoton is used to create Photon
 func NewPhoton(pType int, sData interface{}) (*Photon, error) {
 	var data []byte
 	var err error
@@ -89,6 +100,7 @@ func NewPhoton(pType int, sData interface{}) (*Photon, error) {
 	return &photon, nil
 }
 
+// NewInfoPhoton is used to create PhotonTypeInfo Photon
 func NewInfoPhoton(text string, quote []byte, res ...*PIRes) (*Photon, error) {
 	pb := PInfo{
 		Text:      text,
@@ -98,6 +110,7 @@ func NewInfoPhoton(text string, quote []byte, res ...*PIRes) (*Photon, error) {
 	return NewPhoton(PhotonTypeInfo, pb)
 }
 
+// NewProfilePhoton is used to create PhotonTypeProfile Photon
 func NewProfilePhoton(name, email, bio, url, location, extra string, avatar *PIRes) (*Photon, error) {
 	pb := PProfile{
 		Name:     name,
@@ -112,6 +125,7 @@ func NewProfilePhoton(name, email, bio, url, location, extra string, avatar *PIR
 	return NewPhoton(PhotonTypeProfile, pb)
 }
 
+// GetProfile return profile information
 func (p *Photon) GetProfile() (*PProfile, error) {
 	if p.Type != PhotonTypeProfile {
 		return nil, ErrPhotonTypeNotCorrect
@@ -123,11 +137,13 @@ func (p *Photon) GetProfile() (*PProfile, error) {
 	return pp, nil
 }
 
+// NewBornPhoton create a create user Photon
 func NewBornPhoton(target common.Address) (*Photon, error) {
 	pb := PBorn{Addr: target}
 	return NewPhoton(PhotonTypeBorn, pb)
 }
 
+// GetNewBorn get create individual address from photon
 func (p *Photon) GetNewBorn() (common.Address, error) {
 	if p.Type != PhotonTypeBorn {
 		return common.Address{}, ErrPhotonTypeNotCorrect
@@ -140,6 +156,7 @@ func (p *Photon) GetNewBorn() (common.Address, error) {
 	return pb.Addr, nil
 }
 
+// ParentSign is used to sign a PhotonTypeBorn Photon as parent
 func (p *Photon) ParentSign(did *identity.DID) error {
 	if p.Type != PhotonTypeBorn {
 		return ErrPhotonTypeNotCorrect
@@ -166,6 +183,7 @@ func (p *Photon) ParentSign(did *identity.DID) error {
 	return nil
 }
 
+// GetParents return parents of new create individual only if Photon is PhotonTypeBorn
 func (p *Photon) GetParents() (parents []common.Address, err error) {
 	if p.Type != PhotonTypeBorn {
 		return []common.Address{}, ErrPhotonTypeNotCorrect

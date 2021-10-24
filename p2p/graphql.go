@@ -18,4 +18,5 @@ package p2p
 
 type query struct{}
 
+// Hello is just hello world
 func (_ *query) Hello() string { return "Hello, world!" }

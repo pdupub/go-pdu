@@ -34,6 +34,7 @@ import (
 	"go.etcd.io/bbolt"
 )
 
+// New create new node server
 func New(templatePath, dbPath string, g *core.Genesis, port int, ignoreUnknownSource bool, peers []string) {
 	// Setup
 	e := echo.New()
