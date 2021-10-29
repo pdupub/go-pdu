@@ -74,13 +74,13 @@ func (d *DID) LoadECDSA(privateKeyHex string) error {
 
 	currentAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
-	UUID, err := uuid.NewUUID()
+	UUID, err := uuid.NewRandom()
 	if err != nil {
 		return err
 	}
 
 	d.key = &keystore.Key{
-		Id:         UUID[:],
+		Id:         UUID,
 		Address:    currentAddress,
 		PrivateKey: privateKey,
 	}

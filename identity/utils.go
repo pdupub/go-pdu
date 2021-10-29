@@ -116,13 +116,13 @@ func CreateKeystoreArrayAndSaveLocal(keyDir string, passwd, salt []byte, cnt int
 
 		currentAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
-		UUID, err := uuid.NewUUID()
+		UUID, err := uuid.NewRandom()
 		if err != nil {
 			return dids, err
 		}
 
 		dids = append(dids, &DID{key: &keystore.Key{
-			Id:         UUID[:],
+			Id:         UUID,
 			Address:    currentAddress,
 			PrivateKey: privateKey,
 		}})
