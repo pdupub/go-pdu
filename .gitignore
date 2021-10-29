@@ -1,9 +1,16 @@
+# PDU
 pdu.db
 tmp/
+
+# idea
 .vscode/
+.idea/
+
+# XCode
 client/PDUM/PDUM.xcodeproj/project.xcworkspace/
 client/PDUM/PDUM.xcodeproj/xcuserdata/
 
+# MacOS
 .DS_Store
 
 # Binaries for programs and plugins
