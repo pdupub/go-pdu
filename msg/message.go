@@ -26,15 +26,18 @@ import (
 	"github.com/pdupub/go-pdu/identity"
 )
 
+// Message is the content of Signed Message
 type Message struct {
 	Content    []byte   `json:"content"` // content by JSON
 	References [][]byte `json:"refs"`    // message hash
 }
 
+// New used to create Message
 func New(content []byte, refs ...[]byte) *Message {
 	return &Message{Content: content, References: refs}
 }
 
+// Sign is used to create Signature of this Message
 func (m *Message) Sign(did *identity.DID) ([]byte, error) {
 	bytes, err := json.Marshal(m)
 	if err != nil {
@@ -44,6 +47,7 @@ func (m *Message) Sign(did *identity.DID) ([]byte, error) {
 	return crypto.Sign(hash, did.GetKey().PrivateKey)
 }
 
+// Verify is used to verify the signature by address
 func (m *Message) Verify(signature []byte, address common.Address) error {
 	signer, err := m.Ecrecover(signature)
 	if err != nil {
@@ -55,6 +59,7 @@ func (m *Message) Verify(signature []byte, address common.Address) error {
 	return nil
 }
 
+// Ecrecover parse address from signature
 func (m *Message) Ecrecover(signature []byte) (common.Address, error) {
 	bytes, err := json.Marshal(m)
 	if err != nil {

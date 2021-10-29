@@ -67,7 +67,7 @@ func (s *Society) UpdateIndividualProfile(author common.Address, profile *PProfi
 	return nil
 }
 
-// GetIndividualProfile get profile by auther
+// GetIndividualProfile get profile by author
 func (s *Society) GetIndividualProfile(author common.Address) *PProfile {
 	if profile, ok := s.profiles[author]; ok {
 		return profile

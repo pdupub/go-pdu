@@ -28,11 +28,13 @@ import (
 	"github.com/pdupub/go-pdu/identity"
 )
 
+// SignedMsg is the struct of signed Message
 type SignedMsg struct {
 	Message
 	Signature []byte `json:"signature"` // message signature
 }
 
+// Sign add signature to this msg
 func (sm *SignedMsg) Sign(did *identity.DID) error {
 	sig, err := sm.Message.Sign(did)
 	if err != nil {
@@ -42,14 +44,17 @@ func (sm *SignedMsg) Sign(did *identity.DID) error {
 	return nil
 }
 
+// Verify msg by address
 func (sm *SignedMsg) Verify(address common.Address) error {
 	return sm.Message.Verify(sm.Signature, address)
 }
 
+// Ecrecover the author address from msg
 func (sm *SignedMsg) Ecrecover() (common.Address, error) {
 	return sm.Message.Ecrecover(sm.Signature)
 }
 
+// Post the signed message to target url
 func (sm *SignedMsg) Post(url string) ([]byte, error) {
 
 	smBytes, err := json.Marshal(sm)
