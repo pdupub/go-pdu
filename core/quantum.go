@@ -27,7 +27,7 @@ import (
 // QuantumVersion is version of Quantum, use for parse data
 const QuantumVersion = 1
 
-// ResImage is type of resource (PIRes)
+// ResImage is type of resource (QRes)
 const ResImage = 1
 
 const (
@@ -46,19 +46,19 @@ type Quantum struct {
 	Data    []byte `json:"d"`
 }
 
-// PIRes is struct of resource, image, video, audio ...
-type PIRes struct {
+// QRes is struct of resource, image, video, audio ...
+type QRes struct {
 	Format   int    `json:"format"`
 	Data     []byte `json:"data"`
 	URL      string `json:"url"`
 	Checksum []byte `json:"cs"` // sha256
 }
 
-// PInfo is Quantum information struct
-type PInfo struct {
-	Text      string   `json:"text"`
-	Quote     []byte   `json:"quote"`
-	Resources []*PIRes `json:"resources"`
+// QData is Quantum information struct
+type QData struct {
+	Text      string  `json:"text"`
+	Quote     []byte  `json:"quote"`
+	Resources []*QRes `json:"resources"`
 }
 
 // PBorn is Quantum born struct
@@ -74,7 +74,7 @@ type PProfile struct {
 	Bio      string `json:"bio"`
 	URL      string `json:"url"`
 	Location string `json:"location"`
-	Avatar   *PIRes `json:"avatar"`
+	Avatar   *QRes  `json:"avatar"`
 	Extra    string `json:"extra"`
 }
 
@@ -101,8 +101,8 @@ func NewQuantum(pType int, sData interface{}) (*Quantum, error) {
 }
 
 // NewInfoQuantum is used to create QuantumTypeInfo Quantum
-func NewInfoQuantum(text string, quote []byte, res ...*PIRes) (*Quantum, error) {
-	pb := PInfo{
+func NewInfoQuantum(text string, quote []byte, res ...*QRes) (*Quantum, error) {
+	pb := QData{
 		Text:      text,
 		Quote:     quote,
 		Resources: res,
@@ -111,7 +111,7 @@ func NewInfoQuantum(text string, quote []byte, res ...*PIRes) (*Quantum, error) 
 }
 
 // NewProfileQuantum is used to create QuantumTypeProfile Quantum
-func NewProfileQuantum(name, email, bio, url, location, extra string, avatar *PIRes) (*Quantum, error) {
+func NewProfileQuantum(name, email, bio, url, location, extra string, avatar *QRes) (*Quantum, error) {
 	pb := PProfile{
 		Name:     name,
 		Email:    email,

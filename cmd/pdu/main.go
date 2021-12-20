@@ -337,7 +337,7 @@ func SendMsgCmd() *cobra.Command {
 			fmt.Println("msg author\t", did.GetKey().Address.Hex())
 
 			images := strings.Split(imagePath, ",")
-			ress := []*core.PIRes{}
+			ress := []*core.QRes{}
 			for _, image := range images {
 				if image != "" {
 					var URL string
@@ -370,7 +370,7 @@ func SendMsgCmd() *cobra.Command {
 						}
 					}
 
-					res := new(core.PIRes)
+					res := new(core.QRes)
 					res.Checksum = cs
 					res.Format = core.ResImage
 					res.URL = URL
@@ -397,7 +397,7 @@ func SendMsgCmd() *cobra.Command {
 					}
 					fmt.Println("req parent\t", parents[0].Hex())
 				} else if args[0] == "pf" {
-					var avatorRes *core.PIRes = nil
+					var avatorRes *core.QRes = nil
 					if len(ress) > 0 {
 						avatorRes = ress[0]
 					}

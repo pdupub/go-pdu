@@ -505,18 +505,18 @@ func (bn *BootNode) parseSM(sm *msg.SignedMsg) (map[string]interface{}, error) {
 
 	data := make(map[string]interface{})
 	if quantum.Type == core.QuantumTypeInfo {
-		pInfo := new(core.PInfo)
-		if err := json.Unmarshal(quantum.Data, pInfo); err != nil {
+		qData := new(core.QData)
+		if err := json.Unmarshal(quantum.Data, qData); err != nil {
 			// TODO:
 			data["text"] = string(quantum.Data)
 			result["data"] = data
 			return result, nil
 		}
-		data["text"] = pInfo.Text
-		data["quote"] = common.Bytes2Hex(pInfo.Quote)
+		data["text"] = qData.Text
+		data["quote"] = common.Bytes2Hex(qData.Quote)
 
 		ress := []interface{}{}
-		for _, resource := range pInfo.Resources {
+		for _, resource := range qData.Resources {
 			res := make(map[string]interface{})
 			res["checksum"] = hex.EncodeToString(resource.Checksum)
 			res["data"] = resource.Data

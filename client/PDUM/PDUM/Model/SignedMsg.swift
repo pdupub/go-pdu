@@ -26,22 +26,22 @@ struct SignedMsg: Hashable, Codable, Identifiable {
         return nil
     }
     
-    var pInfo: PInfo? {
+    var qData: QData? {
         let data = Data(base64Encoded: quantum!.d)
         if let resObject = (try? JSONSerialization.jsonObject(with: data!)) as? [String: Any]{
             let text = resObject["text"] as! String
             let quote =  resObject["quote"] is NSNull ? nil : resObject["quote"] as? String
             let resources = resObject["resources"] as! [[String:Any]]
-            var resArray = [PIRes]()
+            var resArray = [QRes]()
             resources.forEach { item in
                 let ft = item["format"] as! Int
                 let d = item["data"] is NSNull ? nil : Data(base64Encoded:item["data"] as! String)
                 let url = item["url"] as! String
                 let cs = item["cs"] as! String
-                let pir = PIRes(format: ft, data: d, url: url, cs: cs)
+                let pir = QRes(format: ft, data: d, url: url, cs: cs)
                 resArray.append(pir)
             }
-            return PInfo(text: text, quote: quote, resources: resArray)
+            return QData(text: text, quote: quote, resources: resArray)
         }
         return nil
     }
@@ -55,17 +55,17 @@ struct SignedMsg: Hashable, Codable, Identifiable {
         var d: String
     }
     
-    struct PIRes : Hashable, Codable {
+    struct QRes : Hashable, Codable {
         var format: Int
         var data: Data?
         var url: String
         var cs: String
     }
     
-    struct PInfo : Hashable, Codable {
+    struct QData : Hashable, Codable {
         var text: String
         var quote: String?
-        var resources: [PIRes]
+        var resources: [QRes]
     }
     
     struct PBorn : Hashable, Codable {
@@ -79,7 +79,7 @@ struct SignedMsg: Hashable, Codable, Identifiable {
         var bio: String
         var url: String
         var location: String
-        var avatar: PIRes
+        var avatar: QRes
         var extra: String
     }
 }
