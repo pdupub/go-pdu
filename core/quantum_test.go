@@ -142,11 +142,11 @@ func TestProfileQuantum(t *testing.T) {
 		t.Error("quantum version not correct")
 	}
 
-	pb := new(QProfile)
-	if err := json.Unmarshal(pt.Data, pb); err != nil {
+	var qp map[string]*QData
+	if err := json.Unmarshal(pt.Data, &qp); err != nil {
 		t.Error(err)
 	}
-	if pb.Name != "PDU" {
+	if qp["name"].Text != "PDU" {
 		t.Error("name not match")
 	}
 }

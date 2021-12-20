@@ -67,17 +67,6 @@ type PBorn struct {
 	Signatures [][]byte       `json:"sigs"`
 }
 
-// QProfile is Quantum profile struct
-type QProfile struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Bio      string `json:"bio"`
-	URL      string `json:"url"`
-	Location string `json:"location"`
-	Avatar   *QRes  `json:"avatar"`
-	Extra    string `json:"extra"`
-}
-
 // NewQuantum is used to create Quantum
 func NewQuantum(pType int, sData interface{}) (*Quantum, error) {
 	var data []byte
@@ -112,29 +101,29 @@ func NewInfoQuantum(text string, quote []byte, res ...*QRes) (*Quantum, error) {
 
 // NewProfileQuantum is used to create QuantumTypeProfile Quantum
 func NewProfileQuantum(name, email, bio, url, location, extra string, avatar *QRes) (*Quantum, error) {
-	pb := QProfile{
-		Name:     name,
-		Email:    email,
-		Bio:      bio,
-		URL:      url,
-		Location: location,
-		Avatar:   avatar,
-		Extra:    extra,
-	}
-
-	return NewQuantum(QuantumTypeProfile, pb)
+	qp := map[string]*QData{
+		"name":     {Text: name},
+		"email":    {Text: email},
+		"bio":      {Text: bio},
+		"url":      {Text: url},
+		"location": {Text: location},
+		"extra":    {Text: extra},
+		"avatar":   {Resources: []*QRes{avatar}}}
+	return NewQuantum(QuantumTypeProfile, qp)
 }
 
 // GetProfile return profile information
-func (p *Quantum) GetProfile() (*QProfile, error) {
+func (p *Quantum) GetProfile() (map[string]*QData, error) {
 	if p.Type != QuantumTypeProfile {
 		return nil, ErrQuantumTypeNotCorrect
 	}
-	pp := new(QProfile)
-	if err := json.Unmarshal(p.Data, pp); err != nil {
+
+	var qp map[string]*QData
+	if err := json.Unmarshal(p.Data, &qp); err != nil {
 		return nil, err
 	}
-	return pp, nil
+
+	return qp, nil
 }
 
 // NewBornQuantum create a create user Quantum
