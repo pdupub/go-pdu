@@ -33,7 +33,7 @@ type GenerationLimit struct {
 type Society struct {
 	GLimit []*GenerationLimit
 	*dag.DAG
-	profiles map[common.Address]*PProfile
+	profiles map[common.Address]*QProfile
 }
 
 func societyIDFunc(v *dag.Vertex) (string, error) { return v.Value().(Individual).Addr.Hex(), nil }
@@ -55,24 +55,24 @@ func NewSociety(roots ...common.Address) (*Society, error) {
 	society := &Society{
 		GLimit:   DefaultGLimit,
 		DAG:      socD,
-		profiles: make(map[common.Address]*PProfile),
+		profiles: make(map[common.Address]*QProfile),
 	}
 
 	return society, nil
 }
 
 // UpdateIndividualProfile update profile information which come from Quantum of QuantumProfileType
-func (s *Society) UpdateIndividualProfile(author common.Address, profile *PProfile) error {
+func (s *Society) UpdateIndividualProfile(author common.Address, profile *QProfile) error {
 	s.profiles[author] = profile
 	return nil
 }
 
 // GetIndividualProfile get profile by author
-func (s *Society) GetIndividualProfile(author common.Address) *PProfile {
+func (s *Society) GetIndividualProfile(author common.Address) *QProfile {
 	if profile, ok := s.profiles[author]; ok {
 		return profile
 	}
-	return new(PProfile)
+	return new(QProfile)
 }
 
 // AddIndividual create new user

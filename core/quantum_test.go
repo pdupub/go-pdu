@@ -142,7 +142,7 @@ func TestProfileQuantum(t *testing.T) {
 		t.Error("quantum version not correct")
 	}
 
-	pb := new(PProfile)
+	pb := new(QProfile)
 	if err := json.Unmarshal(pt.Data, pb); err != nil {
 		t.Error(err)
 	}

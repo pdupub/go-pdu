@@ -47,7 +47,7 @@ struct SignedMsg: Hashable, Codable, Identifiable {
     }
     
     var pBorn: PBorn? = nil
-    var pProfile: PProfile? = nil
+    var qProfile: QProfile? = nil
     
     struct Quantum : Hashable, Codable {
         var t: Int
@@ -73,7 +73,7 @@ struct SignedMsg: Hashable, Codable, Identifiable {
         var sigs: [String]
     }
     
-    struct PProfile : Hashable, Codable {
+    struct QProfile : Hashable, Codable {
         var name: String
         var email: String
         var bio: String

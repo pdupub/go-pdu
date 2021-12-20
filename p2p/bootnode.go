@@ -538,17 +538,17 @@ func (bn *BootNode) parseSM(sm *msg.SignedMsg) (map[string]interface{}, error) {
 		data["sigs"] = sigs
 
 	} else if quantum.Type == core.QuantumTypeProfile {
-		pProfile := new(core.PProfile)
-		if err := json.Unmarshal(quantum.Data, pProfile); err != nil {
+		qProfile := new(core.QProfile)
+		if err := json.Unmarshal(quantum.Data, qProfile); err != nil {
 			return result, nil
 		}
-		data["name"] = pProfile.Name
-		data["email"] = pProfile.Email
-		data["bio"] = pProfile.Bio
-		data["url"] = pProfile.URL
-		data["location"] = pProfile.Location
-		data["avatar"] = pProfile.Avatar
-		data["extra"] = pProfile.Extra
+		data["name"] = qProfile.Name
+		data["email"] = qProfile.Email
+		data["bio"] = qProfile.Bio
+		data["url"] = qProfile.URL
+		data["location"] = qProfile.Location
+		data["avatar"] = qProfile.Avatar
+		data["extra"] = qProfile.Extra
 	}
 
 	result["data"] = data

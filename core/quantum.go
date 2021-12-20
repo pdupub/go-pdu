@@ -67,8 +67,8 @@ type PBorn struct {
 	Signatures [][]byte       `json:"sigs"`
 }
 
-// PProfile is Quantum profile struct
-type PProfile struct {
+// QProfile is Quantum profile struct
+type QProfile struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Bio      string `json:"bio"`
@@ -112,7 +112,7 @@ func NewInfoQuantum(text string, quote []byte, res ...*QRes) (*Quantum, error) {
 
 // NewProfileQuantum is used to create QuantumTypeProfile Quantum
 func NewProfileQuantum(name, email, bio, url, location, extra string, avatar *QRes) (*Quantum, error) {
-	pb := PProfile{
+	pb := QProfile{
 		Name:     name,
 		Email:    email,
 		Bio:      bio,
@@ -126,11 +126,11 @@ func NewProfileQuantum(name, email, bio, url, location, extra string, avatar *QR
 }
 
 // GetProfile return profile information
-func (p *Quantum) GetProfile() (*PProfile, error) {
+func (p *Quantum) GetProfile() (*QProfile, error) {
 	if p.Type != QuantumTypeProfile {
 		return nil, ErrQuantumTypeNotCorrect
 	}
-	pp := new(PProfile)
+	pp := new(QProfile)
 	if err := json.Unmarshal(p.Data, pp); err != nil {
 		return nil, err
 	}
