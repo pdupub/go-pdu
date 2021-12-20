@@ -123,7 +123,7 @@ struct ContentView: View {
                 Button("ExtraInfo") {
 //                    self.exInfo = modelData.profile.username
 //                    self.exInfo = modelData.smsgs[0].signature
-//                    self.exInfo = modelData.smsgs[0].photon!.d
+//                    self.exInfo = modelData.smsgs[0].quantum!.d
                     self.exInfo = modelData.smsgs[0].pInfo!.resources[0].url
                 }
                 Button("GetAddress") {

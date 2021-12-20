@@ -47,10 +47,10 @@ func (m *Matrix) GetEntropy() *Entropy {
 	return m.entropy
 }
 
-func (m *Matrix) ReceiveMsg(author common.Address, key, content []byte, refs ...[]byte) (*Photon, error) {
-	// check photon if exist
+func (m *Matrix) ReceiveMsg(author common.Address, key, content []byte, refs ...[]byte) (*Quantum, error) {
+	// check quantum if exist
 	if m.entropy.IsExist(key) {
-		return nil, ErrPhotonAlreadyExist
+		return nil, ErrQuantumAlreadyExist
 	}
 
 	// check auth if exist
@@ -63,32 +63,32 @@ func (m *Matrix) ReceiveMsg(author common.Address, key, content []byte, refs ...
 		return nil, ErrSocietyIDConflict
 	}
 
-	photon := new(Photon)
-	if err := json.Unmarshal(content, photon); err != nil {
+	quantum := new(Quantum)
+	if err := json.Unmarshal(content, quantum); err != nil {
 		return nil, err
 	}
 
-	// store photon into entropy
-	if err := m.entropy.AddEvent(key, author, photon, refs...); err != nil {
+	// store quantum into entropy
+	if err := m.entropy.AddEvent(key, author, quantum, refs...); err != nil {
 		return nil, err
 	}
 
-	// do photon func
-	if photon.Type == PhotonTypeBorn {
+	// do quantum func
+	if quantum.Type == QuantumTypeBorn {
 
-		newID, err := photon.GetNewBorn()
+		newID, err := quantum.GetNewBorn()
 		if err != nil {
 			return nil, err
 		}
-		parents, err := photon.GetParents()
+		parents, err := quantum.GetParents()
 		if err != nil {
 			return nil, err
 		}
 		if err := m.society.AddIndividual(newID, parents...); err != nil {
 			return nil, err
 		}
-	} else if photon.Type == PhotonTypeProfile {
-		profile, err := photon.GetProfile()
+	} else if quantum.Type == QuantumTypeProfile {
+		profile, err := quantum.GetProfile()
 		if err != nil {
 			return nil, err
 		}
@@ -98,5 +98,5 @@ func (m *Matrix) ReceiveMsg(author common.Address, key, content []byte, refs ...
 		}
 	}
 
-	return photon, nil
+	return quantum, nil
 }

@@ -247,7 +247,7 @@ func (bn *BootNode) LoadUniverse() error {
 					continue
 				}
 
-				if _, err := bn.universe.ReceiveMsg(author, m.Signature, m.Content, m.References...); err != nil && err != core.ErrPhotonAlreadyExist {
+				if _, err := bn.universe.ReceiveMsg(author, m.Signature, m.Content, m.References...); err != nil && err != core.ErrQuantumAlreadyExist {
 					bn.logger.Error(err)
 					continue
 				}
@@ -346,12 +346,12 @@ func (bn *BootNode) receiveMsg(m *msg.SignedMsg) error {
 		return err
 	}
 
-	if photon, err := bn.universe.ReceiveMsg(author, m.Signature, m.Content, m.References...); err == nil {
+	if quantum, err := bn.universe.ReceiveMsg(author, m.Signature, m.Content, m.References...); err == nil {
 		if err := bn.UpsertDBMsgs([]*msg.SignedMsg{m}); err != nil {
 			return err
 		}
-		if photon.Type == core.PhotonTypeBorn && !bn.IgnoreUnknownSource {
-			if newbe, err := photon.GetNewBorn(); err != nil {
+		if quantum.Type == core.QuantumTypeBorn && !bn.IgnoreUnknownSource {
+			if newbe, err := quantum.GetNewBorn(); err != nil {
 				bn.logger.Error(err)
 			} else {
 				if err := bn.mergeDBMsgsByAuthor(newbe); err != nil {
@@ -494,21 +494,21 @@ func (bn *BootNode) getSM(sig []byte) (*msg.SignedMsg, *big.Int, error) {
 
 func (bn *BootNode) parseSM(sm *msg.SignedMsg) (map[string]interface{}, error) {
 
-	photon := new(core.Photon)
-	if err := json.Unmarshal(sm.Content, photon); err != nil {
+	quantum := new(core.Quantum)
+	if err := json.Unmarshal(sm.Content, quantum); err != nil {
 		return nil, err
 	}
 
 	result := make(map[string]interface{})
-	result["type"] = photon.Type
-	result["version"] = photon.Version
+	result["type"] = quantum.Type
+	result["version"] = quantum.Version
 
 	data := make(map[string]interface{})
-	if photon.Type == core.PhotonTypeInfo {
+	if quantum.Type == core.QuantumTypeInfo {
 		pInfo := new(core.PInfo)
-		if err := json.Unmarshal(photon.Data, pInfo); err != nil {
+		if err := json.Unmarshal(quantum.Data, pInfo); err != nil {
 			// TODO:
-			data["text"] = string(photon.Data)
+			data["text"] = string(quantum.Data)
 			result["data"] = data
 			return result, nil
 		}
@@ -525,9 +525,9 @@ func (bn *BootNode) parseSM(sm *msg.SignedMsg) (map[string]interface{}, error) {
 			ress = append(ress, res)
 		}
 		data["resources"] = ress
-	} else if photon.Type == core.PhotonTypeBorn {
+	} else if quantum.Type == core.QuantumTypeBorn {
 		pBorn := new(core.PBorn)
-		if err := json.Unmarshal(photon.Data, pBorn); err != nil {
+		if err := json.Unmarshal(quantum.Data, pBorn); err != nil {
 			return result, nil
 		}
 		data["address"] = pBorn.Addr.Hex()
@@ -537,9 +537,9 @@ func (bn *BootNode) parseSM(sm *msg.SignedMsg) (map[string]interface{}, error) {
 		}
 		data["sigs"] = sigs
 
-	} else if photon.Type == core.PhotonTypeProfile {
+	} else if quantum.Type == core.QuantumTypeProfile {
 		pProfile := new(core.PProfile)
-		if err := json.Unmarshal(photon.Data, pProfile); err != nil {
+		if err := json.Unmarshal(quantum.Data, pProfile); err != nil {
 			return result, nil
 		}
 		data["name"] = pProfile.Name
@@ -663,7 +663,7 @@ func (bn *BootNode) getEntropy(c echo.Context) error {
 	return c.JSON(http.StatusOK, entropyData)
 }
 
-func (bn *BootNode) getPhotons(c echo.Context) error {
+func (bn *BootNode) getQuantums(c echo.Context) error {
 	var sms []*msg.SignedMsg // message slice
 
 	start, limit := 1, 10 // default query limit
@@ -718,15 +718,15 @@ func (bn *BootNode) getPhotons(c echo.Context) error {
 	}
 
 	if c.QueryParam("view") != "" {
-		var photons []interface{}
+		var quantums []interface{}
 		for _, sm := range sms {
-			photon, err := bn.parseSM(sm)
+			quantum, err := bn.parseSM(sm)
 			if err != nil {
 				bn.logger.Error(err)
 			}
-			photons = append(photons, photon)
+			quantums = append(quantums, quantum)
 		}
-		return c.Render(http.StatusOK, "photons.html", photons)
+		return c.Render(http.StatusOK, "quantums.html", quantums)
 	}
 	return c.JSON(http.StatusOK, sms)
 }
@@ -765,12 +765,12 @@ func (bn *BootNode) getFullMsg(c echo.Context) error {
 	}
 
 	if c.QueryParam("view") != "" {
-		photonM, err := bn.parseSM(sm)
+		quantumM, err := bn.parseSM(sm)
 		if err != nil {
 			bn.logger.Error(err)
 		}
-		photons := []interface{}{photonM}
-		return c.Render(http.StatusOK, "photons.html", photons)
+		quantums := []interface{}{quantumM}
+		return c.Render(http.StatusOK, "quantums.html", quantums)
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{"message": sm, "cnt": cnt, "pcnt": pcnt})
@@ -788,12 +788,12 @@ func (bn *BootNode) getMessage(c echo.Context) error {
 	}
 
 	if c.QueryParam("view") != "" {
-		photonM, err := bn.parseSM(sm)
+		quantumM, err := bn.parseSM(sm)
 		if err != nil {
 			bn.logger.Error(err)
 		}
-		photons := []interface{}{photonM}
-		return c.Render(http.StatusOK, "photons.html", photons)
+		quantums := []interface{}{quantumM}
+		return c.Render(http.StatusOK, "quantums.html", quantums)
 	}
 
 	return c.JSON(http.StatusOK, sm)

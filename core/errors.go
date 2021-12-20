@@ -19,26 +19,26 @@ package core
 import "errors"
 
 var (
-	// ErrPhotonTypeNotCorrect returns if photon type not correct
-	ErrPhotonTypeNotCorrect = errors.New("photon type not correct")
+	// ErrQuantumTypeNotCorrect returns if quantum type not correct
+	ErrQuantumTypeNotCorrect = errors.New("quantum type not correct")
 
-	// ErrPhotonAlreadyExist returns if photon with same key already exist on entropy
-	ErrPhotonAlreadyExist = errors.New("photon already exist")
+	// ErrQuantumAlreadyExist returns if quantum with same key already exist on entropy
+	ErrQuantumAlreadyExist = errors.New("quantum already exist")
 
-	// ErrPhotonReferenceNotExist returns if photon reference not exist on entropy
-	ErrPhotonReferenceNotExist = errors.New("photon reference not exist")
+	// ErrQuantumReferenceNotExist returns if quantum reference not exist on entropy
+	ErrQuantumReferenceNotExist = errors.New("quantum reference not exist")
 
-	// ErrPhotonNotExist returns if photon not exist on entropy
-	ErrPhotonNotExist = errors.New("photon not exist")
+	// ErrQuantumNotExist returns if quantum not exist on entropy
+	ErrQuantumNotExist = errors.New("quantum not exist")
 
-	// ErrPhotonReferenceMissing returns when try to add new photon without references
-	ErrPhotonReferenceMissing = errors.New("photon reference is missing")
+	// ErrQuantumReferenceMissing returns when try to add new quantum without references
+	ErrQuantumReferenceMissing = errors.New("quantum reference is missing")
 
-	// ErrPhotonReferenceNotCorrect returns if refs[0] already have child from same author ...
-	ErrPhotonReferenceNotCorrect = errors.New("photon reference is not correct")
+	// ErrQuantumReferenceNotCorrect returns if refs[0] already have child from same author ...
+	ErrQuantumReferenceNotCorrect = errors.New("quantum reference is not correct")
 
-	// ErrPhotonMissingReferenceByAuthor returns when photon missing reference by same author
-	ErrPhotonMissingReferenceByAuthor = errors.New("photon missing reference by same author")
+	// ErrQuantumMissingReferenceByAuthor returns when quantum missing reference by same author
+	ErrQuantumMissingReferenceByAuthor = errors.New("quantum missing reference by same author")
 
 	// ErrSocietyIDConflict returns if address in the value not equal to key
 	ErrSocietyIDConflict = errors.New("Address conflict")

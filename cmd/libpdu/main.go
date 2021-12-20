@@ -39,7 +39,7 @@ func signMsg(privKeyHexC, messageC, refC *C.char) *C.char {
 
 	did := new(identity.DID)
 	did.LoadECDSA(privKey)
-	bp, _ := core.NewPhoton(core.PhotonTypeInfo, []byte(message))
+	bp, _ := core.NewQuantum(core.QuantumTypeInfo, []byte(message))
 
 	content, _ := json.Marshal(bp)
 

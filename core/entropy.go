@@ -48,16 +48,16 @@ func (e Entropy) GetLastEventID(author common.Address) []byte {
 }
 
 // AddEvent use to add new event to Entropy
-func (e *Entropy) AddEvent(idByte []byte, author common.Address, p *Photon, pidBytes ...[]byte) error {
+func (e *Entropy) AddEvent(idByte []byte, author common.Address, p *Quantum, pidBytes ...[]byte) error {
 	id := common.Bytes2Hex(idByte)
 
 	if _, ok := e.DAG.GetVertex(id); ok {
-		return ErrPhotonAlreadyExist
+		return ErrQuantumAlreadyExist
 	}
 
 	if len(e.DAG.Roots()) == 0 {
 		if len(pidBytes) != 0 {
-			return ErrPhotonReferenceMissing
+			return ErrQuantumReferenceMissing
 		}
 		entD, err := dag.New(entropyIDFunc, dag.NewVertex(Event{Key: idByte, Nonce: big.NewInt(0), Author: author, P: p}))
 		if err != nil {
@@ -77,7 +77,7 @@ func (e *Entropy) AddEvent(idByte []byte, author common.Address, p *Photon, pidB
 		for _, pid := range pidBytes {
 			p, ok := e.DAG.GetVertex(common.Bytes2Hex(pid))
 			if !ok {
-				return ErrPhotonReferenceNotExist
+				return ErrQuantumReferenceNotExist
 			}
 			if maxParentNonce.Cmp(p.Value().(Event).Nonce) < 0 {
 				maxParentNonce.Set(p.Value().(Event).Nonce)
@@ -91,7 +91,7 @@ func (e *Entropy) AddEvent(idByte []byte, author common.Address, p *Photon, pidB
 		}
 	}
 
-	if p != nil && p.Type == PhotonTypeBorn {
+	if p != nil && p.Type == QuantumTypeBorn {
 		newID, err := p.GetNewBorn()
 		if err != nil {
 			return err
@@ -114,38 +114,38 @@ func (e *Entropy) IsExist(idByte []byte) bool {
 // CheckRefs return if the references of event is valid
 func (e *Entropy) CheckRefs(author common.Address, idBytes ...[]byte) error {
 	if len(idBytes) == 0 {
-		return ErrPhotonReferenceMissing
+		return ErrQuantumReferenceMissing
 	}
 	for _, idByte := range idBytes {
 		if !e.IsExist(idByte) {
-			return ErrPhotonReferenceNotExist
+			return ErrQuantumReferenceNotExist
 		}
 	}
 	v, ok := e.DAG.GetVertex(common.Bytes2Hex(idBytes[0]))
 	// is not by same author , must be the create ID msg
 	if ok && v.Value().(Event).Author != author {
-		if v.Value().(Event).P.Type != PhotonTypeBorn {
-			return ErrPhotonMissingReferenceByAuthor
+		if v.Value().(Event).P.Type != QuantumTypeBorn {
+			return ErrQuantumMissingReferenceByAuthor
 		}
 		newID, err := v.Value().(Event).P.GetNewBorn()
 		if err != nil {
 			return err
 		}
 		if newID != author {
-			return ErrPhotonMissingReferenceByAuthor
+			return ErrQuantumMissingReferenceByAuthor
 		}
 	}
 	// first reference should not have child vertex by same author
 	for _, child := range v.Children() {
 		if child.Value().(Event).Author == author {
-			return ErrPhotonReferenceNotCorrect
+			return ErrQuantumReferenceNotCorrect
 		}
 	}
 
 	return nil
 }
 
-func (e Entropy) marshalPhotonFunc(v *dag.Vertex) (interface{}, error) {
+func (e Entropy) marshalQuantumFunc(v *dag.Vertex) (interface{}, error) {
 	id := common.Bytes2Hex(v.Value().(Event).Key)
 	label := id[0:4] + "..." + id[len(id)-4:]
 	return label, nil
@@ -153,7 +153,7 @@ func (e Entropy) marshalPhotonFunc(v *dag.Vertex) (interface{}, error) {
 
 // Dump whole Entropy to JSON
 func (e *Entropy) Dump(keys []string, parentLimit, childLimit int) (*dag.DAGData, error) {
-	return e.DAG.Dump(e.marshalPhotonFunc, keys, parentLimit, childLimit)
+	return e.DAG.Dump(e.marshalQuantumFunc, keys, parentLimit, childLimit)
 }
 
 // DumpByAuthor create new DAG contain all events from same author and dump to JSON
@@ -162,14 +162,14 @@ func (e Entropy) DumpByAuthor(author common.Address, keys []string, parentLimit,
 	if err != nil {
 		return nil, err
 	}
-	return auD.Dump(e.marshalPhotonFunc, keys, parentLimit, childLimit)
+	return auD.Dump(e.marshalQuantumFunc, keys, parentLimit, childLimit)
 }
 
 // GetEvents return all events by same author as DAG struct
 func (e Entropy) GetEvents(author common.Address) (*dag.DAG, error) {
 	id, ok := e.bornMsg[author]
 	if !ok {
-		return nil, ErrPhotonNotExist
+		return nil, ErrQuantumNotExist
 	}
 
 	auD, err := dag.New(entropyIDFunc, dag.NewVertex(Event{Key: common.Hex2Bytes(id), Nonce: big.NewInt(0), Author: author, P: nil}))

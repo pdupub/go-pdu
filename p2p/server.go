@@ -103,7 +103,7 @@ func New(templatePath, dbPath string, g *core.Genesis, port int, ignoreUnknownSo
 	e.GET("/info/detail/:uid", bn.getDetail)
 	e.GET("/info/latest/:uid", bn.getLatest)
 	e.GET("/info/full/:sig", bn.getFullMsg)
-	e.GET("/info/photons", bn.getPhotons)
+	e.GET("/info/quantums", bn.getQuantums)
 
 	// graphql
 	schema := graphql.MustParseSchema(schema, &query{})

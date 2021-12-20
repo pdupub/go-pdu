@@ -379,11 +379,11 @@ func SendMsgCmd() *cobra.Command {
 				}
 			}
 
-			bp := new(core.Photon)
+			bp := new(core.Quantum)
 			if len(args) > 0 {
 				if args[0] == "ids" {
 					addrs := params.TestAddrs()
-					bp, err = core.NewBornPhoton(addrs[len(addrs)-1])
+					bp, err = core.NewBornQuantum(addrs[len(addrs)-1])
 					if err != nil {
 						return err
 					}
@@ -401,13 +401,13 @@ func SendMsgCmd() *cobra.Command {
 					if len(ress) > 0 {
 						avatorRes = ress[0]
 					}
-					bp, err = core.NewProfilePhoton(profileName, profileEmail, "hello world", profileUrl, "Earth", "", avatorRes)
+					bp, err = core.NewProfileQuantum(profileName, profileEmail, "hello world", profileUrl, "Earth", "", avatorRes)
 					if err != nil {
 						return err
 					}
 				}
 			} else {
-				bp, err = core.NewInfoPhoton(message, nil, ress...)
+				bp, err = core.NewInfoQuantum(message, nil, ress...)
 				if err != nil {
 					return err
 				}

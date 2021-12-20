@@ -26,42 +26,42 @@ import (
 	"github.com/pdupub/go-pdu/params"
 )
 
-func TestPhoton(t *testing.T) {
+func Testquantum(t *testing.T) {
 
 	msg := "hello world!"
-	photon, err := NewPhoton(PhotonTypeInfo, []byte(msg))
+	quantum, err := NewQuantum(QuantumTypeInfo, []byte(msg))
 	if err != nil {
 		t.Error(err)
 	}
-	if string(photon.Data) != msg {
-		t.Error("photon data not correct")
+	if string(quantum.Data) != msg {
+		t.Error("quantum data not correct")
 	}
-	if photon.Type != PhotonTypeInfo {
-		t.Error("photon type not correct")
+	if quantum.Type != QuantumTypeInfo {
+		t.Error("quantum type not correct")
 	}
-	if photon.Version != PhotonVersion {
-		t.Error("photon version not correct")
+	if quantum.Version != QuantumVersion {
+		t.Error("quantum version not correct")
 	}
 
-	b, err := json.Marshal(photon)
+	b, err := json.Marshal(quantum)
 	if err != nil {
 		t.Error(err)
 	}
 
-	pt := new(Photon)
+	pt := new(Quantum)
 	err = json.Unmarshal(b, pt)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if string(pt.Data) != string(photon.Data) {
+	if string(pt.Data) != string(quantum.Data) {
 		t.Error("data not match")
 	}
 }
 
-func TestBornPhoton(t *testing.T) {
+func TestBornQuantum(t *testing.T) {
 	addr := common.HexToAddress("0xDa6bdC0Cd00fbaB9B33D1B4370fb32B8f6331376")
-	photon, err := NewBornPhoton(addr)
+	quantum, err := NewBornQuantum(addr)
 	if err != nil {
 		t.Error(err)
 	}
@@ -71,7 +71,7 @@ func TestBornPhoton(t *testing.T) {
 		t.Error(err)
 	}
 	t.Log(did0.GetKey().Address.Hex())
-	if err := photon.ParentSign(did0); err != nil {
+	if err := quantum.ParentSign(did0); err != nil {
 		t.Error(err)
 	}
 
@@ -81,32 +81,32 @@ func TestBornPhoton(t *testing.T) {
 	}
 	t.Log(did1.GetKey().Address.Hex())
 
-	if err := photon.ParentSign(did1); err != nil {
+	if err := quantum.ParentSign(did1); err != nil {
 		t.Error(err)
 	}
 
-	if parents, err := photon.GetParents(); err != nil {
+	if parents, err := quantum.GetParents(); err != nil {
 		t.Error(err)
 	} else if len(parents) != 2 {
 		t.Error(errors.New("parents number not correct"))
 	}
 
-	b, err := json.Marshal(photon)
+	b, err := json.Marshal(quantum)
 	if err != nil {
 		t.Error(err)
 	}
 
-	pt := new(Photon)
+	pt := new(Quantum)
 	err = json.Unmarshal(b, pt)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if pt.Type != PhotonTypeBorn {
-		t.Error("photon type not correct")
+	if pt.Type != QuantumTypeBorn {
+		t.Error("quantum type not correct")
 	}
-	if pt.Version != PhotonVersion {
-		t.Error("photon version not correct")
+	if pt.Version != QuantumVersion {
+		t.Error("quantum version not correct")
 	}
 
 	pb := new(PBorn)
@@ -118,28 +118,28 @@ func TestBornPhoton(t *testing.T) {
 	}
 }
 
-func TestProfilePhoton(t *testing.T) {
-	photon, err := NewProfilePhoton("PDU", "hi@pdu.pub", "hello world!", "https://pdu.pub", "Earth", "", nil)
+func TestProfileQuantum(t *testing.T) {
+	quantum, err := NewProfileQuantum("PDU", "hi@pdu.pub", "hello world!", "https://pdu.pub", "Earth", "", nil)
 	if err != nil {
 		t.Error(err)
 	}
 
-	b, err := json.Marshal(photon)
+	b, err := json.Marshal(quantum)
 	if err != nil {
 		t.Error(err)
 	}
 
-	pt := new(Photon)
+	pt := new(Quantum)
 	err = json.Unmarshal(b, pt)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if pt.Type != PhotonTypeProfile {
-		t.Error("photon type not correct")
+	if pt.Type != QuantumTypeProfile {
+		t.Error("quantum type not correct")
 	}
-	if pt.Version != PhotonVersion {
-		t.Error("photon version not correct")
+	if pt.Version != QuantumVersion {
+		t.Error("quantum version not correct")
 	}
 
 	pb := new(PProfile)

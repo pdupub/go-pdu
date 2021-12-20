@@ -24,23 +24,23 @@ import (
 	"github.com/pdupub/go-pdu/identity"
 )
 
-// PhotonVersion is version of photon, use for parse data
-const PhotonVersion = 1
+// QuantumVersion is version of Quantum, use for parse data
+const QuantumVersion = 1
 
 // ResImage is type of resource (PIRes)
 const ResImage = 1
 
 const (
-	// PhotonTypeInfo is information photon
-	PhotonTypeInfo = iota
-	// PhotonTypeBorn is create user photon
-	PhotonTypeBorn
-	// PhotonTypeProfile is update user profile
-	PhotonTypeProfile
+	// QuantumTypeInfo is information Quantum
+	QuantumTypeInfo = iota
+	// QuantumTypeBorn is create user Quantum
+	QuantumTypeBorn
+	// QuantumTypeProfile is update user profile
+	QuantumTypeProfile
 )
 
-// Photon is main struct
-type Photon struct {
+// Quantum is main struct
+type Quantum struct {
 	Type    int    `json:"t"`
 	Version int    `json:"v"`
 	Data    []byte `json:"d"`
@@ -54,20 +54,20 @@ type PIRes struct {
 	Checksum []byte `json:"cs"` // sha256
 }
 
-// PInfo is photon information struct
+// PInfo is Quantum information struct
 type PInfo struct {
 	Text      string   `json:"text"`
 	Quote     []byte   `json:"quote"`
 	Resources []*PIRes `json:"resources"`
 }
 
-// PBorn is photon born struct
+// PBorn is Quantum born struct
 type PBorn struct {
 	Addr       common.Address `json:"addr"`
 	Signatures [][]byte       `json:"sigs"`
 }
 
-// PProfile is photon profile struct
+// PProfile is Quantum profile struct
 type PProfile struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
@@ -78,8 +78,8 @@ type PProfile struct {
 	Extra    string `json:"extra"`
 }
 
-// NewPhoton is used to create Photon
-func NewPhoton(pType int, sData interface{}) (*Photon, error) {
+// NewQuantum is used to create Quantum
+func NewQuantum(pType int, sData interface{}) (*Quantum, error) {
 	var data []byte
 	var err error
 	switch sData.(type) {
@@ -92,26 +92,26 @@ func NewPhoton(pType int, sData interface{}) (*Photon, error) {
 		}
 	}
 
-	photon := Photon{
+	quantum := Quantum{
 		Type:    pType,
-		Version: PhotonVersion,
+		Version: QuantumVersion,
 		Data:    data,
 	}
-	return &photon, nil
+	return &quantum, nil
 }
 
-// NewInfoPhoton is used to create PhotonTypeInfo Photon
-func NewInfoPhoton(text string, quote []byte, res ...*PIRes) (*Photon, error) {
+// NewInfoQuantum is used to create QuantumTypeInfo Quantum
+func NewInfoQuantum(text string, quote []byte, res ...*PIRes) (*Quantum, error) {
 	pb := PInfo{
 		Text:      text,
 		Quote:     quote,
 		Resources: res,
 	}
-	return NewPhoton(PhotonTypeInfo, pb)
+	return NewQuantum(QuantumTypeInfo, pb)
 }
 
-// NewProfilePhoton is used to create PhotonTypeProfile Photon
-func NewProfilePhoton(name, email, bio, url, location, extra string, avatar *PIRes) (*Photon, error) {
+// NewProfileQuantum is used to create QuantumTypeProfile Quantum
+func NewProfileQuantum(name, email, bio, url, location, extra string, avatar *PIRes) (*Quantum, error) {
 	pb := PProfile{
 		Name:     name,
 		Email:    email,
@@ -122,13 +122,13 @@ func NewProfilePhoton(name, email, bio, url, location, extra string, avatar *PIR
 		Extra:    extra,
 	}
 
-	return NewPhoton(PhotonTypeProfile, pb)
+	return NewQuantum(QuantumTypeProfile, pb)
 }
 
 // GetProfile return profile information
-func (p *Photon) GetProfile() (*PProfile, error) {
-	if p.Type != PhotonTypeProfile {
-		return nil, ErrPhotonTypeNotCorrect
+func (p *Quantum) GetProfile() (*PProfile, error) {
+	if p.Type != QuantumTypeProfile {
+		return nil, ErrQuantumTypeNotCorrect
 	}
 	pp := new(PProfile)
 	if err := json.Unmarshal(p.Data, pp); err != nil {
@@ -137,16 +137,16 @@ func (p *Photon) GetProfile() (*PProfile, error) {
 	return pp, nil
 }
 
-// NewBornPhoton create a create user Photon
-func NewBornPhoton(target common.Address) (*Photon, error) {
+// NewBornQuantum create a create user Quantum
+func NewBornQuantum(target common.Address) (*Quantum, error) {
 	pb := PBorn{Addr: target}
-	return NewPhoton(PhotonTypeBorn, pb)
+	return NewQuantum(QuantumTypeBorn, pb)
 }
 
-// GetNewBorn get create individual address from photon
-func (p *Photon) GetNewBorn() (common.Address, error) {
-	if p.Type != PhotonTypeBorn {
-		return common.Address{}, ErrPhotonTypeNotCorrect
+// GetNewBorn get create individual address from Quantum
+func (p *Quantum) GetNewBorn() (common.Address, error) {
+	if p.Type != QuantumTypeBorn {
+		return common.Address{}, ErrQuantumTypeNotCorrect
 	}
 
 	pb := new(PBorn)
@@ -156,10 +156,10 @@ func (p *Photon) GetNewBorn() (common.Address, error) {
 	return pb.Addr, nil
 }
 
-// ParentSign is used to sign a PhotonTypeBorn Photon as parent
-func (p *Photon) ParentSign(did *identity.DID) error {
-	if p.Type != PhotonTypeBorn {
-		return ErrPhotonTypeNotCorrect
+// ParentSign is used to sign a QuantumTypeBorn Quantum as parent
+func (p *Quantum) ParentSign(did *identity.DID) error {
+	if p.Type != QuantumTypeBorn {
+		return ErrQuantumTypeNotCorrect
 	}
 
 	pb := new(PBorn)
@@ -183,10 +183,10 @@ func (p *Photon) ParentSign(did *identity.DID) error {
 	return nil
 }
 
-// GetParents return parents of new create individual only if Photon is PhotonTypeBorn
-func (p *Photon) GetParents() (parents []common.Address, err error) {
-	if p.Type != PhotonTypeBorn {
-		return []common.Address{}, ErrPhotonTypeNotCorrect
+// GetParents return parents of new create individual only if Quantum is QuantumTypeBorn
+func (p *Quantum) GetParents() (parents []common.Address, err error) {
+	if p.Type != QuantumTypeBorn {
+		return []common.Address{}, ErrQuantumTypeNotCorrect
 	}
 
 	pb := new(PBorn)

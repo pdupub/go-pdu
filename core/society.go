@@ -61,7 +61,7 @@ func NewSociety(roots ...common.Address) (*Society, error) {
 	return society, nil
 }
 
-// UpdateIndividualProfile update profile information which come from Photon of PhotonProfileType
+// UpdateIndividualProfile update profile information which come from Quantum of QuantumProfileType
 func (s *Society) UpdateIndividualProfile(author common.Address, profile *PProfile) error {
 	s.profiles[author] = profile
 	return nil

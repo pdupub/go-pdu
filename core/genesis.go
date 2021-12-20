@@ -92,8 +92,8 @@ func CreateGenesis(ggs []*GGInfo) (*Genesis, error) {
 		} else {
 			ps := combine(ggs[i-1].IDs, ggs[i-1].Limit.ChildrenMaxSize, ggs[i].Limit.ParentsMinSize)
 			for j, id := range ggs[i].IDs {
-				// build photon
-				bp, err := NewBornPhoton(id.GetKey().Address)
+				// build Quantum
+				bp, err := NewBornQuantum(id.GetKey().Address)
 				if err != nil {
 					return nil, err
 				}

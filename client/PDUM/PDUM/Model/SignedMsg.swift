@@ -15,19 +15,19 @@ struct SignedMsg: Hashable, Codable, Identifiable {
         signature
     }
     
-    var photon: Photon? {
+    var quantum: Quantum? {
         let data = Data(base64Encoded: content)
         if let resObject = (try? JSONSerialization.jsonObject(with: data!)) as? [String: Any]{
             let t = resObject["t"] as! Int
             let v = resObject["v"] as! Int
             let d = resObject["d"] as! String
-            return Photon(t:t,v:v,d:d)
+            return Quantum(t:t,v:v,d:d)
         }
         return nil
     }
     
     var pInfo: PInfo? {
-        let data = Data(base64Encoded: photon!.d)
+        let data = Data(base64Encoded: quantum!.d)
         if let resObject = (try? JSONSerialization.jsonObject(with: data!)) as? [String: Any]{
             let text = resObject["text"] as! String
             let quote =  resObject["quote"] is NSNull ? nil : resObject["quote"] as? String
@@ -49,7 +49,7 @@ struct SignedMsg: Hashable, Codable, Identifiable {
     var pBorn: PBorn? = nil
     var pProfile: PProfile? = nil
     
-    struct Photon : Hashable, Codable {
+    struct Quantum : Hashable, Codable {
         var t: Int
         var v: Int
         var d: String
