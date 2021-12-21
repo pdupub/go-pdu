@@ -91,7 +91,7 @@ func (e *Entropy) AddEvent(idByte []byte, author common.Address, p *Quantum, pid
 		}
 	}
 
-	if p != nil && p.Type == QuantumTypeBorn {
+	if p != nil && p.Type == QuantumTypeCreate {
 		newID, err := p.GetNewBorn()
 		if err != nil {
 			return err
@@ -124,7 +124,7 @@ func (e *Entropy) CheckRefs(author common.Address, idBytes ...[]byte) error {
 	v, ok := e.DAG.GetVertex(common.Bytes2Hex(idBytes[0]))
 	// is not by same author , must be the create ID msg
 	if ok && v.Value().(Event).Author != author {
-		if v.Value().(Event).P.Type != QuantumTypeBorn {
+		if v.Value().(Event).P.Type != QuantumTypeCreate {
 			return ErrQuantumMissingReferenceByAuthor
 		}
 		newID, err := v.Value().(Event).P.GetNewBorn()

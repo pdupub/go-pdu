@@ -74,7 +74,7 @@ func (m *Matrix) ReceiveMsg(author common.Address, key, content []byte, refs ...
 	}
 
 	// do quantum func
-	if quantum.Type == QuantumTypeBorn {
+	if quantum.Type == QuantumTypeCreate {
 
 		newID, err := quantum.GetNewBorn()
 		if err != nil {

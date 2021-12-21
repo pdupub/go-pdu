@@ -350,7 +350,7 @@ func (bn *BootNode) receiveMsg(m *msg.SignedMsg) error {
 		if err := bn.UpsertDBMsgs([]*msg.SignedMsg{m}); err != nil {
 			return err
 		}
-		if quantum.Type == core.QuantumTypeBorn && !bn.IgnoreUnknownSource {
+		if quantum.Type == core.QuantumTypeCreate && !bn.IgnoreUnknownSource {
 			if newbe, err := quantum.GetNewBorn(); err != nil {
 				bn.logger.Error(err)
 			} else {
@@ -524,7 +524,7 @@ func (bn *BootNode) parseSM(sm *msg.SignedMsg) (map[string]interface{}, error) {
 			ress = append(ress, res)
 		}
 		data["resources"] = ress
-	} else if quantum.Type == core.QuantumTypeBorn {
+	} else if quantum.Type == core.QuantumTypeCreate {
 		pBorn := new(core.PBorn)
 		if err := json.Unmarshal(quantum.Data, pBorn); err != nil {
 			return result, nil

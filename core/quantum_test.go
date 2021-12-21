@@ -102,7 +102,7 @@ func TestBornQuantum(t *testing.T) {
 		t.Error(err)
 	}
 
-	if pt.Type != QuantumTypeBorn {
+	if pt.Type != QuantumTypeCreate {
 		t.Error("quantum type not correct")
 	}
 	if pt.Version != QuantumVersion {

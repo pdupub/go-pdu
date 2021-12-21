@@ -37,8 +37,12 @@ const (
 const (
 	// QuantumTypeInfo is information Quantum
 	QuantumTypeInfo = iota
-	// QuantumTypeBorn is create user Quantum
-	QuantumTypeBorn
+	// QuantumTypeAgree is
+	QuantumTypeAgree
+	// QuantumTypeDisagree is
+	QuantumTypeDisagree
+	// QuantumTypeCreate is create user Quantum
+	QuantumTypeCreate
 	// QuantumTypeProfile is update user profile
 	QuantumTypeProfile
 )
@@ -132,12 +136,12 @@ func (p *Quantum) GetProfile() (map[string]*QData, error) {
 // NewBornQuantum create a create user Quantum
 func NewBornQuantum(target common.Address) (*Quantum, error) {
 	pb := PBorn{Addr: target}
-	return NewQuantum(QuantumTypeBorn, pb)
+	return NewQuantum(QuantumTypeCreate, pb)
 }
 
 // GetNewBorn get create individual address from Quantum
 func (p *Quantum) GetNewBorn() (common.Address, error) {
-	if p.Type != QuantumTypeBorn {
+	if p.Type != QuantumTypeCreate {
 		return common.Address{}, ErrQuantumTypeNotCorrect
 	}
 
@@ -148,9 +152,9 @@ func (p *Quantum) GetNewBorn() (common.Address, error) {
 	return pb.Addr, nil
 }
 
-// ParentSign is used to sign a QuantumTypeBorn Quantum as parent
+// ParentSign is used to sign a QuantumTypeCreate Quantum as parent
 func (p *Quantum) ParentSign(did *identity.DID) error {
-	if p.Type != QuantumTypeBorn {
+	if p.Type != QuantumTypeCreate {
 		return ErrQuantumTypeNotCorrect
 	}
 
@@ -175,9 +179,9 @@ func (p *Quantum) ParentSign(did *identity.DID) error {
 	return nil
 }
 
-// GetParents return parents of new create individual only if Quantum is QuantumTypeBorn
+// GetParents return parents of new create individual only if Quantum is QuantumTypeCreate
 func (p *Quantum) GetParents() (parents []common.Address, err error) {
-	if p.Type != QuantumTypeBorn {
+	if p.Type != QuantumTypeCreate {
 		return []common.Address{}, ErrQuantumTypeNotCorrect
 	}
 
