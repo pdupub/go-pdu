@@ -124,7 +124,9 @@ struct ContentView: View {
 //                    self.exInfo = modelData.profile.username
 //                    self.exInfo = modelData.smsgs[0].signature
 //                    self.exInfo = modelData.smsgs[0].quantum!.d
-                    self.exInfo = modelData.smsgs[0].qdata!.resources[0].url
+                    if (modelData.smsgs[0].qdata!.resources[0] == 1) {
+                        self.exInfo = modelData.smsgs[0].qdata!.resources[0].url
+                    }
                 }
                 Button("GetAddress") {
                     // Reverse text here

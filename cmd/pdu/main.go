@@ -340,10 +340,9 @@ func SendMsgCmd() *cobra.Command {
 			ress := []*core.QRes{}
 			for _, image := range images {
 				if image != "" {
-					var URL string
 					var data, cs []byte
+					res := new(core.QRes)
 					if strings.HasPrefix(image, "http") {
-						URL = image
 						_, hashStr, err := p2p.HashFile(image)
 						if err != nil {
 							return err
@@ -352,29 +351,32 @@ func SendMsgCmd() *cobra.Command {
 						if err != nil {
 							return err
 						}
+						res.Format = core.QResTypeImageU
+						res.Data = []byte(image)
+						res.Checksum = cs
 					} else if resByData {
 						data, _, err = p2p.HashFile(image)
 						if err != nil {
 							return err
 						}
-						_, URL = path.Split(image)
+						// _, URL = path.Split(image)
+						res.Format = core.QResTypeImageB
+						res.Data = data
+						res.Checksum = cs
 					} else {
 						resp, err := uploadFile(did, image)
 						if err != nil {
 							return err
 						}
-						URL = fmt.Sprintf("%s:%d/%s", url, port, resp.Path)
+						URL := fmt.Sprintf("%s:%d/%s", url, port, resp.Path)
 						cs, err = hex.DecodeString(resp.Hash)
 						if err != nil {
 							return err
 						}
+						res.Checksum = cs
+						res.Format = core.QResTypeImageU
+						res.Data = []byte(URL)
 					}
-
-					res := new(core.QRes)
-					res.Checksum = cs
-					res.Format = core.ResImage
-					res.URL = URL
-					res.Data = data
 					ress = append(ress, res)
 				}
 			}

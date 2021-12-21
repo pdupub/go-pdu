@@ -27,8 +27,12 @@ import (
 // QuantumVersion is version of Quantum, use for parse data
 const QuantumVersion = 1
 
-// ResImage is type of resource (QRes)
-const ResImage = 1
+const (
+	// QResTypeImageB is type of resource is bytes data
+	QResTypeImageB = iota
+	// QResTypeImageU is type of resource is url address
+	QResTypeImageU
+)
 
 const (
 	// QuantumTypeInfo is information Quantum
@@ -50,7 +54,6 @@ type Quantum struct {
 type QRes struct {
 	Format   int    `json:"format"`
 	Data     []byte `json:"data"`
-	URL      string `json:"url"`
 	Checksum []byte `json:"cs"` // sha256
 }
 

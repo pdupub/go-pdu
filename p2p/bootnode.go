@@ -521,7 +521,6 @@ func (bn *BootNode) parseSM(sm *msg.SignedMsg) (map[string]interface{}, error) {
 			res["checksum"] = hex.EncodeToString(resource.Checksum)
 			res["data"] = resource.Data
 			res["format"] = resource.Format
-			res["url"] = resource.URL
 			ress = append(ress, res)
 		}
 		data["resources"] = ress
