@@ -24,7 +24,7 @@ const (
 	// VersionMajor is Major version component of the current release
 	VersionMajor = 0
 	// VersionMinor is Minor version component of the current release
-	VersionMinor = 2
+	VersionMinor = 3
 	// VersionPatch is Patch version component of the current release
 	VersionPatch = 0
 	// VersionMeta is Version metadata to append to the version string
