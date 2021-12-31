@@ -73,6 +73,7 @@ func main() {
 	Website: https://pdu.pub`,
 	}
 
+	rootCmd.AddCommand(DgoCmd())
 	rootCmd.AddCommand(TestCmd())
 	rootCmd.AddCommand(AutoInitCmd())
 	rootCmd.AddCommand(UploadCmd())

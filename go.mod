@@ -3,6 +3,8 @@ module github.com/pdupub/go-pdu
 go 1.15
 
 require (
+	github.com/dgraph-io/dgo v1.0.0
+	github.com/dgraph-io/dgo/v210 v210.0.0-20211129111319-4c8247ebe697
 	github.com/ethereum/go-ethereum v1.10.9
 	github.com/google/uuid v1.1.5
 	github.com/graph-gophers/graphql-go v0.0.0-20201113091052-beb923fada29
