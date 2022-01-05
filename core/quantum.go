@@ -47,6 +47,17 @@ const (
 	QuantumTypeProfile
 )
 
+// type Quantum struct {
+// 	id       []byte      // fill by signature when this quantum be received and validate
+// 	Type     int         `json:"t"` // QuantumTypeInfo ...
+// 	Contents []*QContent `json:"cs"`
+// }
+
+// type QContent struct {
+// 	Format int    `json:"f"` // 0 < StringInfo, StringUrl < 32 < Bitmap, mp4 < 128 < address ,sig (as quote) ...
+// 	Data   []byte `json:"d"`
+// }
+
 // Quantum is main struct
 type Quantum struct {
 	Type    int    `json:"t"`
