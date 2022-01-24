@@ -24,9 +24,6 @@ import (
 	"github.com/pdupub/go-pdu/identity"
 )
 
-// QuantumVersion is version of Quantum, use for parse data
-const QuantumVersion = 1
-
 const (
 	// QResTypeImageB is type of resource is bytes data
 	QResTypeImageB = iota
@@ -100,9 +97,8 @@ func NewQuantum(pType int, sData interface{}) (*Quantum, error) {
 	}
 
 	quantum := Quantum{
-		Type:    pType,
-		Version: QuantumVersion,
-		Data:    data,
+		Type: pType,
+		Data: data,
 	}
 	return &quantum, nil
 }

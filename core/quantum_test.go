@@ -39,9 +39,6 @@ func Testquantum(t *testing.T) {
 	if quantum.Type != QuantumTypeInfo {
 		t.Error("quantum type not correct")
 	}
-	if quantum.Version != QuantumVersion {
-		t.Error("quantum version not correct")
-	}
 
 	b, err := json.Marshal(quantum)
 	if err != nil {
@@ -105,9 +102,6 @@ func TestBornQuantum(t *testing.T) {
 	if pt.Type != QuantumTypeCreate {
 		t.Error("quantum type not correct")
 	}
-	if pt.Version != QuantumVersion {
-		t.Error("quantum version not correct")
-	}
 
 	pb := new(PBorn)
 	if err := json.Unmarshal(pt.Data, pb); err != nil {
@@ -137,9 +131,6 @@ func TestProfileQuantum(t *testing.T) {
 
 	if pt.Type != QuantumTypeProfile {
 		t.Error("quantum type not correct")
-	}
-	if pt.Version != QuantumVersion {
-		t.Error("quantum version not correct")
 	}
 
 	var qp map[string]*QData
