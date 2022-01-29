@@ -21,10 +21,17 @@ import (
 	"io/ioutil"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/google/uuid"
 )
+
+type Address common.Address
+
+func (addr Address) Hex() string {
+	return common.Address(addr).Hex()
+}
 
 type DID struct {
 	key *keystore.Key
@@ -51,6 +58,10 @@ func (d *DID) UnlockWallet(keyFilePath, password string) error {
 
 func (d *DID) GetKey() *keystore.Key {
 	return d.key
+}
+
+func (d *DID) GetAddress() Address {
+	return Address(d.key.Address)
 }
 
 func (d *DID) Inspect(showPrivate bool) (addr string, pubKey string, privKey string, err error) {
@@ -85,4 +96,9 @@ func (d *DID) LoadECDSA(privateKeyHex string) error {
 		PrivateKey: privateKey,
 	}
 	return nil
+}
+
+func (d *DID) Sign(b []byte) ([]byte, error) {
+	hash := crypto.Keccak256(b)
+	return crypto.Sign(hash, d.GetKey().PrivateKey)
 }

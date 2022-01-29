@@ -198,3 +198,18 @@ func unlockKeystore(filename string, auth string) (*DID, error) {
 	}
 	return &DID{key: key}, nil
 }
+
+func Ecrecover(b []byte, sig []byte) (Address, error) {
+	hash := crypto.Keccak256(b)
+	pk, err := crypto.Ecrecover(hash, sig)
+	if err != nil {
+		return Address{}, err
+	}
+	signer := Address{}
+	copy(signer[:], crypto.Keccak256(pk[1:])[12:])
+	return signer, nil
+}
+
+func HexToAddress(s string) Address {
+	return Address(common.HexToAddress(s))
+}

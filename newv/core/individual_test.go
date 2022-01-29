@@ -17,52 +17,31 @@
 package core
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/pdupub/go-pdu/identity"
 	"github.com/pdupub/go-pdu/params"
 )
 
-func TestSignAndVerify(t *testing.T) {
+func TestNewIndividual(t *testing.T) {
 	did, _ := identity.New()
 	did.UnlockWallet("../../"+params.TestKeystore(0), params.TestPassword)
 
-	refs := []Sig{[]byte("0x070d15041083041b48d0f2297357ce59ad18f6c608d70a1e6e04bcf494e366db"),
-		[]byte("0x08fd3282eecbf25d31a9a5e51ed2d79a806f14281fbb583a5ee4024589b959d9")}
+	newInd := NewIndividual(did.GetAddress())
 
-	qc, err := NewContent(QCFmtStringTEXT, []byte("Hello World!"))
-	if err != nil {
-		t.Error(err)
-	}
-
-	q, err := NewQuantum(QuantumTypeInfo, []*QContent{qc}, refs...)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if err := q.Sign(did); err != nil {
-		t.Error(err)
-	}
-
-	addr, err := q.Ecrecover()
-	if err != nil {
-		t.Error(err)
-	}
-	if addr != did.GetAddress() {
+	if did.GetAddress() != newInd.GetAddress() {
 		t.Error("address not match")
 	}
-	t.Log("ecrecover address", addr.Hex())
 
-	if jsonUnsignedQuantumBytes, err := json.Marshal(q.UnsignedQuantum); err != nil {
+	k1, _ := NewContent(QCFmtStringTEXT, []byte("nickname"))
+	v1, _ := NewContent(QCFmtStringTEXT, []byte("pdu"))
+
+	if err := newInd.UpsertProfile([]*QContent{k1, v1}); err != nil {
 		t.Error(err)
-	} else {
-		t.Log("unsigned quantum json", string(jsonUnsignedQuantumBytes))
 	}
 
-	if jsonQuantumBytes, err := json.Marshal(q); err != nil {
-		t.Error(err)
-	} else {
-		t.Log("quantum json", string(jsonQuantumBytes))
+	profile := newInd.LoadProfile()
+	for k, _ := range profile {
+		t.Log(k)
 	}
 }

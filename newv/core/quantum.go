@@ -20,9 +20,6 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/pdupub/go-pdu/identity"
 )
 
@@ -37,7 +34,10 @@ var (
 	errQuantumContentsCntOutOfLimit = errors.New("quantum contents count out of limit")
 	errQuantumContentSizeOutOfLimit = errors.New("quantum content size out of limit")
 	errQuantumSignedAlready         = errors.New("quantum have been signed already")
+	errQuantumTypeNotFit            = errors.New("quantum type is not fit")
 )
+
+type Sig []byte
 
 const (
 	// QuantumTypeInfo specifies quantum which user just want to share information.
@@ -54,43 +54,63 @@ const (
 	// QuantumTypeRule specifies the quantum of rule to build new group
 	// contents[0] is base group of current group
 	// {fmt:QCFmtBytesSignature, data:signature of base group rule quantum}
-	// contents[1] is the number of co-signature from users in current group
-	// {fmt: QCFmtStringInt, data:1} number should at least 1
-	// contents[2] is the max number of create by one user
-	// {fmt: QCFmtStringInt, data:1} -1 means no limit, 0 means not allowed
+	// contents[1] is the number of invitation (co-signature) from users in current group
+	// {fmt:QCFmtStringInt, data:1} at least 1. (creater is absolutely same with others)
+	// contents[2] is the max number of invitation by one user
+	// {fmt:QCFmtStringInt, data:1} -1 means no limit, 0 means not allowed
 	// contents[3] ~ contents[15] is the initial users in this group
-	// {fmt: QCFmtBytesAddress, data:0x1232...}
+	// {fmt:QCFmtBytesAddress, data:0x1232...}
 	// signer of this group is also the initial user in this group
 	QuantumTypeRule = 3
-	// QuantumTypeInvite specifies
+
+	// QuantumTypeInvite specifies the quantum of invite
+	// contents[0] is the signature of target group rule quantum
+	// {fmt:QCFmtBytesSignature, data:signature of target group rule quantum}
+	// contents[1] ~ contents[n] is the address of be invited
+	// {fmt:QCFmtBytesAddress, data:0x123...}
+	// no matter all invitation send in same quantum of different quantum
+	// only first n address (rule.contents[2]) will be accepted
+	// user can not quit group, but any user can block any other user (or self) from any group
+	// accepted by any group is decided by user in that group feel about u, not opposite.
+	// User belong to group, quantum belong to user. (On trandation forum, posts usually belong to
+	// one topic and have lots of tag, is just the function easy to implemnt not base struct here)
 	QuantumTypeInvite = 4
-	// QuantumTypeQuit specifies
-	QuantumTypeQuit = 5
 )
 
 // UnsignedQuantum defines the single message from user without signature,
 // all variables should be in alphabetical order.
 type UnsignedQuantum struct {
-	Contents   []*QContent `json:"cs"`
-	References [][]byte    `json:"refs"`
-	Type       int         `json:"type"`
+	// Contents contain all data in this quantum
+	Contents []*QContent `json:"cs"`
+
+	// References must from the exist signature.
+	// References[0] is the last signature by user-self, 0x00000... if this quantum is the first quantum
+	// References[1] ~ References[n] is optional, recommend to use new & valid quantum
+	// If two quantums by same user with same References[0], these two quantums will cause conflict, and
+	// this user maybe block by others. The reason to do that punishment is user should act like individual,
+	// all proactive event from one user should be sequence should be total order (全序关系). References[1~n]
+	// do not need follow this restriction, because all other references show the partial order (偏序关系).
+	References []Sig `json:"refs"`
+
+	// Type specifies the type of this quantum
+	Type int `json:"type"`
 }
 
 // Quantum defines the single message signed by user.
 type Quantum struct {
 	UnsignedQuantum
-	Signature []byte `json:"sig,omitempty"`
+	Signature Sig `json:"sig,omitempty"`
 }
 
 const (
-	QCFmtStringTEXT  = 1
-	QCFmtStringURL   = 2
-	QCFmtStringJSON  = 3
-	QCFmtStringInt   = 4
-	QCFmtStringFloat = 5
+	QCFmtStringTEXT       = 1
+	QCFmtStringURL        = 2
+	QCFmtStringJSON       = 3
+	QCFmtStringInt        = 4
+	QCFmtStringFloat      = 5
+	QCFmtStringHexAddress = 6
 
-	QCFmtBytesAddress   = 33
-	QCFmtBytesSignature = 34
+	QCFmtBytesSignature = 33
 
 	QCFmtImagePNG = 65
 	QCFmtImageJPG = 66
@@ -110,7 +130,7 @@ type QContent struct {
 }
 
 // NewQuantum try to build Quantum without signature
-func NewQuantum(t int, cs []*QContent, refs ...[]byte) (*Quantum, error) {
+func NewQuantum(t int, cs []*QContent, refs ...Sig) (*Quantum, error) {
 	if len(cs) > maxContentsCnt {
 		return nil, errQuantumContentsCntOutOfLimit
 	}
@@ -146,8 +166,7 @@ func (q *Quantum) Sign(did *identity.DID) error {
 	if err != nil {
 		return err
 	}
-	hash := crypto.Keccak256(b)
-	sig, err := crypto.Sign(hash, did.GetKey().PrivateKey)
+	sig, err := did.Sign(b)
 	if err != nil {
 		return err
 	}
@@ -156,18 +175,10 @@ func (q *Quantum) Sign(did *identity.DID) error {
 }
 
 // Ecrecover recover
-func (q *Quantum) Ecrecover() (common.Address, error) {
+func (q *Quantum) Ecrecover() (identity.Address, error) {
 	b, err := json.Marshal(q.UnsignedQuantum)
 	if err != nil {
-		return common.Address{}, err
+		return identity.Address{}, err
 	}
-	hash := crypto.Keccak256(b)
-	pk, err := crypto.Ecrecover(hash, q.Signature)
-	if err != nil {
-		return common.Address{}, err
-	}
-	signer := common.Address{}
-	copy(signer[:], crypto.Keccak256(pk[1:])[12:])
-
-	return signer, nil
+	return identity.Ecrecover(b, q.Signature)
 }
