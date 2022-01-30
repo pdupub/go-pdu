@@ -15,3 +15,19 @@
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
 package core
+
+// Universe is struct contain all quantums which be received, select and accept by yourself.
+// Your universe may same or not with other's, usually your universe only contains part of whole
+// exist quantums (not conflict). By methods in Universe, groups be created by quantum and individuals
+// be invited into group can be found. Universse also have some aggregate infomation on quantums.
+type Universe struct {
+	// `json:"address"`
+
+	// database connection
+}
+
+func NewUniverse() (*Universe, error) {
+	universe := Universe{}
+
+	return &universe, nil
+}

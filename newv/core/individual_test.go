@@ -40,8 +40,7 @@ func TestNewIndividual(t *testing.T) {
 		t.Error(err)
 	}
 
-	profile := newInd.LoadProfile()
-	for k, _ := range profile {
+	for k := range newInd.Profile {
 		t.Log(k)
 	}
 }

@@ -23,12 +23,12 @@ import (
 )
 
 type Group struct {
-	ruleSig      Sig
-	creator      identity.Address
-	baseGroupSig Sig
-	minCosignCnt int
-	maxInviteCnt int
-	individuals  []identity.Address
+	RuleSig      Sig                `json:"ruleSig"`
+	Creator      identity.Address   `json:"creator"`
+	BaseGroupSig Sig                `json:"baseGroupSig"`
+	MinCosignCnt int                `json:"minCosignCnt"`
+	MaxInviteCnt int                `json:"maxInviteCnt"`
+	Members      []identity.Address `json:"members"`
 }
 
 func NewGroup(quantum *Quantum) (*Group, error) {
@@ -40,32 +40,32 @@ func NewGroup(quantum *Quantum) (*Group, error) {
 		return nil, err
 	}
 	group := Group{
-		ruleSig: quantum.Signature,
-		creator: creator,
+		RuleSig: quantum.Signature,
+		Creator: creator,
 	}
-	group.individuals = append(group.individuals, creator)
+	group.Members = append(group.Members, creator)
 
 	for i, content := range quantum.Contents {
 		if i == 0 && content.Format == QCFmtBytesSignature {
-			group.baseGroupSig = Sig(content.Data)
+			group.BaseGroupSig = Sig(content.Data)
 		}
 
 		if i == 1 && content.Format == QCFmtStringInt {
-			group.minCosignCnt, err = strconv.Atoi(string(content.Data))
+			group.MinCosignCnt, err = strconv.Atoi(string(content.Data))
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		if i == 2 && content.Format == QCFmtStringInt {
-			group.maxInviteCnt, err = strconv.Atoi(string(content.Data))
+			group.MaxInviteCnt, err = strconv.Atoi(string(content.Data))
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		if i >= 3 && content.Format == QCFmtStringHexAddress {
-			group.individuals = append(group.individuals, identity.HexToAddress(string(content.Data)))
+			group.Members = append(group.Members, identity.HexToAddress(string(content.Data)))
 		}
 	}
 
