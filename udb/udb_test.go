@@ -18,8 +18,33 @@ package udb
 
 import "testing"
 
+// url & api token
+const (
+	testUrl   = "https://blue-surf-570065.us-east-1.aws.cloud.dgraph.io/graphql"
+	testToken = "YjE0NzAxOGRmYTI1OTM0MmVjMzcxY2U5YTQwNjI3ZGY="
+)
+
 func TestNewUniverse(t *testing.T) {
-	if err := Sample(); err != nil {
+	udb, err := New(testUrl, testToken)
+	if err != nil {
+		t.Error(err)
+	}
+
+	defer udb.Close()
+
+	if err := udb.initIndividual(); err != nil {
+		t.Error(err)
+	}
+
+	if err := udb.addIndividual(); err != nil {
+		t.Error(err)
+	}
+
+	if err := udb.queryIndividual(); err != nil {
+		t.Error(err)
+	}
+
+	if err := udb.dropData(); err != nil {
 		t.Error(err)
 	}
 }

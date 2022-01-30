@@ -33,12 +33,6 @@ type UDB struct {
 	dg   *dgo.Dgraph
 }
 
-// url & api token
-const (
-	testUrl   = "https://blue-surf-570065.us-east-1.aws.cloud.dgraph.io/graphql"
-	testToken = "YjE0NzAxOGRmYTI1OTM0MmVjMzcxY2U5YTQwNjI3ZGY="
-)
-
 // struct / table
 type Person struct {
 	Uid   string   `json:"uid,omitempty"`
@@ -143,32 +137,4 @@ func New(url, token string) (*UDB, error) {
 
 func (udb *UDB) Close() error {
 	return udb.conn.Close()
-}
-
-func Sample() error {
-	udb, err := New(testUrl, testToken)
-	if err != nil {
-		return err
-	}
-
-	defer udb.Close()
-
-	if err := udb.initIndividual(); err != nil {
-		return err
-	}
-
-	if err := udb.addIndividual(); err != nil {
-		return err
-	}
-
-	if err := udb.queryIndividual(); err != nil {
-		return err
-	}
-
-	if err := udb.dropData(); err != nil {
-		return err
-	}
-
-	return nil
-
 }
