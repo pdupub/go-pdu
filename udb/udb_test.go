@@ -20,8 +20,9 @@ import "testing"
 
 // url & api token
 const (
-	testUrl   = "https://blue-surf-570065.us-east-1.aws.cloud.dgraph.io/graphql"
-	testToken = "YjE0NzAxOGRmYTI1OTM0MmVjMzcxY2U5YTQwNjI3ZGY="
+	testUrl        = "https://blue-surf-570065.us-east-1.aws.cloud.dgraph.io/graphql"
+	testToken      = "YjE0NzAxOGRmYTI1OTM0MmVjMzcxY2U5YTQwNjI3ZGY="
+	testAddressHex = "0x123"
 )
 
 func TestNewUniverse(t *testing.T) {
@@ -36,12 +37,16 @@ func TestNewUniverse(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := udb.addIndividual(); err != nil {
+	if err := udb.addIndividual(testAddressHex); err != nil {
 		t.Error(err)
 	}
 
-	if err := udb.queryIndividual(); err != nil {
+	if res, err := udb.queryIndividual(testAddressHex); err != nil {
 		t.Error(err)
+	} else {
+		for _, item := range res {
+			t.Log("Address", item.Address, "DType", item.DType)
+		}
 	}
 
 	if err := udb.dropData(); err != nil {

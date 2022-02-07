@@ -19,11 +19,9 @@ package udb
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
-	"github.com/pdupub/go-pdu/newv/core"
 	"google.golang.org/grpc"
 )
 
@@ -34,35 +32,29 @@ type UDB struct {
 }
 
 // struct / table
-type Person struct {
-	Uid   string   `json:"uid,omitempty"`
-	Name  string   `json:"name,omitempty"`
-	DType []string `json:"dgraph.type,omitempty"`
-}
-
-type DIndividual struct {
-	core.Individual
-	DType []string `json:"dgraph.type,omitempty"`
+type Individual struct {
+	Address string   `json:"address,omitempty"`
+	DType   []string `json:"dgraph.type,omitempty"`
 }
 
 func (udb *UDB) initIndividual() error {
 	// empty operation
 	op := &api.Operation{}
-	// Person, has only 1 field name (string)
+	// Individual, has only 1 field address (string)
 	op.Schema = `
-			name: string @index(exact) .
-			type Person {
-				name
+			address: string @index(exact) .
+			type Individual {
+				address
 			}
 		`
 	// update schema = add new schema
 	return udb.dg.Alter(udb.ctx, op)
 }
 
-func (udb *UDB) addIndividual() error {
-	p := Person{
-		Name:  "Alice",
-		DType: []string{"Person"},
+func (udb *UDB) addIndividual(address string) error {
+	p := Individual{
+		Address: address,
+		DType:   []string{"Individual"},
 	}
 
 	mu := &api.Mutation{
@@ -81,14 +73,14 @@ func (udb *UDB) addIndividual() error {
 	return nil
 }
 
-func (udb *UDB) queryIndividual() error {
+func (udb *UDB) queryIndividual(address string) ([]Individual, error) {
 	// query from database
 	variables := make(map[string]string)
-	variables["$a"] = "Alice"
+	variables["$a"] = address
 	q := `
-					query Alice($a: string){
-						me(func: eq(name, $a)) {
-							name
+					query QueryIndividual($a: string){
+						queryRes(func: eq(address, $a)) {
+							address
 							dgraph.type
 						}
 					}
@@ -96,21 +88,21 @@ func (udb *UDB) queryIndividual() error {
 
 	resp, err := udb.dg.NewTxn().QueryWithVars(udb.ctx, q, variables)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	type Root struct {
-		Me []Person `json:"me"`
+		Me []Individual `json:"queryRes"`
 	}
 
 	var r Root
 	err = json.Unmarshal(resp.Json, &r)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	fmt.Println(string(resp.Json))
-	return nil
+	// fmt.Println(string(resp.Json))
+	return r.Me, nil
 }
 
 func (udb *UDB) dropData() error {
