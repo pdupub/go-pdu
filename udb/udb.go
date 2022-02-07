@@ -120,7 +120,7 @@ func (udb *UDB) dropData() error {
 func New(url, token string) (*UDB, error) {
 	ctx := context.Background()
 
-	conn, err := dgo.DialSlashEndpoint(testUrl, testToken)
+	conn, err := dgo.DialSlashEndpoint(url, token)
 	if err != nil {
 		return nil, err
 	}
