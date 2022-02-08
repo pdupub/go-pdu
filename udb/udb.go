@@ -33,8 +33,15 @@ type UDB struct {
 
 // struct / table
 type Individual struct {
-	Address string   `json:"address,omitempty"`
-	DType   []string `json:"dgraph.type,omitempty"`
+	Address string      `json:"address"`
+	Profile []Attribute `json:"profile"`
+	DType   []string    `json:"dgraph.type,omitempty"`
+}
+
+type Attribute struct {
+	Name  string   `json:"name"`
+	Value string   `json:"value,omitempty"`
+	DType []string `json:"dgraph.type,omitempty"`
 }
 
 func (udb *UDB) initIndividual() error {
@@ -43,8 +50,19 @@ func (udb *UDB) initIndividual() error {
 	// Individual, has only 1 field address (string)
 	op.Schema = `
 			address: string @index(exact) .
+			profile: [uid] @reverse .
+			attr.name: string @index(exact, term) @lang .
+			attr.value: string .
+			initial.date:  dateTime @index(year) .
+
 			type Individual {
 				address
+				profile
+				initial.date
+			}
+			type Attribute {
+				attr.name
+				attr.value
 			}
 		`
 	// update schema = add new schema
@@ -52,8 +70,19 @@ func (udb *UDB) initIndividual() error {
 }
 
 func (udb *UDB) addIndividual(address string) error {
+	attr1 := Attribute{
+		Name:  "avator",
+		Value: "a.jpg",
+	}
+
+	attr2 := Attribute{
+		Name:  "nickname",
+		Value: "DouBao",
+	}
+
 	p := Individual{
 		Address: address,
+		Profile: []Attribute{attr1, attr2},
 		DType:   []string{"Individual"},
 	}
 
@@ -81,6 +110,10 @@ func (udb *UDB) queryIndividual(address string) ([]Individual, error) {
 					query QueryIndividual($a: string){
 						queryRes(func: eq(address, $a)) {
 							address
+							profile {
+								name
+								value
+							}
 							dgraph.type
 						}
 					}
