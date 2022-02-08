@@ -51,6 +51,13 @@ func TestUDB(t *testing.T) {
 			}
 		}
 	}
+	if res, err := udb.queryAttribue("avator"); err != nil {
+		t.Error(err)
+	} else {
+		for _, item := range res {
+			t.Log("Name", item.Name, "Value", item.Value, "DType", item.DType)
+		}
+	}
 
 	if err := udb.dropData(); err != nil {
 		t.Error(err)

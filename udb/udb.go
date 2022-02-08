@@ -73,11 +73,13 @@ func (udb *UDB) addIndividual(address string) error {
 	attr1 := Attribute{
 		Name:  "avator",
 		Value: "a.jpg",
+		DType: []string{"Attribute"},
 	}
 
 	attr2 := Attribute{
 		Name:  "nickname",
 		Value: "DouBao",
+		DType: []string{"Attribute"},
 	}
 
 	p := Individual{
@@ -134,7 +136,38 @@ func (udb *UDB) queryIndividual(address string) ([]Individual, error) {
 		return nil, err
 	}
 
-	// fmt.Println(string(resp.Json))
+	return r.Me, nil
+}
+
+func (udb *UDB) queryAttribue(name string) ([]Attribute, error) {
+	// query from database
+	variables := make(map[string]string)
+	variables["$a"] = name
+	q := `
+					query QueryAttribute($a: string){
+						queryRes(func: eq(name, $a)) {
+							name
+							value
+							dgraph.type
+						}
+					}
+				`
+
+	resp, err := udb.dg.NewTxn().QueryWithVars(udb.ctx, q, variables)
+	if err != nil {
+		return nil, err
+	}
+
+	type Root struct {
+		Me []Attribute `json:"queryRes"`
+	}
+
+	var r Root
+	err = json.Unmarshal(resp.Json, &r)
+	if err != nil {
+		return nil, err
+	}
+
 	return r.Me, nil
 }
 
