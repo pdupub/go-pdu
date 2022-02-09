@@ -24,7 +24,7 @@ import (
 	"github.com/pdupub/go-pdu/params"
 )
 
-func TestNewGroup(t *testing.T) {
+func TestNewCommunity(t *testing.T) {
 
 	creator, _ := identity.New()
 	creator.UnlockWallet("../../"+params.TestKeystore(0), params.TestPassword)

@@ -22,16 +22,16 @@ import (
 	"github.com/pdupub/go-pdu/identity"
 )
 
-type Group struct {
-	RuleSig      Sig                `json:"ruleSig"`
-	Creator      identity.Address   `json:"creator"`
-	BaseGroupSig Sig                `json:"baseGroupSig"`
-	MinCosignCnt int                `json:"minCosignCnt"`
-	MaxInviteCnt int                `json:"maxInviteCnt"`
-	Members      []identity.Address `json:"members"`
+type Community struct {
+	RuleSig       Sig                `json:"ruleSig"`
+	Creator       identity.Address   `json:"creator"`
+	BaseCommunity Sig                `json:"baseCommunity"`
+	MinCosignCnt  int                `json:"minCosignCnt"`
+	MaxInviteCnt  int                `json:"maxInviteCnt"`
+	Members       []identity.Address `json:"members"`
 }
 
-func NewGroup(quantum *Quantum) (*Group, error) {
+func NewCommunity(quantum *Quantum) (*Community, error) {
 	if quantum.Type != QuantumTypeRule {
 		return nil, errQuantumTypeNotFit
 	}
@@ -39,35 +39,35 @@ func NewGroup(quantum *Quantum) (*Group, error) {
 	if err != nil {
 		return nil, err
 	}
-	group := Group{
+	community := Community{
 		RuleSig: quantum.Signature,
 		Creator: creator,
 	}
-	group.Members = append(group.Members, creator)
+	community.Members = append(community.Members, creator)
 
 	for i, content := range quantum.Contents {
 		if i == 0 && content.Format == QCFmtBytesSignature {
-			group.BaseGroupSig = Sig(content.Data)
+			community.BaseCommunity = Sig(content.Data)
 		}
 
 		if i == 1 && content.Format == QCFmtStringInt {
-			group.MinCosignCnt, err = strconv.Atoi(string(content.Data))
+			community.MinCosignCnt, err = strconv.Atoi(string(content.Data))
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		if i == 2 && content.Format == QCFmtStringInt {
-			group.MaxInviteCnt, err = strconv.Atoi(string(content.Data))
+			community.MaxInviteCnt, err = strconv.Atoi(string(content.Data))
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		if i >= 3 && content.Format == QCFmtStringHexAddress {
-			group.Members = append(group.Members, identity.HexToAddress(string(content.Data)))
+			community.Members = append(community.Members, identity.HexToAddress(string(content.Data)))
 		}
 	}
 
-	return &group, nil
+	return &community, nil
 }

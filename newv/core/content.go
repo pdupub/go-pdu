@@ -16,18 +16,33 @@
 
 package core
 
-// Universe is struct contain all quantums which be received, select and accept by yourself.
-// Your universe may same or not with other's, usually your universe only contains part of whole
-// exist quantums (not conflict). By methods in Universe, communities be created by quantum and individuals
-// be invited into community can be found. Universse also have some aggregate infomation on quantums.
-type Universe struct {
-	// `json:"address"`
+const (
+	QCFmtStringTEXT       = 1
+	QCFmtStringURL        = 2
+	QCFmtStringJSON       = 3
+	QCFmtStringInt        = 4
+	QCFmtStringFloat      = 5
+	QCFmtStringHexAddress = 6
 
-	// database connection
+	QCFmtBytesSignature = 33
+
+	QCFmtImagePNG = 65
+	QCFmtImageJPG = 66
+	QCFmtImageBMP = 67
+
+	QCFmtAudioWAV = 97
+	QCFmtAudioMP3 = 98
+
+	QCFmtVideoMP4 = 129
+)
+
+// QContent is one piece of data in Quantum,
+// all variables should be in alphabetical order.
+type QContent struct {
+	Data   []byte `json:"data,omitempty"`
+	Format int    `json:"fmt"`
 }
 
-func NewUniverse() (*Universe, error) {
-	universe := Universe{}
-
-	return &universe, nil
+func NewContent(fmt int, data []byte) (*QContent, error) {
+	return &QContent{Format: fmt, Data: data}, nil
 }

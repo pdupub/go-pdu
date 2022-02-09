@@ -16,18 +16,14 @@
 
 package core
 
-// Universe is struct contain all quantums which be received, select and accept by yourself.
-// Your universe may same or not with other's, usually your universe only contains part of whole
-// exist quantums (not conflict). By methods in Universe, communities be created by quantum and individuals
-// be invited into community can be found. Universse also have some aggregate infomation on quantums.
-type Universe struct {
-	// `json:"address"`
+import (
+	"testing"
+)
 
-	// database connection
-}
-
-func NewUniverse() (*Universe, error) {
-	universe := Universe{}
-
-	return &universe, nil
+func TestNewContent(t *testing.T) {
+	qc, err := NewContent(QCFmtStringTEXT, []byte("Hello World!"))
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(qc.Format)
 }

@@ -51,28 +51,28 @@ const (
 	// contents = [key1, newValue which content with empty data]
 	QuantumTypeProfile = 2
 
-	// QuantumTypeRule specifies the quantum of rule to build new group
-	// contents[0] is base group of current group
-	// {fmt:QCFmtBytesSignature, data:signature of base group rule quantum}
-	// contents[1] is the number of invitation (co-signature) from users in current group
+	// QuantumTypeRule specifies the quantum of rule to build new community
+	// contents[0] is base community of current community
+	// {fmt:QCFmtBytesSignature, data:signature of base community rule quantum}
+	// contents[1] is the number of invitation (co-signature) from users in current community
 	// {fmt:QCFmtStringInt, data:1} at least 1. (creater is absolutely same with others)
 	// contents[2] is the max number of invitation by one user
 	// {fmt:QCFmtStringInt, data:1} -1 means no limit, 0 means not allowed
-	// contents[3] ~ contents[15] is the initial users in this group
+	// contents[3] ~ contents[15] is the initial users in this community
 	// {fmt:QCFmtBytesAddress, data:0x1232...}
-	// signer of this group is also the initial user in this group
+	// signer of this community is also the initial user in this community
 	QuantumTypeRule = 3
 
 	// QuantumTypeInvite specifies the quantum of invite
-	// contents[0] is the signature of target group rule quantum
-	// {fmt:QCFmtBytesSignature, data:signature of target group rule quantum}
+	// contents[0] is the signature of target community rule quantum
+	// {fmt:QCFmtBytesSignature, data:signature of target community rule quantum}
 	// contents[1] ~ contents[n] is the address of be invited
 	// {fmt:QCFmtBytesAddress, data:0x123...}
 	// no matter all invitation send in same quantum of different quantum
 	// only first n address (rule.contents[2]) will be accepted
-	// user can not quit group, but any user can block any other user (or self) from any group
-	// accepted by any group is decided by user in that group feel about u, not opposite.
-	// User belong to group, quantum belong to user. (On trandation forum, posts usually belong to
+	// user can not quit community, but any user can block any other user (or self) from any community
+	// accepted by any community is decided by user in that community feel about u, not opposite.
+	// User belong to community, quantum belong to user. (On trandation forum, posts usually belong to
 	// one topic and have lots of tag, is just the function easy to implemnt not base struct here)
 	QuantumTypeInvite = 4
 )
@@ -102,33 +102,6 @@ type Quantum struct {
 	Signature Sig `json:"sig,omitempty"`
 }
 
-const (
-	QCFmtStringTEXT       = 1
-	QCFmtStringURL        = 2
-	QCFmtStringJSON       = 3
-	QCFmtStringInt        = 4
-	QCFmtStringFloat      = 5
-	QCFmtStringHexAddress = 6
-
-	QCFmtBytesSignature = 33
-
-	QCFmtImagePNG = 65
-	QCFmtImageJPG = 66
-	QCFmtImageBMP = 67
-
-	QCFmtAudioWAV = 97
-	QCFmtAudioMP3 = 98
-
-	QCFmtVideoMP4 = 129
-)
-
-// QContent is one piece of data in Quantum,
-// all variables should be in alphabetical order.
-type QContent struct {
-	Data   []byte `json:"data,omitempty"`
-	Format int    `json:"fmt"`
-}
-
 // NewQuantum try to build Quantum without signature
 func NewQuantum(t int, cs []*QContent, refs ...Sig) (*Quantum, error) {
 	if len(cs) > maxContentsCnt {
@@ -150,10 +123,6 @@ func NewQuantum(t int, cs []*QContent, refs ...Sig) (*Quantum, error) {
 		Type:       t}
 
 	return &Quantum{UnsignedQuantum: uq}, nil
-}
-
-func NewContent(fmt int, data []byte) (*QContent, error) {
-	return &QContent{Format: fmt, Data: data}, nil
 }
 
 // Sign try to add signature to Quantum
