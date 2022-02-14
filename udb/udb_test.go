@@ -16,13 +16,17 @@
 
 package udb
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+
+	"github.com/pdupub/go-pdu/newv/core"
+)
 
 // url & api token
 const (
-	testUrl        = "https://blue-surf-570176.us-east-1.aws.cloud.dgraph.io/graphql"
-	testToken      = "OWJmYWM4NmM1ZjJlMGEyYWMyNGQ4NzU4Mjk3ZTI5ZDU="
-	testAddressHex = "0x123"
+	testUrl   = "https://blue-surf-570228.us-east-1.aws.cloud.dgraph.io/graphql"
+	testToken = "OTNiNjMyMTM1ODU3ZWE2NWU3YWQyNmM2MzgwZmViODg="
 )
 
 func TestUDB(t *testing.T) {
@@ -33,33 +37,69 @@ func TestUDB(t *testing.T) {
 
 	defer udb.Close()
 
-	if err := udb.initIndividual(); err != nil {
+	if err := udb.initSchema(); err != nil {
 		t.Error(err)
-	}
-
-	if err := udb.addIndividual(testAddressHex); err != nil {
-		t.Error(err)
-	}
-
-	if res, err := udb.queryIndividual(testAddressHex); err != nil {
-		t.Error(err)
-	} else {
-		for _, item := range res {
-			t.Log("Address", item.Address, "DType", item.DType)
-			for _, attr := range item.Profile {
-				t.Log("Key", attr.Name, "Value", attr.Value)
-			}
-		}
-	}
-	if res, err := udb.queryAttribue("avator"); err != nil {
-		t.Error(err)
-	} else {
-		for _, item := range res {
-			t.Log("Name", item.Name, "Value", item.Value, "DType", item.DType)
-		}
 	}
 
 	if err := udb.dropData(); err != nil {
 		t.Error(err)
 	}
+
+	sig1 := []byte("0x001")
+	sig2 := []byte("0x002")
+	sig3 := []byte("0x003")
+	sender := "0xa01"
+
+	// test1 : quantum with empty refs
+	quantum := &core.Quantum{
+		Signature: sig3,
+		UnsignedQuantum: core.UnsignedQuantum{
+			Type:       core.QuantumTypeInfo,
+			References: []core.Sig{sig1, sig2},
+			Contents: []*core.QContent{{
+				Format: core.QCFmtStringTEXT,
+				Data:   []byte("Hello World!"),
+			}},
+		},
+	}
+
+	if err := sgcheck(udb, t, quantum, sender); err != nil {
+		t.Error(err)
+	}
+
+	// test2 : quantum fill empty quantum
+	quantum = &core.Quantum{
+		Signature: sig2,
+		UnsignedQuantum: core.UnsignedQuantum{
+			Type:       core.QuantumTypeProfile,
+			References: []core.Sig{sig1},
+			Contents: []*core.QContent{{
+				Format: core.QCFmtStringJSON,
+				Data:   []byte("{\"nickname\":[\"Hello\",\"World\"]}"),
+			}},
+		},
+	}
+
+	if err := sgcheck(udb, t, quantum, sender); err != nil {
+		t.Error(err)
+	}
+
+}
+
+func sgcheck(udb *UDB, t *testing.T, quantum *core.Quantum, sender string) error {
+
+	if uid, err := udb.SetQuantum(quantum, sender); err != nil {
+		return err
+	} else {
+		res, _ := json.Marshal(quantum)
+		t.Log("SetQuantum", "uid", uid, "sender", sender, "quantum", string(res))
+	}
+
+	if newQ, dbQ, err := udb.GetQuantum(quantum.Signature); err != nil {
+		return err
+	} else {
+		res, _ := json.Marshal(newQ)
+		t.Log("GetQuantum", "uid", dbQ.UID, "sender", dbQ.Sender.Address, "quantum", string(res))
+	}
+	return nil
 }
