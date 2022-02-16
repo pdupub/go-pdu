@@ -16,14 +16,24 @@
 
 package core
 
+import "github.com/pdupub/go-pdu/udb"
+
+// Universe is struct contain all quantums which be received, select and accept by yourself.
+// Your universe may same or not with other's, usually your universe only contains part of whole
+// exist quantums (not conflict). By methods in Universe, communities be created by quantum and individuals
+// be invited into community can be found. Universse also have some aggregate infomation on quantums.
 type Universe struct {
-	*Matrix
+	// `json:"address"`
+	db udb.UDB
+	// database connection
 }
 
-func NewUniverse() (*Universe, error) {
-	m, err := NewMatrix()
-	if err != nil {
-		return nil, err
+func NewUniverse(db udb.UDB) (*Universe, error) {
+	universe := Universe{
+		db: db,
 	}
-	return &Universe{Matrix: m}, nil
+
+	universe.db.NewIndividual("0xabc")
+
+	return &universe, nil
 }

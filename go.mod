@@ -3,6 +3,7 @@ module github.com/pdupub/go-pdu
 go 1.15
 
 require (
+	github.com/TTCECO/gttc v0.2.2
 	github.com/dgraph-io/dgo v1.0.0
 	github.com/dgraph-io/dgo/v210 v210.0.0-20211129111319-4c8247ebe697
 	github.com/ethereum/go-ethereum v1.10.9

@@ -18,126 +18,51 @@ package core
 
 import (
 	"encoding/json"
-	"errors"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/pdupub/go-pdu/identity"
 	"github.com/pdupub/go-pdu/params"
 )
 
-func Testquantum(t *testing.T) {
+func TestSignAndVerify(t *testing.T) {
+	did, _ := identity.New()
+	did.UnlockWallet("../"+params.TestKeystore(0), params.TestPassword)
 
-	msg := "hello world!"
-	quantum, err := NewQuantum(QuantumTypeInfo, []byte(msg))
-	if err != nil {
-		t.Error(err)
-	}
-	if string(quantum.Data) != msg {
-		t.Error("quantum data not correct")
-	}
-	if quantum.Type != QuantumTypeInfo {
-		t.Error("quantum type not correct")
-	}
+	refs := []Sig{[]byte("0x070d15041083041b48d0f2297357ce59ad18f6c608d70a1e6e04bcf494e366db"),
+		[]byte("0x08fd3282eecbf25d31a9a5e51ed2d79a806f14281fbb583a5ee4024589b959d9")}
 
-	b, err := json.Marshal(quantum)
+	qc, err := NewContent(QCFmtStringTEXT, []byte("Hello World!"))
 	if err != nil {
 		t.Error(err)
 	}
 
-	pt := new(Quantum)
-	err = json.Unmarshal(b, pt)
+	q, err := NewQuantum(QuantumTypeInfo, []*QContent{qc}, refs...)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if string(pt.Data) != string(quantum.Data) {
-		t.Error("data not match")
+	if err := q.Sign(did); err != nil {
+		t.Error(err)
 	}
-}
 
-func TestBornQuantum(t *testing.T) {
-	addr := common.HexToAddress("0xDa6bdC0Cd00fbaB9B33D1B4370fb32B8f6331376")
-	quantum, err := NewBornQuantum(addr)
+	addr, err := q.Ecrecover()
 	if err != nil {
 		t.Error(err)
 	}
+	if addr != did.GetAddress() {
+		t.Error("address not match")
+	}
+	t.Log("ecrecover address", addr.Hex())
 
-	did0, _ := identity.New()
-	if err := did0.UnlockWallet("../"+params.TestKeystore(0), params.TestPassword); err != nil {
+	if jsonUnsignedQuantumBytes, err := json.Marshal(q.UnsignedQuantum); err != nil {
 		t.Error(err)
+	} else {
+		t.Log("unsigned quantum json", string(jsonUnsignedQuantumBytes))
 	}
-	t.Log(did0.GetKey().Address.Hex())
-	if err := quantum.ParentSign(did0); err != nil {
+
+	if jsonQuantumBytes, err := json.Marshal(q); err != nil {
 		t.Error(err)
-	}
-
-	did1, _ := identity.New()
-	if err := did1.UnlockWallet("../"+params.TestKeystore(1), params.TestPassword); err != nil {
-		t.Error(err)
-	}
-	t.Log(did1.GetKey().Address.Hex())
-
-	if err := quantum.ParentSign(did1); err != nil {
-		t.Error(err)
-	}
-
-	if parents, err := quantum.GetParents(); err != nil {
-		t.Error(err)
-	} else if len(parents) != 2 {
-		t.Error(errors.New("parents number not correct"))
-	}
-
-	b, err := json.Marshal(quantum)
-	if err != nil {
-		t.Error(err)
-	}
-
-	pt := new(Quantum)
-	err = json.Unmarshal(b, pt)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if pt.Type != QuantumTypeCreate {
-		t.Error("quantum type not correct")
-	}
-
-	pb := new(PBorn)
-	if err := json.Unmarshal(pt.Data, pb); err != nil {
-		t.Error(err)
-	}
-	if pb.Addr != addr {
-		t.Error("target address not match")
-	}
-}
-
-func TestProfileQuantum(t *testing.T) {
-	quantum, err := NewProfileQuantum("PDU", "hi@pdu.pub", "hello world!", "https://pdu.pub", "Earth", "", nil)
-	if err != nil {
-		t.Error(err)
-	}
-
-	b, err := json.Marshal(quantum)
-	if err != nil {
-		t.Error(err)
-	}
-
-	pt := new(Quantum)
-	err = json.Unmarshal(b, pt)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if pt.Type != QuantumTypeProfile {
-		t.Error("quantum type not correct")
-	}
-
-	var qp map[string]*QData
-	if err := json.Unmarshal(pt.Data, &qp); err != nil {
-		t.Error(err)
-	}
-	if qp["name"].Text != "PDU" {
-		t.Error("name not match")
+	} else {
+		t.Log("quantum json", string(jsonQuantumBytes))
 	}
 }

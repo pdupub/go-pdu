@@ -18,195 +18,136 @@ package core
 
 import (
 	"encoding/json"
+	"errors"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pdupub/go-pdu/identity"
 )
 
 const (
-	// QResTypeImageB is type of resource is bytes data
-	QResTypeImageB = iota
-	// QResTypeImageU is type of resource is url address
-	QResTypeImageU
+	maxReferencesCnt = 16
+	maxContentsCnt   = 16
+	maxContentSize   = 1024 * 512
 )
+
+var (
+	errQuantumRefsCntOutOfLimit     = errors.New("quantum references count out of limit")
+	errQuantumContentsCntOutOfLimit = errors.New("quantum contents count out of limit")
+	errQuantumContentSizeOutOfLimit = errors.New("quantum content size out of limit")
+	errQuantumSignedAlready         = errors.New("quantum have been signed already")
+	errQuantumTypeNotFit            = errors.New("quantum type is not fit")
+)
+
+type Sig []byte
 
 const (
-	// QuantumTypeInfo is information Quantum
-	QuantumTypeInfo = iota
-	// QuantumTypeAgree is
-	QuantumTypeAgree
-	// QuantumTypeDisagree is
-	QuantumTypeDisagree
-	// QuantumTypeCreate is create user Quantum
-	QuantumTypeCreate
-	// QuantumTypeProfile is update user profile
-	QuantumTypeProfile
+	// QuantumTypeInfo specifies quantum which user just want to share information.
+	QuantumTypeInfo = 1
+
+	// QuantumTypeProfile specifies the quantum to update user's (signer's) profile.
+	// contents = [key1(QCFmtStringTEXT), value1, key2, value2 ...]
+	// if user want to update key1, send new QuantumTypeProfile quantum with
+	// contents = [key1, newValue ...]
+	// if user want to delete key1, send new QuantumTypeProfile quantum with
+	// contents = [key1, newValue which content with empty data]
+	QuantumTypeProfile = 2
+
+	// QuantumTypeRule specifies the quantum of rule to build new community
+	// contents[0] is base community of current community
+	// {fmt:QCFmtBytesSignature, data:signature of base community rule quantum}
+	// contents[1] is the number of invitation (co-signature) from users in current community
+	// {fmt:QCFmtStringInt, data:1} at least 1. (creater is absolutely same with others)
+	// contents[2] is the max number of invitation by one user
+	// {fmt:QCFmtStringInt, data:1} -1 means no limit, 0 means not allowed
+	// contents[3] ~ contents[15] is the initial users in this community
+	// {fmt:QCFmtBytesAddress, data:0x1232...}
+	// signer of this community is also the initial user in this community
+	QuantumTypeRule = 3
+
+	// QuantumTypeInvite specifies the quantum of invite
+	// contents[0] is the signature of target community rule quantum
+	// {fmt:QCFmtBytesSignature, data:signature of target community rule quantum}
+	// contents[1] ~ contents[n] is the address of be invited
+	// {fmt:QCFmtBytesAddress, data:0x123...}
+	// no matter all invitation send in same quantum of different quantum
+	// only first n address (rule.contents[2]) will be accepted
+	// user can not quit community, but any user can block any other user (or self) from any community
+	// accepted by any community is decided by user in that community feel about u, not opposite.
+	// User belong to community, quantum belong to user. (On trandation forum, posts usually belong to
+	// one topic and have lots of tag, is just the function easy to implemnt not base struct here)
+	QuantumTypeInvite = 4
 )
 
-// type Quantum struct {
-// 	id       []byte      // fill by signature when this quantum be received and validate
-// 	Type     int         `json:"t"` // QuantumTypeInfo ...
-// 	Contents []*QContent `json:"cs"`
-// }
+// UnsignedQuantum defines the single message from user without signature,
+// all variables should be in alphabetical order.
+type UnsignedQuantum struct {
+	// Contents contain all data in this quantum
+	Contents []*QContent `json:"cs"`
 
-// type QContent struct {
-// 	Format int    `json:"f"` // 0 < StringInfo, StringUrl < 32 < Bitmap, mp4 < 128 < address ,sig (as quote) ...
-// 	Data   []byte `json:"d"`
-// }
+	// References must from the exist signature.
+	// References[0] is the last signature by user-self, 0x00000... if this quantum is the first quantum
+	// References[1] ~ References[n] is optional, recommend to use new & valid quantum
+	// If two quantums by same user with same References[0], these two quantums will cause conflict, and
+	// this user maybe block by others. The reason to do that punishment is user should act like individual,
+	// all proactive event from one user should be sequence should be total order (全序关系). References[1~n]
+	// do not need follow this restriction, because all other references show the partial order (偏序关系).
+	References []Sig `json:"refs"`
 
-// Quantum is main struct
+	// Type specifies the type of this quantum
+	Type int `json:"type"`
+}
+
+// Quantum defines the single message signed by user.
 type Quantum struct {
-	Type    int    `json:"t"`
-	Version int    `json:"v"`
-	Data    []byte `json:"d"`
+	UnsignedQuantum
+	Signature Sig `json:"sig,omitempty"`
 }
 
-// QRes is struct of resource, image, video, audio ...
-type QRes struct {
-	Format   int    `json:"format"`
-	Data     []byte `json:"data"`
-	Checksum []byte `json:"cs"` // sha256
-}
-
-// QData is Quantum information struct
-type QData struct {
-	Text      string  `json:"text"`
-	Quote     []byte  `json:"quote"`
-	Resources []*QRes `json:"resources"`
-}
-
-// PBorn is Quantum born struct
-type PBorn struct {
-	Addr       common.Address `json:"addr"`
-	Signatures [][]byte       `json:"sigs"`
-}
-
-// NewQuantum is used to create Quantum
-func NewQuantum(pType int, sData interface{}) (*Quantum, error) {
-	var data []byte
-	var err error
-	switch sData.(type) {
-	case []byte:
-		data = sData.([]byte)
-	default:
-		data, err = json.Marshal(sData)
-		if err != nil {
-			return nil, err
+// NewQuantum try to build Quantum without signature
+func NewQuantum(t int, cs []*QContent, refs ...Sig) (*Quantum, error) {
+	if len(cs) > maxContentsCnt {
+		return nil, errQuantumContentsCntOutOfLimit
+	}
+	if len(refs) > maxReferencesCnt {
+		return nil, errQuantumRefsCntOutOfLimit
+	}
+	for _, v := range cs {
+		if len(v.Data) > maxContentSize {
+			return nil, errQuantumContentSizeOutOfLimit
 		}
+		// TODO: check fmt of each content
 	}
 
-	quantum := Quantum{
-		Type: pType,
-		Data: data,
-	}
-	return &quantum, nil
+	uq := UnsignedQuantum{
+		Contents:   cs,
+		References: refs,
+		Type:       t}
+
+	return &Quantum{UnsignedQuantum: uq}, nil
 }
 
-// NewInfoQuantum is used to create QuantumTypeInfo Quantum
-func NewInfoQuantum(text string, quote []byte, res ...*QRes) (*Quantum, error) {
-	pb := QData{
-		Text:      text,
-		Quote:     quote,
-		Resources: res,
-	}
-	return NewQuantum(QuantumTypeInfo, pb)
-}
-
-// NewProfileQuantum is used to create QuantumTypeProfile Quantum
-func NewProfileQuantum(name, email, bio, url, location, extra string, avatar *QRes) (*Quantum, error) {
-	qp := map[string]*QData{
-		"name":     {Text: name},
-		"email":    {Text: email},
-		"bio":      {Text: bio},
-		"url":      {Text: url},
-		"location": {Text: location},
-		"extra":    {Text: extra},
-		"avatar":   {Resources: []*QRes{avatar}}}
-	return NewQuantum(QuantumTypeProfile, qp)
-}
-
-// GetProfile return profile information
-func (p *Quantum) GetProfile() (map[string]*QData, error) {
-	if p.Type != QuantumTypeProfile {
-		return nil, ErrQuantumTypeNotCorrect
+// Sign try to add signature to Quantum
+func (q *Quantum) Sign(did *identity.DID) error {
+	if q.Signature != nil {
+		return errQuantumSignedAlready
 	}
 
-	var qp map[string]*QData
-	if err := json.Unmarshal(p.Data, &qp); err != nil {
-		return nil, err
-	}
-
-	return qp, nil
-}
-
-// NewBornQuantum create a create user Quantum
-func NewBornQuantum(target common.Address) (*Quantum, error) {
-	pb := PBorn{Addr: target}
-	return NewQuantum(QuantumTypeCreate, pb)
-}
-
-// GetNewBorn get create individual address from Quantum
-func (p *Quantum) GetNewBorn() (common.Address, error) {
-	if p.Type != QuantumTypeCreate {
-		return common.Address{}, ErrQuantumTypeNotCorrect
-	}
-
-	pb := new(PBorn)
-	if err := json.Unmarshal(p.Data, pb); err != nil {
-		return common.Address{}, err
-	}
-	return pb.Addr, nil
-}
-
-// ParentSign is used to sign a QuantumTypeCreate Quantum as parent
-func (p *Quantum) ParentSign(did *identity.DID) error {
-	if p.Type != QuantumTypeCreate {
-		return ErrQuantumTypeNotCorrect
-	}
-
-	pb := new(PBorn)
-	if err := json.Unmarshal(p.Data, pb); err != nil {
-		return err
-	}
-
-	hash := crypto.Keccak256(pb.Addr.Bytes())
-	sig, err := crypto.Sign(hash, did.GetKey().PrivateKey)
-
+	b, err := json.Marshal(q.UnsignedQuantum)
 	if err != nil {
 		return err
 	}
-	pb.Signatures = append(pb.Signatures, sig)
-
-	data, err := json.Marshal(pb)
+	sig, err := did.Sign(b)
 	if err != nil {
 		return err
 	}
-	p.Data = data
+	q.Signature = sig
 	return nil
 }
 
-// GetParents return parents of new create individual only if Quantum is QuantumTypeCreate
-func (p *Quantum) GetParents() (parents []common.Address, err error) {
-	if p.Type != QuantumTypeCreate {
-		return []common.Address{}, ErrQuantumTypeNotCorrect
+// Ecrecover recover
+func (q *Quantum) Ecrecover() (identity.Address, error) {
+	b, err := json.Marshal(q.UnsignedQuantum)
+	if err != nil {
+		return identity.Address{}, err
 	}
-
-	pb := new(PBorn)
-	if err := json.Unmarshal(p.Data, pb); err != nil {
-		return []common.Address{}, err
-	}
-
-	hash := crypto.Keccak256(pb.Addr.Bytes())
-	for _, signature := range pb.Signatures {
-		pubkey, err := crypto.Ecrecover(hash, signature)
-		if err != nil {
-			return []common.Address{}, err
-		}
-		signer := common.Address{}
-		copy(signer[:], crypto.Keccak256(pubkey[1:])[12:])
-		parents = append(parents, signer)
-	}
-
-	return parents, nil
+	return identity.Ecrecover(b, q.Signature)
 }

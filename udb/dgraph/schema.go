@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package udb
+package dgraph
 
 // Schema defines data struct by DQL, if current server accept unchecked refs, then
 // create new quantum if sig in refs is not exist in system. or reject the quantum if not.

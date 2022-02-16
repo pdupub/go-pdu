@@ -17,15 +17,30 @@
 package core
 
 import (
-	"math/big"
+	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/pdupub/go-pdu/identity"
+	"github.com/pdupub/go-pdu/params"
 )
 
-// Event is struct contain Quantum as vertex in entropy DAG
-type Event struct {
-	Key    []byte         `json:"key"`
-	Nonce  *big.Int       `json:"nonce"`
-	Author common.Address `json:"author"`
-	P      *Quantum       `json:"quantum"`
+func TestNewIndividual(t *testing.T) {
+	did, _ := identity.New()
+	did.UnlockWallet("../"+params.TestKeystore(0), params.TestPassword)
+
+	newInd := NewIndividual(did.GetAddress())
+
+	if did.GetAddress() != newInd.GetAddress() {
+		t.Error("address not match")
+	}
+
+	k1, _ := NewContent(QCFmtStringTEXT, []byte("nickname"))
+	v1, _ := NewContent(QCFmtStringTEXT, []byte("pdu"))
+
+	if err := newInd.UpsertProfile([]*QContent{k1, v1}); err != nil {
+		t.Error(err)
+	}
+
+	for k := range newInd.Profile {
+		t.Log(k)
+	}
 }

@@ -17,30 +17,36 @@
 package core
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/pdupub/go-pdu/identity"
 	"github.com/pdupub/go-pdu/params"
 )
 
-func TestNewIndividual(t *testing.T) {
+func TestNewCommunity(t *testing.T) {
+
+	creator, _ := identity.New()
+	creator.UnlockWallet("../"+params.TestKeystore(0), params.TestPassword)
+
 	did, _ := identity.New()
-	did.UnlockWallet("../../"+params.TestKeystore(0), params.TestPassword)
+	did.UnlockWallet("../"+params.TestKeystore(1), params.TestPassword)
 
-	newInd := NewIndividual(did.GetAddress())
+	var contents []*QContent
 
-	if did.GetAddress() != newInd.GetAddress() {
-		t.Error("address not match")
-	}
+	baseSig := Sig([]byte("0x070d15041083041b48d0f2297357ce59ad18f6c608d70a1e6e04bcf494e366db"))
+	contents = append(contents, &QContent{Format: QCFmtBytesSignature, Data: baseSig})
 
-	k1, _ := NewContent(QCFmtStringTEXT, []byte("nickname"))
-	v1, _ := NewContent(QCFmtStringTEXT, []byte("pdu"))
+	k1, _ := NewContent(QCFmtStringInt, []byte(strconv.Itoa(1)))
+	contents = append(contents, k1)
 
-	if err := newInd.UpsertProfile([]*QContent{k1, v1}); err != nil {
+	k2, _ := NewContent(QCFmtStringInt, []byte(strconv.Itoa(2)))
+	contents = append(contents, k2)
+
+	contents = append(contents, &QContent{Format: QCFmtStringHexAddress, Data: []byte(did.GetAddress().Hex())})
+
+	newQuantum, _ := NewQuantum(QuantumTypeRule, contents, baseSig)
+	if err := newQuantum.Sign(creator); err != nil {
 		t.Error(err)
-	}
-
-	for k := range newInd.Profile {
-		t.Log(k)
 	}
 }

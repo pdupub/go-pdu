@@ -19,12 +19,11 @@ package params
 import (
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/pdupub/go-pdu/identity"
 )
 
 const (
-	DefaultPort   = 1323
-	DefaultDBPath = "pdu.db"
+	DefaultPort = 1323
 )
 
 // for test
@@ -36,7 +35,7 @@ func TestKeystore(i int) string {
 	return fmt.Sprintf("identity/testdata/keyfile_%d.json", i)
 }
 
-func TestAddrs() []common.Address {
+func TestAddrs() []identity.Address {
 	addrsHex := []string{"0xaf040ed5498f9808550402ebb6c193e2a73b860a",
 		"0x4c62002051d76ba82e43e1a5785590dfca261c10",
 		"0x50cc750695f0701e193b95f833ab04256d3d9daa",
@@ -138,9 +137,9 @@ func TestAddrs() []common.Address {
 		"0xe991899b8c0b36de12613974653753e546fae778",
 		"0xd6eaa55f1d61e304dc1eb7aee0e80b35b617d9b5",
 	}
-	var addrs []common.Address
+	var addrs []identity.Address
 	for _, h := range addrsHex {
-		addrs = append(addrs, common.HexToAddress(h))
+		addrs = append(addrs, identity.HexToAddress(h))
 	}
 	return addrs
 }
