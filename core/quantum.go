@@ -51,7 +51,7 @@ const (
 	// contents = [key1, newValue which content with empty data]
 	QuantumTypeProfile = 2
 
-	// QuantumTypeRule specifies the quantum of rule to build new community
+	// QuantumTypeCommunity specifies the quantum of rule to build new community
 	// contents[0] is base community of current community
 	// {fmt:QCFmtBytesSignature, data:signature of base community rule quantum}
 	// contents[1] is the number of invitation (co-signature) from users in current community
@@ -61,9 +61,9 @@ const (
 	// contents[3] ~ contents[15] is the initial users in this community
 	// {fmt:QCFmtBytesAddress, data:0x1232...}
 	// signer of this community is also the initial user in this community
-	QuantumTypeRule = 3
+	QuantumTypeCommunity = 3
 
-	// QuantumTypeInvite specifies the quantum of invite
+	// QuantumTypeInvitation specifies the quantum of invitation
 	// contents[0] is the signature of target community rule quantum
 	// {fmt:QCFmtBytesSignature, data:signature of target community rule quantum}
 	// contents[1] ~ contents[n] is the address of be invited
@@ -74,7 +74,7 @@ const (
 	// accepted by any community is decided by user in that community feel about u, not opposite.
 	// User belong to community, quantum belong to user. (On trandation forum, posts usually belong to
 	// one topic and have lots of tag, is just the function easy to implemnt not base struct here)
-	QuantumTypeInvite = 4
+	QuantumTypeInvitation = 4
 )
 
 // UnsignedQuantum defines the single message from user without signature,

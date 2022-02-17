@@ -29,7 +29,8 @@ func TestUtils(t *testing.T) {
 		t.Error(err)
 	}
 	t.Log("hash", hash1)
-	path2 := "http://127.0.0.1:1323/files/ab3c1f6bae3afcb9beece409242b2f8b220518325a2eab3ebfb1b58bb15969a1-appstore.png"
+	// path2 := "http://127.0.0.1:1323/files/ab3c1f6bae3afcb9beece409242b2f8b220518325a2eab3ebfb1b58bb15969a1-appstore.png"
+	path2 := path1
 	content2, hash2, err := HashFile(path2)
 	if err != nil {
 		t.Error(err)

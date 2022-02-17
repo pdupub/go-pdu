@@ -14,9 +14,12 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package p2p
+package utils
 
-type query struct{}
+import (
+	"testing"
+)
 
-// Hello is just hello world
-func (_ *query) Hello() string { return "Hello, world!" }
+func TestUDBUtils(t *testing.T) {
+	t.Log("test udb")
+}

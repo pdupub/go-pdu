@@ -26,16 +26,13 @@ import (
 	"path"
 	"time"
 
-	graphql "github.com/graph-gophers/graphql-go"
-	"github.com/graph-gophers/graphql-go/relay"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
-	"github.com/pdupub/go-pdu/core"
 	"go.etcd.io/bbolt"
 )
 
 // New create new node server
-func New(templatePath, dbPath string, g *core.Genesis, port int, ignoreUnknownSource bool, peers []string) {
+func New(templatePath, dbPath string, port int, ignoreUnknownSource bool, peers []string) {
 	// Setup
 	e := echo.New()
 	// Hide banner
@@ -67,15 +64,6 @@ func New(templatePath, dbPath string, g *core.Genesis, port int, ignoreUnknownSo
 	// Stats
 	bn := NewBootNode(db, e.Logger)
 	bn.SetIgnoreUnknownSource(ignoreUnknownSource)
-	if err := bn.SetUniverse(g.GetUniverse()); err != nil {
-		e.Logger.Fatal(err)
-	}
-	if err := bn.UpsertDBMsgs(g.GetMsgs()); err != nil {
-		e.Logger.Fatal(err)
-	}
-	if err := bn.LoadUniverse(); err != nil {
-		e.Logger.Fatal(err)
-	}
 
 	if err := bn.AddPeers(peers); err != nil {
 		e.Logger.Error(err)
@@ -104,11 +92,6 @@ func New(templatePath, dbPath string, g *core.Genesis, port int, ignoreUnknownSo
 	e.GET("/info/latest/:uid", bn.getLatest)
 	e.GET("/info/full/:sig", bn.getFullMsg)
 	e.GET("/info/quantums", bn.getQuantums)
-
-	// graphql
-	schema := graphql.MustParseSchema(schema, &query{})
-	gQLQuery := echo.WrapHandler(&relay.Handler{Schema: schema})
-	e.POST("/query", gQLQuery)
 
 	// Start server
 	go func() {

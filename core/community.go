@@ -32,7 +32,7 @@ type Community struct {
 }
 
 func NewCommunity(quantum *Quantum) (*Community, error) {
-	if quantum.Type != QuantumTypeRule {
+	if quantum.Type != QuantumTypeCommunity {
 		return nil, errQuantumTypeNotFit
 	}
 	creator, err := quantum.Ecrecover()

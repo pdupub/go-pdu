@@ -64,7 +64,7 @@ func TestUDBQuantum(t *testing.T) {
 		Sender: &udb.Individual{Address: sender1},
 	}
 
-	if _, _, err := sgcheck(cdgd, t, quantum, sender1); err != nil {
+	if _, _, _, err := sgcheck(cdgd, t, quantum, sender1); err != nil {
 		t.Error(err)
 	}
 
@@ -79,7 +79,7 @@ func TestUDBQuantum(t *testing.T) {
 		Sender: &udb.Individual{Address: sender2},
 	}
 
-	if _, _, err := sgcheck(cdgd, t, quantum, sender2); err != nil {
+	if _, _, _, err := sgcheck(cdgd, t, quantum, sender2); err != nil {
 		t.Error(err)
 	}
 	// test3 : quantum fill empty quantum
@@ -94,31 +94,31 @@ func TestUDBQuantum(t *testing.T) {
 		Sender: &udb.Individual{Address: sender1},
 	}
 
-	if _, _, err := sgcheck(cdgd, t, quantum, sender1); err != nil {
+	if _, _, _, err := sgcheck(cdgd, t, quantum, sender1); err != nil {
 		t.Error(err)
 	}
 
 }
 
-func sgcheck(cdgd *CDGD, t *testing.T, quantum *udb.Quantum, sender string) (dbQ *udb.Quantum, uid string, err error) {
+func sgcheck(cdgd *CDGD, t *testing.T, quantum *udb.Quantum, sender string) (dbQ *udb.Quantum, uid string, sid string, err error) {
 
-	if uid, err = cdgd.SetQuantum(quantum); err != nil {
-		return dbQ, uid, err
+	if uid, sid, err = cdgd.NewQuantum(quantum); err != nil {
+		return dbQ, uid, sid, err
 	} else {
 		res, _ := json.Marshal(quantum)
-		t.Log("SetQuantum", "uid", uid, "sender", sender, "quantum", string(res))
+		t.Log("SetQuantum", "uid", uid, "sid", sid, "sender", sender, "quantum", string(res))
 	}
 
 	if dbQ, err = cdgd.GetQuantum(quantum.Sig); err != nil {
-		return dbQ, uid, err
+		return dbQ, uid, sid, err
 	} else {
 		res, _ := json.Marshal(dbQ)
-		t.Log("GetQuantum", "uid", dbQ.UID, "sender", dbQ.Sender.Address, "quantum", string(res))
+		t.Log("GetQuantum", "uid", dbQ.UID, "sid", sid, "sender", dbQ.Sender.Address, "quantum", string(res))
 
 	}
 
 	if uid != dbQ.UID {
-		return dbQ, uid, errors.New("uid not match")
+		return dbQ, uid, sid, errors.New("uid not match")
 	}
-	return dbQ, uid, err
+	return dbQ, uid, sid, err
 }

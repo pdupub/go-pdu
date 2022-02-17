@@ -26,14 +26,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-// Value of DType is same with the name of type in schema (used for expand)
-const (
-	DTypeQuantum    = "quantum"
-	DTypeContent    = "content"
-	DTypeIndividual = "individual"
-	DTypeCommunity  = "community"
-)
-
 // CDGD is root struct for operate Cloud DGraph Database
 type CDGD struct {
 	ctx  context.Context
@@ -84,12 +76,12 @@ func (cdgd *CDGD) dropData() error {
 	return cdgd.dg.Alter(cdgd.ctx, &api.Operation{DropOp: api.Operation_DATA})
 }
 
-// SetQuantum works like set operation in DQL (upsert), but by the signature not uid.
-func (cdgd *CDGD) SetQuantum(quantum *udb.Quantum) (uid string, err error) {
+// NewQuantum works like set operation in DQL (upsert), but by the signature not uid.
+func (cdgd *CDGD) NewQuantum(quantum *udb.Quantum) (uid string, sid string, err error) {
 	// try to find quantum with same sig in db
 	lastQuantum, err := cdgd.GetQuantum(quantum.Sig)
 	if err != nil {
-		return uid, err
+		return uid, sid, err
 	}
 
 	// if exist
@@ -98,7 +90,8 @@ func (cdgd *CDGD) SetQuantum(quantum *udb.Quantum) (uid string, err error) {
 		// return if exist, not empty
 		// exist quantum can not be change by any condition
 		if lastQuantum.Type != 0 {
-			return lastQuantum.UID, nil
+			sid = lastQuantum.Sender.UID
+			return uid, sid, nil
 		}
 	}
 
@@ -106,7 +99,7 @@ func (cdgd *CDGD) SetQuantum(quantum *udb.Quantum) (uid string, err error) {
 	for _, v := range quantum.Refs {
 		dbQ, err := cdgd.GetQuantum(v.Sig)
 		if err != nil {
-			return uid, err
+			return uid, sid, err
 		}
 		if dbQ != nil {
 			// each predicate in struct must be omitempty to avoid remove value
@@ -117,18 +110,20 @@ func (cdgd *CDGD) SetQuantum(quantum *udb.Quantum) (uid string, err error) {
 	}
 	contents := []*udb.Content{}
 	for _, v := range quantum.Contents {
-		contents = append(contents, &udb.Content{Fmt: v.Fmt, Data: v.Data, DType: []string{DTypeContent}})
+		contents = append(contents, &udb.Content{Fmt: v.Fmt, Data: v.Data, DType: []string{udb.DTypeContent}})
 	}
 	sender, err := cdgd.GetIndividual(quantum.Sender.Address)
 	if err != nil {
-		return uid, err
+		return uid, sid, err
 	}
 	if sender == nil {
 		sender = cdgd.buildEmptyIndividual(quantum.Sender.Address)
+	} else {
+		sid = sender.UID
 	}
 	p := udb.Quantum{
 		UID:      uid,
-		DType:    []string{DTypeQuantum},
+		DType:    []string{udb.DTypeQuantum},
 		Sig:      quantum.Sig,
 		Type:     quantum.Type,
 		Refs:     refs,
@@ -140,30 +135,37 @@ func (cdgd *CDGD) SetQuantum(quantum *udb.Quantum) (uid string, err error) {
 		p.UID = "_:QuantumUID"
 	}
 
+	if sid == "" {
+		p.Sender.UID = "_:IndividualUID"
+	}
+
 	mu := &api.Mutation{
 		CommitNow: true,
 	}
 	pb, err := json.Marshal(p)
 	if err != nil {
-		return uid, err
+		return uid, sid, err
 	}
 
 	mu.SetJson = pb
 	resp, err := cdgd.dg.NewTxn().Mutate(cdgd.ctx, mu)
 	if err != nil {
-		return uid, err
+		return uid, sid, err
 	}
 
 	if uid == "" {
 		uid = resp.Uids["QuantumUID"]
 	}
+	if sid == "" {
+		sid = resp.Uids["IndividualUID"]
+	}
 
-	return uid, nil
+	return uid, sid, nil
 }
 
 func (cdgd *CDGD) buildEmptyQuantum(sig string) *udb.Quantum {
 	return &udb.Quantum{Sig: sig,
-		DType: []string{DTypeQuantum}}
+		DType: []string{udb.DTypeQuantum}}
 }
 
 // GetQuantum query the Quantum by Signature of Quantum
@@ -171,7 +173,7 @@ func (cdgd *CDGD) GetQuantum(sig string) (dbq *udb.Quantum, err error) {
 	// query quantum by signature
 	params := make(map[string]string)
 	params["$sig"] = sig
-	params["$type"] = DTypeQuantum
+	params["$type"] = udb.DTypeQuantum
 	// DQL
 	q := `
 			query QueryQuantum($sig: string, $type: string){
@@ -216,7 +218,7 @@ func (cdgd *CDGD) GetQuantum(sig string) (dbq *udb.Quantum, err error) {
 
 func (cdgd *CDGD) buildEmptyIndividual(address string) *udb.Individual {
 	return &udb.Individual{Address: address,
-		DType: []string{DTypeIndividual}}
+		DType: []string{udb.DTypeIndividual}}
 }
 
 func (cdgd *CDGD) NewIndividual(address string) (uid string, err error) {
@@ -257,7 +259,7 @@ func (cdgd *CDGD) GetIndividual(address string) (dbi *udb.Individual, err error)
 	// query quantum by signature
 	params := make(map[string]string)
 	params["$addr"] = address
-	params["$type"] = DTypeIndividual
+	params["$type"] = udb.DTypeIndividual
 	// DQL
 	q := `
 			query QueryIndividual($addr: string, $type: string){

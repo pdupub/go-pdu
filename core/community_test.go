@@ -45,7 +45,7 @@ func TestNewCommunity(t *testing.T) {
 
 	contents = append(contents, &QContent{Format: QCFmtStringHexAddress, Data: []byte(did.GetAddress().Hex())})
 
-	newQuantum, _ := NewQuantum(QuantumTypeRule, contents, baseSig)
+	newQuantum, _ := NewQuantum(QuantumTypeCommunity, contents, baseSig)
 	if err := newQuantum.Sign(creator); err != nil {
 		t.Error(err)
 	}

@@ -16,7 +16,10 @@
 
 package core
 
-import "github.com/pdupub/go-pdu/udb"
+import (
+	"github.com/pdupub/go-pdu/identity"
+	"github.com/pdupub/go-pdu/udb"
+)
 
 // Universe is struct contain all quantums which be received, select and accept by yourself.
 // Your universe may same or not with other's, usually your universe only contains part of whole
@@ -28,12 +31,25 @@ type Universe struct {
 	// database connection
 }
 
+// NewUniverse is
 func NewUniverse(db udb.UDB) (*Universe, error) {
 	universe := Universe{
 		db: db,
 	}
 
-	universe.db.NewIndividual("0xabc")
+	// //
+	// universe.db.NewIndividual("0xabc")
+	// universe.db.NewQuantum(&udb.Quantum{})
 
 	return &universe, nil
+}
+
+func (u *Universe) RecvQuantum(quantum *Quantum) error {
+
+	return nil
+}
+
+func (u *Universe) QueryQuantum(Address identity.Address, pageIndex int, pageSize int, desc bool) ([]*Quantum, error) {
+
+	return nil, nil
 }

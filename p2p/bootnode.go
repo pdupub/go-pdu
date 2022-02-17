@@ -17,11 +17,9 @@
 package p2p
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"io"
 	"math/big"
@@ -64,7 +62,6 @@ type BootNode struct {
 	Peers               []string       `json:"peers"`
 	IgnoreUnknownSource bool           `json:"ignoreUnknownSource"`
 	mutex               sync.RWMutex
-	db                  *bbolt.DB
 	universe            *core.Universe
 	logger              echo.Logger
 }
@@ -73,7 +70,6 @@ func NewBootNode(db *bbolt.DB, logger echo.Logger) *BootNode {
 	return &BootNode{
 		Uptime:              time.Now(),
 		Statuses:            map[string]int{},
-		db:                  db,
 		NextMsgID:           big.NewInt(1),
 		logger:              logger,
 		IgnoreUnknownSource: true,
@@ -119,142 +115,13 @@ func joinKey(keys ...interface{}) (resKey []byte) {
 	return resKey
 }
 
-// UpsertDBMsgs insert msgs into db if not exist on db
-func (bn *BootNode) UpsertDBMsgs(msgs []*msg.SignedMsg) error {
-	err := bn.db.Batch(func(tx *bbolt.Tx) (err error) {
-		b := tx.Bucket([]byte(BucketMsg))
-		if b == nil {
-			b, err = tx.CreateBucket([]byte(BucketMsg))
-			if err != nil {
-				return err
-			}
-		}
-		for _, m := range msgs {
-			mBytes, err := json.Marshal(m)
-			if err != nil {
-				return err
-			}
-			// msg-signature => message
-			msgKey := joinKey(PrefixMessage, m.Signature)
-			mOrigin := b.Get(msgKey)
-
-			personalCnt := big.NewInt(0)
-			author, err := m.Ecrecover()
-			if err != nil {
-				return err
-			}
-
-			if mOrigin != nil {
-				// already save, read personalCnt
-				lstKey := joinKey(PrefixLast, author)
-				if pcnt := b.Get(lstKey); pcnt == nil {
-					return ErrMessageNotRecord
-				} else {
-					lastCnt := new(big.Int).SetBytes(pcnt)
-					last := joinKey(PrefixIndividual, author, lastCnt)
-					cursor := b.Cursor()
-					prefix := joinKey(PrefixIndividual, author)
-					for k, sig := cursor.Seek(last); k != nil && bytes.HasPrefix(k, prefix); k, sig = cursor.Prev() {
-						if common.Bytes2Hex(sig) == common.Bytes2Hex(m.Signature) {
-							personalCnt.SetBytes(k[len(prefix)+1:])
-						}
-					}
-					if personalCnt.Cmp(big.NewInt(0)) <= 0 {
-						return ErrMessageNotRecord
-					}
-				}
-
-			} else {
-				// save msg for personal, 3 records
-				// msg-signature => message
-				if err := b.Put(msgKey, mBytes); err != nil {
-					return err
-				}
-				// lst-address => pcnt
-				lstKey := joinKey(PrefixLast, author)
-				if pcnt := b.Get(lstKey); pcnt != nil {
-					personalCnt = new(big.Int).SetBytes(pcnt)
-					personalCnt.Add(personalCnt, big.NewInt(1))
-				}
-				if err := b.Put(lstKey, personalCnt.Bytes()); err != nil {
-					return err
-				}
-
-				// ind-address-pcnt => signature
-				indKey := joinKey(PrefixIndividual, author, personalCnt)
-				if err := b.Put(indKey, m.Signature); err != nil {
-					return err
-				}
-			}
-
-			cntKey := joinKey(PrefixCount, m.Signature, author, personalCnt)
-			// check if the author in society before save scnt, sys and update NextMsgID
-			if _, err := bn.universe.GetSociety().GetIndividual(author); err == nil && b.Get(cntKey) == nil {
-				// cnt-signature-address-pcnt => scnt
-				if err := b.Put(cntKey, bn.NextMsgID.Bytes()); err != nil {
-					return err
-				}
-
-				// sys-scnt-address-pcnt => signature
-				sysKey := joinKey(PrefixSystem, bn.NextMsgID, author, personalCnt)
-				if err := b.Put(sysKey, m.Signature); err != nil {
-					return err
-				}
-
-				bn.mutex.Lock()
-				bn.NextMsgID.Add(bn.NextMsgID, big.NewInt(1))
-				bn.mutex.Unlock()
-			}
-
-		}
-
-		return nil
-	})
-	if err != nil {
-		bn.logger.Error(err)
-	}
-	return err
-}
-
 // LoadUniverse load msg from db
 func (bn *BootNode) LoadUniverse() error {
 	if bn.universe == nil {
 		bn.logger.Error(ErrUniverseNotExist)
 		return ErrUniverseNotExist
 	}
-
-	// load msg by order in db and receive
-	return bn.db.View(func(tx *bbolt.Tx) (err error) {
-		b := tx.Bucket([]byte(BucketMsg))
-		if b != nil {
-			cursor := b.Cursor()
-			prefix := joinKey(PrefixSystem)
-			for k, sig := cursor.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, sig = cursor.Next() {
-				curMsg := b.Get(joinKey(PrefixMessage, sig))
-				if curMsg == nil {
-					break
-				}
-				bn.NextMsgID.Add(bn.NextMsgID, big.NewInt(1))
-				m := new(msg.SignedMsg)
-				if err := json.Unmarshal(curMsg, m); err != nil {
-					bn.logger.Error(err)
-					continue
-				}
-
-				author, err := m.Ecrecover()
-				if err != nil {
-					bn.logger.Error(err)
-					continue
-				}
-
-				if _, err := bn.universe.ReceiveMsg(author, m.Signature, m.Content, m.References...); err != nil && err != core.ErrQuantumAlreadyExist {
-					bn.logger.Error(err)
-					continue
-				}
-			}
-		}
-		return nil
-	})
+	return nil
 }
 
 // Process is the middleware function used to count request.
@@ -297,73 +164,12 @@ func (bn *BootNode) newMsg(c echo.Context) error {
 }
 
 func (bn *BootNode) mergeDBMsgsByAuthor(author common.Address) error {
-
-	return bn.db.Batch(func(tx *bbolt.Tx) (err error) {
-		b := tx.Bucket([]byte(BucketMsg))
-		if b == nil {
-			return nil
-		}
-
-		// lst-address => pcnt
-		lstKey := joinKey(PrefixLast, author)
-		if pcnt := b.Get(lstKey); pcnt == nil {
-			// no msgs
-			return nil
-		} else {
-			personalCnt := new(big.Int).SetBytes(pcnt)
-			for i := int64(1); i < personalCnt.Int64(); i++ {
-				// ind-address-pcnt => signature
-				indKey := joinKey(PrefixIndividual, author, big.NewInt(i))
-				sig := b.Get(indKey)
-				if sig == nil {
-					break
-				}
-				// msg-signature => message
-				msgKey := joinKey(PrefixMessage, sig)
-				msgBytes := b.Get(msgKey)
-				if msgBytes == nil {
-					break
-				}
-
-				m := new(msg.SignedMsg)
-				if err := json.Unmarshal(msgBytes, m); err != nil {
-					return err
-				}
-
-				if err := bn.receiveMsg(m); err != nil {
-					return err
-				}
-			}
-		}
-
-		return nil
-	})
+	return nil
 }
 
 func (bn *BootNode) receiveMsg(m *msg.SignedMsg) error {
-	author, err := m.Ecrecover()
+	_, err := m.Ecrecover()
 	if err != nil {
-		return err
-	}
-
-	if quantum, err := bn.universe.ReceiveMsg(author, m.Signature, m.Content, m.References...); err == nil {
-		if err := bn.UpsertDBMsgs([]*msg.SignedMsg{m}); err != nil {
-			return err
-		}
-		if quantum.Type == core.QuantumTypeCreate && !bn.IgnoreUnknownSource {
-			if newbe, err := quantum.GetNewBorn(); err != nil {
-				bn.logger.Error(err)
-			} else {
-				if err := bn.mergeDBMsgsByAuthor(newbe); err != nil {
-					bn.logger.Error(err)
-				}
-			}
-		}
-	} else if err == core.ErrIndividualNotExistInSociety && !bn.IgnoreUnknownSource {
-		if err := bn.UpsertDBMsgs([]*msg.SignedMsg{m}); err != nil {
-			return err
-		}
-	} else {
 		return err
 	}
 	return nil
@@ -374,10 +180,6 @@ func (bn *BootNode) upload(c echo.Context) error {
 	author := c.FormValue("author")
 	signature := c.FormValue("signature")
 
-	if _, err := bn.universe.GetSociety().GetIndividual(common.HexToAddress(author)); err != nil {
-		bn.logger.Error(err)
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
 	file, err := c.FormFile("file")
 	if err != nil {
 		bn.logger.Error(err)
@@ -458,153 +260,37 @@ func (bn *BootNode) broadcastMsg(m *msg.SignedMsg) {
 }
 
 func (bn *BootNode) getSM(sig []byte) (*msg.SignedMsg, *big.Int, error) {
-	sm := new(msg.SignedMsg)
-	scnt := big.NewInt(0)
-	// load msg by order in db and receive
-	err := bn.db.View(func(tx *bbolt.Tx) (err error) {
-		b := tx.Bucket([]byte(BucketMsg))
-		if b != nil {
-			// msg-signature => message
-			msgKey := joinKey(PrefixMessage, sig)
-			curMsg := b.Get(msgKey)
-			if curMsg == nil {
-				return ErrMessageNotRecord
-			}
-			if err := json.Unmarshal(curMsg, sm); err != nil {
-				return err
-			}
+	return nil, nil, nil
 
-			// seek to find scnt
-			cursor := b.Cursor()
-			prefix := joinKey(PrefixCount, sig)
-			for k, v := cursor.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = cursor.Next() {
-				scnt.SetBytes(v)
-				break
-			}
-		}
-		return nil
-	},
-	)
-
-	if err != nil {
-		return nil, nil, err
-	}
-	return sm, scnt, nil
 }
 
 func (bn *BootNode) parseSM(sm *msg.SignedMsg) (map[string]interface{}, error) {
-
-	quantum := new(core.Quantum)
-	if err := json.Unmarshal(sm.Content, quantum); err != nil {
-		return nil, err
-	}
-
-	result := make(map[string]interface{})
-	result["type"] = quantum.Type
-	result["version"] = quantum.Version
-
-	data := make(map[string]interface{})
-	if quantum.Type == core.QuantumTypeInfo {
-		qData := new(core.QData)
-		if err := json.Unmarshal(quantum.Data, qData); err != nil {
-			// TODO:
-			data["text"] = string(quantum.Data)
-			result["data"] = data
-			return result, nil
-		}
-		data["text"] = qData.Text
-		data["quote"] = common.Bytes2Hex(qData.Quote)
-
-		ress := []interface{}{}
-		for _, resource := range qData.Resources {
-			res := make(map[string]interface{})
-			res["checksum"] = hex.EncodeToString(resource.Checksum)
-			res["data"] = resource.Data
-			res["format"] = resource.Format
-			ress = append(ress, res)
-		}
-		data["resources"] = ress
-	} else if quantum.Type == core.QuantumTypeCreate {
-		pBorn := new(core.PBorn)
-		if err := json.Unmarshal(quantum.Data, pBorn); err != nil {
-			return result, nil
-		}
-		data["address"] = pBorn.Addr.Hex()
-		sigs := []string{}
-		for _, sig := range pBorn.Signatures {
-			sigs = append(sigs, common.Bytes2Hex(sig))
-		}
-		data["sigs"] = sigs
-
-	} else if quantum.Type == core.QuantumTypeProfile {
-		var qProfile map[string]*core.QData
-		if err := json.Unmarshal(quantum.Data, &qProfile); err != nil {
-			return result, nil
-		}
-
-		data["name"] = qProfile["name"].Text
-		data["email"] = qProfile["email"].Text
-		data["bio"] = qProfile["bio"].Text
-		data["url"] = qProfile["url"].Text
-		data["location"] = qProfile["location"].Text
-		data["avatar"] = qProfile["avatar"].Resources
-		data["extra"] = qProfile["extra"]
-	}
-
-	result["data"] = data
-
-	return result, nil
+	return nil, nil
 }
 
 func (bn *BootNode) getProfile(c echo.Context) error {
-	author := common.HexToAddress(c.Param("uid"))
-	profile := bn.universe.GetSociety().GetIndividualProfile(author)
-	exist := true
-	_, err := bn.universe.GetSociety().GetIndividual(author)
-	if err != nil {
-		exist = false
-	}
-	if c.QueryParam("view") != "" {
-		detail := map[string]interface{}{
-			"cnt":     0,
-			"exist":   exist,
-			"profile": profile,
-		}
-		return c.Render(http.StatusOK, "detail.html", []interface{}{detail})
-	}
-	return c.JSON(http.StatusOK, profile)
+	// author := common.HexToAddress(c.Param("uid"))
+
+	// if c.QueryParam("view") != "" {
+	// 	detail := map[string]interface{}{
+	// 		"cnt":     0,
+	// 		"exist":   exist,
+	// 		"profile": profile,
+	// 	}
+	// 	return c.Render(http.StatusOK, "detail.html", []interface{}{detail})
+	// }
+	// return c.JSON(http.StatusOK, profile)
+	return nil
 }
 
 func (bn *BootNode) getDetail(c echo.Context) error {
-	author := common.HexToAddress(c.Param("uid"))
-	exist := true
-	_, err := bn.universe.GetSociety().GetIndividual(author)
-	if err != nil {
-		exist = false
-	}
-	profile := bn.universe.GetSociety().GetIndividualProfile(author)
-	personalCnt := big.NewInt(0)
-	bn.db.View(func(tx *bbolt.Tx) (err error) {
-		b := tx.Bucket([]byte(BucketMsg))
-		if b != nil {
-			lstKey := joinKey(PrefixLast, author)
-			pcnt := b.Get(lstKey)
-			if pcnt != nil {
-				personalCnt.SetBytes(pcnt)
-			}
-		}
-		return nil
-	})
-	detail := map[string]interface{}{
-		"cnt":     personalCnt,
-		"exist":   exist,
-		"profile": profile,
-	}
+	// author := common.HexToAddress(c.Param("uid"))
 
-	if c.QueryParam("view") != "" {
-		return c.Render(http.StatusOK, "detail.html", []interface{}{detail})
-	}
-	return c.JSON(http.StatusOK, detail)
+	// if c.QueryParam("view") != "" {
+	// 	return c.Render(http.StatusOK, "detail.html", []interface{}{detail})
+	// }
+	// return c.JSON(http.StatusOK, detail)
+	return nil
 }
 
 func (bn *BootNode) readDAGParam(c echo.Context) (keys []string, parentLimit, childLimit int) {
@@ -629,106 +315,19 @@ func (bn *BootNode) readDAGParam(c echo.Context) (keys []string, parentLimit, ch
 
 // getSociety is sample to display the topo of ID relation.
 func (bn *BootNode) getSociety(c echo.Context) error {
-	keys, parentLimit, childLimit := bn.readDAGParam(c)
-	societyData, err := bn.universe.GetSociety().Dump(keys, parentLimit, childLimit)
-	if err != nil {
-		bn.logger.Error(err)
-		return err
-	}
-
-	if c.QueryParam("view") != "" {
-		return c.Render(http.StatusOK, "topology.html", map[string]interface{}{
-			"data": societyData,
-			"name": "Society",
-		})
-	}
-	return c.JSON(http.StatusOK, societyData)
-
+	// return c.JSON(http.StatusOK, societyData)
+	return nil
 }
 
 // getEntropy is sample to display the topo of Event relation.
 func (bn *BootNode) getEntropy(c echo.Context) error {
-	keys, parentLimit, childLimit := bn.readDAGParam(c)
-	entropyData, err := bn.universe.GetEntropy().Dump(keys, parentLimit, childLimit)
-	if err != nil {
-		bn.logger.Error(err)
-		return err
-	}
-	if c.QueryParam("view") != "" {
-		return c.Render(http.StatusOK, "topology.html", map[string]interface{}{
-			"data": entropyData,
-			"name": "Entropy",
-		})
-	}
-	return c.JSON(http.StatusOK, entropyData)
+	// return c.JSON(http.StatusOK, entropyData)
+	return nil
 }
 
 func (bn *BootNode) getQuantums(c echo.Context) error {
-	var sms []*msg.SignedMsg // message slice
-
-	start, limit := 1, 10 // default query limit
-	if n, err := strconv.Atoi(c.QueryParam("start")); err == nil {
-		start = n
-	}
-	if n, err := strconv.Atoi(c.QueryParam("limit")); err == nil {
-		limit = n
-	}
-
-	desc := c.QueryParam("desc") != "" // default query oreder is by order inc
-
-	prefix := joinKey(PrefixSystem)
-	if c.QueryParam("author") != "" {
-		author := common.HexToAddress(c.QueryParam("author"))
-		prefix = joinKey(PrefixIndividual, author)
-	}
-	first := joinKey(prefix, big.NewInt(int64(start)))
-
-	err := bn.db.View(func(tx *bbolt.Tx) (err error) {
-		b := tx.Bucket([]byte(BucketMsg))
-		if b != nil {
-			cursor := b.Cursor()
-			// seek direct
-			cursorNext := cursor.Next
-			if desc {
-				cursorNext = cursor.Prev
-			}
-			// seek
-			for k, sig := cursor.Seek(first); k != nil && bytes.HasPrefix(k, prefix); k, sig = cursorNext() {
-				sm := new(msg.SignedMsg)
-				msgKey := joinKey(PrefixMessage, sig)
-				v := b.Get(msgKey)
-				if v == nil {
-					break
-				}
-				if err := json.Unmarshal(v, sm); err != nil {
-					return err
-				}
-				sms = append(sms, sm)
-				if len(sms) >= limit {
-					break
-				}
-			}
-		}
-		return nil
-	},
-	)
-	if err != nil {
-		bn.logger.Error(err)
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
-	if c.QueryParam("view") != "" {
-		var quantums []interface{}
-		for _, sm := range sms {
-			quantum, err := bn.parseSM(sm)
-			if err != nil {
-				bn.logger.Error(err)
-			}
-			quantums = append(quantums, quantum)
-		}
-		return c.Render(http.StatusOK, "quantums.html", quantums)
-	}
-	return c.JSON(http.StatusOK, sms)
+	// return c.JSON(http.StatusOK, sms)
+	return nil
 }
 
 func (bn *BootNode) parseSig(sig string) ([]byte, error) {
@@ -739,69 +338,13 @@ func (bn *BootNode) parseSig(sig string) ([]byte, error) {
 }
 
 func (bn *BootNode) getFullMsg(c echo.Context) error {
-	msgID, err := bn.parseSig(c.Param("sig"))
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-	sm, cnt, err := bn.getSM(msgID)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-	pcnt := big.NewInt(0)
-	err = bn.db.View(func(tx *bbolt.Tx) (err error) {
-		b := tx.Bucket([]byte(BucketMsg))
-		if b != nil {
-			author, _ := sm.Ecrecover()
-			lstKey := joinKey(PrefixLast, author)
-			v := b.Get(lstKey)
-			if v != nil {
-				pcnt.SetBytes(v)
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
-	if c.QueryParam("view") != "" {
-		quantumM, err := bn.parseSM(sm)
-		if err != nil {
-			bn.logger.Error(err)
-		}
-		quantums := []interface{}{quantumM}
-		return c.Render(http.StatusOK, "quantums.html", quantums)
-	}
-
-	return c.JSON(http.StatusOK, map[string]interface{}{"message": sm, "cnt": cnt, "pcnt": pcnt})
+	return nil
 }
 
 func (bn *BootNode) getMessage(c echo.Context) error {
-	msgID, err := bn.parseSig(c.Param("sig"))
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
-	sm, _, err := bn.getSM(msgID)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
-	if c.QueryParam("view") != "" {
-		quantumM, err := bn.parseSM(sm)
-		if err != nil {
-			bn.logger.Error(err)
-		}
-		quantums := []interface{}{quantumM}
-		return c.Render(http.StatusOK, "quantums.html", quantums)
-	}
-
-	return c.JSON(http.StatusOK, sm)
+	return nil
 }
 
 func (bn *BootNode) getLatest(c echo.Context) error {
-	latestID := bn.universe.GetEntropy().GetLastEventID(common.HexToAddress(c.Param("uid")))
-	c.SetParamNames("sig")
-	c.SetParamValues(common.Bytes2Hex(latestID))
-	return bn.getMessage(c)
+	return nil
 }

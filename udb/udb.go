@@ -16,6 +16,14 @@
 
 package udb
 
+// Value of DType is same with the name of type in schema (used for expand)
+const (
+	DTypeQuantum    = "quantum"
+	DTypeContent    = "content"
+	DTypeIndividual = "individual"
+	DTypeCommunity  = "community"
+)
+
 // Quantum is similar to type quantum in schema, with all the predicate of quantum and two more item UID & DType
 // All fields in Quantum is omitempy for JSON Marshal, not means this field can be omit in record, Only used for
 // database operation more efficient.
@@ -60,7 +68,7 @@ type Community struct {
 
 // UDB is ...
 type UDB interface {
-	SetQuantum(quantum *Quantum, address string) (uid string, err error)
+	NewQuantum(quantum *Quantum) (uid string, sid string, err error)
 	GetQuantum(sig string) (*Quantum, error)
 	NewIndividual(address string) (uid string, err error)
 	GetIndividual(address string) (*Individual, error)
