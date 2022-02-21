@@ -16,7 +16,7 @@
 
 package udb
 
-// Value of DType is same with the name of type in schema (used for expand)
+// Value of DType is same with the name of pdu.type in schema (used for expand)
 const (
 	DTypeQuantum    = "quantum"
 	DTypeContent    = "content"
@@ -28,21 +28,22 @@ const (
 // All fields in Quantum is omitempy for JSON Marshal, not means this field can be omit in record, Only used for
 // database operation more efficient.
 type Quantum struct {
-	UID      string      `json:"uid,omitempty"`
-	Sig      string      `json:"quantum.sig,omitempty"`
-	Type     int         `json:"quantum.type,omitempty"`
-	Refs     []*Quantum  `json:"quantum.refs,omitempty"`
-	Contents []*Content  `json:"quantum.contents,omitempty"`
-	Sender   *Individual `json:"quantum.sender,omitempty"`
-	DType    []string    `json:"dgraph.type,omitempty"`
+	UID       string      `json:"uid,omitempty"`
+	Sig       string      `json:"quantum.sig,omitempty"`
+	Type      int         `json:"quantum.type,omitempty"`
+	Refs      []*Quantum  `json:"quantum.refs,omitempty"`
+	Contents  []*Content  `json:"quantum.contents,omitempty"`
+	Sender    *Individual `json:"quantum.sender,omitempty"`
+	Timestamp int         `json:"quantum.timestamp,omitempty"`
+	DType     string      `json:"pdu.type,omitempty"`
 }
 
 // Content only set one for each quantum, will never update in any condition.
 type Content struct {
-	UID   string   `json:"uid,omitempty"`
-	Fmt   int      `json:"content.fmt,omitempty"`
-	Data  string   `json:"content.data,omitempty"`
-	DType []string `json:"dgraph.type,omitempty"`
+	UID   string `json:"uid,omitempty"`
+	Fmt   int    `json:"content.fmt,omitempty"`
+	Data  string `json:"content.data,omitempty"`
+	DType string `json:"pdu.type,omitempty"`
 }
 
 // Individual record be created only with Address field, community & quantums can be add when new quantum be accept by system.
@@ -50,27 +51,27 @@ type Individual struct {
 	UID         string       `json:"uid,omitempty"`
 	Address     string       `json:"individual.address,omitempty"`
 	Communities []*Community `json:"individual.communities,omitempty"`
-	Quantums    []*Quantum   `json:"individual.quantums,omitempty"`
-	DType       []string     `json:"dgraph.type,omitempty"`
+	DType       string       `json:"pdu.type,omitempty"`
 }
 
 // Community record be created when rule quantum be accept by system, Invitations & Memebers can be updated.
 type Community struct {
-	UID          string        `json:"uid,omitempty"`
-	Base         *Quantum      `json:"community.base,omitempty"`
-	Invitations  []*Quantum    `json:"community.invitations,omitempty"`
-	MaxInviteCnt int           `json:"community.maxInviteCnt,omitempty"`
-	MinCosignCnt int           `json:"community.minCosignCnt,omitempty"`
-	Members      []*Individual `json:"community.members,omitempty"`
-	Rule         *Quantum      `json:"community.rule,omitempty"`
-	DType        []string      `json:"dgraph.type,omitempty"`
+	UID          string     `json:"uid,omitempty"`
+	Note         *Content   `json:"community.note,omitempty"`
+	Base         *Community `json:"community.base,omitempty"`
+	MaxInviteCnt int        `json:"community.maxInviteCnt,omitempty"`
+	MinCosignCnt int        `json:"community.minCosignCnt,omitempty"`
+	Define       *Quantum   `json:"community.define,omitempty"`
+	DType        string     `json:"pdu.type,omitempty"`
 }
 
 // UDB is ...
 type UDB interface {
-	NewQuantum(quantum *Quantum) (uid string, sid string, err error)
+	SetSchema() error
+	NewQuantum(quantum *Quantum) (qid string, sid string, err error)
+	QueryQuantum(address string, qType int, pageIndex int, pageSize int, desc bool) ([]*Quantum, error)
 	GetQuantum(sig string) (*Quantum, error)
-	NewIndividual(address string) (uid string, err error)
 	GetIndividual(address string) (*Individual, error)
+	DropData() error
 	Close() error
 }

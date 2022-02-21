@@ -21,28 +21,23 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/pdupub/go-pdu/params"
 	"github.com/pdupub/go-pdu/udb"
 )
 
-// url & api token
-const (
-	testUrl   = "https://blue-surf-570228.us-east-1.aws.cloud.dgraph.io/graphql"
-	testToken = "OTNiNjMyMTM1ODU3ZWE2NWU3YWQyNmM2MzgwZmViODg="
-)
-
 func TestUDBQuantum(t *testing.T) {
-	cdgd, err := New(testUrl, testToken)
+	cdgd, err := New(params.TestDGraphURL, params.TestDGraphToken)
 	if err != nil {
 		t.Error(err)
 	}
 
 	defer cdgd.Close()
 
-	if err := cdgd.initSchema(); err != nil {
+	if err := cdgd.SetSchema(); err != nil {
 		t.Error(err)
 	}
 
-	if err := cdgd.dropData(); err != nil {
+	if err := cdgd.DropData(); err != nil {
 		t.Error(err)
 	}
 
@@ -53,6 +48,7 @@ func TestUDBQuantum(t *testing.T) {
 	sender2 := "0xa02"
 
 	// test1 : quantum with empty refs
+	t.Log("----------------------------------------------------------------------------------")
 	quantum := &udb.Quantum{
 		Sig:  sig3,
 		Type: 1,
@@ -69,6 +65,7 @@ func TestUDBQuantum(t *testing.T) {
 	}
 
 	// test2 : quantum fill empty quantum
+	t.Log("----------------------------------------------------------------------------------")
 	quantum = &udb.Quantum{
 		Sig:  sig1,
 		Type: 1,
@@ -83,6 +80,7 @@ func TestUDBQuantum(t *testing.T) {
 		t.Error(err)
 	}
 	// test3 : quantum fill empty quantum
+	t.Log("----------------------------------------------------------------------------------")
 	quantum = &udb.Quantum{
 		Sig:  sig2,
 		Type: 2,
@@ -94,10 +92,38 @@ func TestUDBQuantum(t *testing.T) {
 		Sender: &udb.Individual{Address: sender1},
 	}
 
-	if _, _, _, err := sgcheck(cdgd, t, quantum, sender1); err != nil {
+	_, _, sid, err := sgcheck(cdgd, t, quantum, sender1)
+	if err != nil {
 		t.Error(err)
 	}
 
+	dbi, err := cdgd.GetIndividual(sender1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(dbi)
+	individual := &udb.Individual{
+		UID: sid,
+	}
+	t.Log(individual.Address)
+	dbi, err = cdgd.GetIndividual(sender1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(dbi)
+
+	// test 4 query quantum by user
+	t.Log("----------------------------------------------------------------------------------")
+	quantums, err := cdgd.QueryQuantum(sender1, 0, 1, 10, false)
+	if err != nil {
+		t.Error(err)
+	}
+	for _, q := range quantums {
+		res, _ := json.Marshal(q)
+		t.Log("quantum", string(res))
+	}
 }
 
 func sgcheck(cdgd *CDGD, t *testing.T, quantum *udb.Quantum, sender string) (dbQ *udb.Quantum, uid string, sid string, err error) {

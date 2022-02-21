@@ -52,13 +52,15 @@ const (
 	QuantumTypeProfile = 2
 
 	// QuantumTypeCommunity specifies the quantum of rule to build new community
-	// contents[0] is base community of current community
+	// contents[0] is the display information of current community
+	// {fmt:QCFmtStringJSON/QCFmtStringTEXT..., data: ...}
+	// contents[1] is base community of current community
 	// {fmt:QCFmtBytesSignature, data:signature of base community rule quantum}
-	// contents[1] is the number of invitation (co-signature) from users in current community
+	// contents[2] is the number of invitation (co-signature) from users in current community
 	// {fmt:QCFmtStringInt, data:1} at least 1. (creater is absolutely same with others)
-	// contents[2] is the max number of invitation by one user
+	// contents[3] is the max number of invitation by one user
 	// {fmt:QCFmtStringInt, data:1} -1 means no limit, 0 means not allowed
-	// contents[3] ~ contents[15] is the initial users in this community
+	// contents[4] ~ contents[15] is the initial users in this community
 	// {fmt:QCFmtBytesAddress, data:0x1232...}
 	// signer of this community is also the initial user in this community
 	QuantumTypeCommunity = 3

@@ -20,7 +20,10 @@ import (
 	"testing"
 )
 
-func TestUDB(t *testing.T) {
+func TestDGraph(t *testing.T) {
+	t.Log("Test DGraph")
+}
 
-	t.Log("Test UDB")
+func TestBBlot(t *testing.T) {
+	t.Log("Test bblot")
 }

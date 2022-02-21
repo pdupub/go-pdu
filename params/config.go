@@ -26,6 +26,12 @@ const (
 	DefaultPort = 1323
 )
 
+// url & api token
+const (
+	TestDGraphURL   = "https://blue-surf-570228.us-east-1.aws.cloud.dgraph.io/graphql"
+	TestDGraphToken = "OTNiNjMyMTM1ODU3ZWE2NWU3YWQyNmM2MzgwZmViODg="
+)
+
 // for test
 const (
 	TestPassword = "1"

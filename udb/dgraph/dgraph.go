@@ -19,6 +19,9 @@ package dgraph
 import (
 	"context"
 	"encoding/json"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
@@ -35,10 +38,10 @@ type CDGD struct {
 
 // QueryResultRoot is used for UnMarshal query response
 type QueryResultRoot struct {
-	QuantumRes    []udb.Quantum    `json:"quantum"`
-	ContentRes    []udb.Content    `json:"content"`
-	IndividualRes []udb.Individual `json:"individual"`
-	CommunityRes  []udb.Community  `json:"community"`
+	QuantumRes    []*udb.Quantum    `json:"quantum"`
+	ContentRes    []*udb.Content    `json:"content"`
+	IndividualRes []*udb.Individual `json:"individual"`
+	CommunityRes  []*udb.Community  `json:"community"`
 }
 
 func New(url, token string) (*CDGD, error) {
@@ -63,7 +66,7 @@ func (cdgd *CDGD) Close() error {
 	return cdgd.conn.Close()
 }
 
-func (cdgd *CDGD) initSchema() error {
+func (cdgd *CDGD) SetSchema() error {
 	// empty operation
 	op := &api.Operation{}
 	// Individual, has only 1 field address (string)
@@ -72,26 +75,26 @@ func (cdgd *CDGD) initSchema() error {
 	return cdgd.dg.Alter(cdgd.ctx, op)
 }
 
-func (cdgd *CDGD) dropData() error {
+func (cdgd *CDGD) DropData() error {
 	return cdgd.dg.Alter(cdgd.ctx, &api.Operation{DropOp: api.Operation_DATA})
 }
 
 // NewQuantum works like set operation in DQL (upsert), but by the signature not uid.
-func (cdgd *CDGD) NewQuantum(quantum *udb.Quantum) (uid string, sid string, err error) {
+func (cdgd *CDGD) NewQuantum(quantum *udb.Quantum) (qid string, sid string, err error) {
 	// try to find quantum with same sig in db
 	lastQuantum, err := cdgd.GetQuantum(quantum.Sig)
 	if err != nil {
-		return uid, sid, err
+		return qid, sid, err
 	}
 
 	// if exist
 	if lastQuantum != nil {
-		uid = lastQuantum.UID
+		qid = lastQuantum.UID
 		// return if exist, not empty
 		// exist quantum can not be change by any condition
-		if lastQuantum.Type != 0 {
+		if lastQuantum.Sender != nil {
 			sid = lastQuantum.Sender.UID
-			return uid, sid, nil
+			return qid, sid, nil
 		}
 	}
 
@@ -99,7 +102,7 @@ func (cdgd *CDGD) NewQuantum(quantum *udb.Quantum) (uid string, sid string, err 
 	for _, v := range quantum.Refs {
 		dbQ, err := cdgd.GetQuantum(v.Sig)
 		if err != nil {
-			return uid, sid, err
+			return qid, sid, err
 		}
 		if dbQ != nil {
 			// each predicate in struct must be omitempty to avoid remove value
@@ -110,11 +113,11 @@ func (cdgd *CDGD) NewQuantum(quantum *udb.Quantum) (uid string, sid string, err 
 	}
 	contents := []*udb.Content{}
 	for _, v := range quantum.Contents {
-		contents = append(contents, &udb.Content{Fmt: v.Fmt, Data: v.Data, DType: []string{udb.DTypeContent}})
+		contents = append(contents, &udb.Content{Fmt: v.Fmt, Data: v.Data, DType: udb.DTypeContent})
 	}
 	sender, err := cdgd.GetIndividual(quantum.Sender.Address)
 	if err != nil {
-		return uid, sid, err
+		return qid, sid, err
 	}
 	if sender == nil {
 		sender = cdgd.buildEmptyIndividual(quantum.Sender.Address)
@@ -122,16 +125,17 @@ func (cdgd *CDGD) NewQuantum(quantum *udb.Quantum) (uid string, sid string, err 
 		sid = sender.UID
 	}
 	p := udb.Quantum{
-		UID:      uid,
-		DType:    []string{udb.DTypeQuantum},
-		Sig:      quantum.Sig,
-		Type:     quantum.Type,
-		Refs:     refs,
-		Contents: contents,
-		Sender:   sender,
+		UID:       qid,
+		DType:     udb.DTypeQuantum,
+		Sig:       quantum.Sig,
+		Type:      quantum.Type,
+		Refs:      refs,
+		Contents:  contents,
+		Sender:    sender,
+		Timestamp: int(time.Now().UnixNano()),
 	}
 
-	if uid == "" {
+	if qid == "" {
 		p.UID = "_:QuantumUID"
 	}
 
@@ -144,28 +148,92 @@ func (cdgd *CDGD) NewQuantum(quantum *udb.Quantum) (uid string, sid string, err 
 	}
 	pb, err := json.Marshal(p)
 	if err != nil {
-		return uid, sid, err
+		return qid, sid, err
 	}
 
 	mu.SetJson = pb
 	resp, err := cdgd.dg.NewTxn().Mutate(cdgd.ctx, mu)
 	if err != nil {
-		return uid, sid, err
+		return qid, sid, err
 	}
 
-	if uid == "" {
-		uid = resp.Uids["QuantumUID"]
+	if qid == "" {
+		qid = resp.Uids["QuantumUID"]
 	}
 	if sid == "" {
 		sid = resp.Uids["IndividualUID"]
 	}
 
-	return uid, sid, nil
+	return qid, sid, nil
 }
 
 func (cdgd *CDGD) buildEmptyQuantum(sig string) *udb.Quantum {
 	return &udb.Quantum{Sig: sig,
-		DType: []string{udb.DTypeQuantum}}
+		DType: udb.DTypeQuantum}
+}
+
+// QueryQuantum is query quantums by params
+// if address == "" then ignore the sender
+// if qType == 0    then ignore the type of quantum
+// if pageIndex < 1 then pageIndex = 1
+// if pageSize < 0  then ignore the page size
+func (cdgd *CDGD) QueryQuantum(address string, qType int, pageIndex int, pageSize int, desc bool) ([]*udb.Quantum, error) {
+
+	if pageIndex < 1 {
+		pageIndex = 1
+	}
+	params := make(map[string]string)
+	params["$address"] = address
+	params["$dtype"] = udb.DTypeIndividual
+	params["$first"] = strconv.Itoa(pageSize)
+	params["$offset"] = strconv.Itoa((pageIndex - 1) * pageSize)
+
+	// DQL
+	q := `
+			query QueryQuantum($address: string, $dtype: string, $first: int, $offset: int){
+				res(func: eq( individual.address, $address)) @filter(eq(pdu.type, $dtype)){
+					uid
+					quantum: ~quantum.sender FILTER_QTYPE (first: $first, offset: $offset ORDER) {
+						uid
+						expand(quantum){
+							uid
+							expand(quantum, individual, content)
+							pdu.type
+						}
+						pdu.type
+					}
+				}
+			}
+		`
+	//
+	if qType <= 0 {
+		q = strings.Replace(q, "FILTER_QTYPE", "", -1)
+	} else {
+		q = strings.Replace(q, "FILTER_QTYPE", "@filter(eq(quantum.type, "+strconv.Itoa(qType)+"))", -1)
+	}
+
+	if desc {
+		q = strings.Replace(q, "ORDER", ", orderdesc: quantum.timestamp", -1)
+	} else {
+		q = strings.Replace(q, "ORDER", ", orderasc: quantum.timestamp", -1)
+	}
+
+	// send query request
+	resp, err := cdgd.dg.NewTxn().QueryWithVars(cdgd.ctx, q, params)
+	if err != nil {
+		return nil, err
+	}
+
+	type RespRes struct {
+		Result []*QueryResultRoot `json:"res"`
+	}
+	var r RespRes
+	err = json.Unmarshal(resp.Json, &r)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Result[0].QuantumRes, nil
 }
 
 // GetQuantum query the Quantum by Signature of Quantum
@@ -177,26 +245,14 @@ func (cdgd *CDGD) GetQuantum(sig string) (dbq *udb.Quantum, err error) {
 	// DQL
 	q := `
 			query QueryQuantum($sig: string, $type: string){
-				quantum(func: eq(quantum.sig, $sig)) @filter(eq(dgraph.type, $type)){
+				quantum(func: eq(quantum.sig, $sig)) @filter(eq(pdu.type, $type)){
 					uid
-					quantum.contents {
+					expand(quantum){
 						uid
-						expand(content)
-						dgraph.type
+						expand(quantum, individual, content)
+						pdu.type
 					}
-					quantum.refs {
-						uid
-						expand(quantum)
-						dgraph.type
-					}
-					quantum.sender{
-						uid
-						expand(individual)
-						dgraph.type
-					}
-					quantum.sig
-					quantum.type
-					dgraph.type
+					pdu.type
 				}
 			}
 		`
@@ -212,46 +268,13 @@ func (cdgd *CDGD) GetQuantum(sig string) (dbq *udb.Quantum, err error) {
 		return nil, err
 	}
 
-	dbq = &r.QuantumRes[0]
+	dbq = r.QuantumRes[0]
 	return dbq, nil
 }
 
 func (cdgd *CDGD) buildEmptyIndividual(address string) *udb.Individual {
 	return &udb.Individual{Address: address,
-		DType: []string{udb.DTypeIndividual}}
-}
-
-func (cdgd *CDGD) NewIndividual(address string) (uid string, err error) {
-	lastIndividual, err := cdgd.GetIndividual(address)
-	if err != nil {
-		return uid, err
-	}
-
-	// if exist
-	if lastIndividual != nil {
-		uid = lastIndividual.UID
-		return uid, nil
-	}
-
-	p := cdgd.buildEmptyIndividual(address)
-	p.UID = "_:IndividualUID"
-
-	mu := &api.Mutation{
-		CommitNow: true,
-	}
-	pb, err := json.Marshal(p)
-	if err != nil {
-		return uid, err
-	}
-
-	mu.SetJson = pb
-	resp, err := cdgd.dg.NewTxn().Mutate(cdgd.ctx, mu)
-	if err != nil {
-		return uid, err
-	}
-	uid = resp.Uids["IndividualUID"]
-
-	return uid, nil
+		DType: udb.DTypeIndividual}
 }
 
 // GetIndividual query the Individual by Address Hex
@@ -263,20 +286,14 @@ func (cdgd *CDGD) GetIndividual(address string) (dbi *udb.Individual, err error)
 	// DQL
 	q := `
 			query QueryIndividual($addr: string, $type: string){
-				individual(func: eq(individual.address, $addr)) @filter(eq(dgraph.type, $type)){
+				individual(func: eq(individual.address, $addr)) @filter(eq(pdu.type, $type)){
 					uid
-					individual.address
-					individual.communities {
+					expand(individual) {
 						uid
-						expand(community)
-						dgraph.type
+					  	expand(community)
+					  	pdu.type
 					}
-					individual.quantums {
-						uid
-						expand(quantums)
-						dgraph.type
-					}
-					dgraph.type
+					pdu.type
 				}
 			}
 		`
@@ -291,6 +308,6 @@ func (cdgd *CDGD) GetIndividual(address string) (dbi *udb.Individual, err error)
 	if err != nil || len(r.IndividualRes) != 1 {
 		return dbi, err
 	}
-	dbi = &r.IndividualRes[0]
+	dbi = r.IndividualRes[0]
 	return dbi, nil
 }

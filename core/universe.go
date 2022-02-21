@@ -37,19 +37,53 @@ func NewUniverse(db udb.UDB) (*Universe, error) {
 		db: db,
 	}
 
-	// //
-	// universe.db.NewIndividual("0xabc")
-	// universe.db.NewQuantum(&udb.Quantum{})
-
 	return &universe, nil
 }
 
 func (u *Universe) RecvQuantum(quantum *Quantum) error {
 
+	dbQuantum := ToUDBQuantum(quantum, "", "")
+	_, _, err := u.db.NewQuantum(dbQuantum)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func (u *Universe) QueryQuantum(Address identity.Address, pageIndex int, pageSize int, desc bool) ([]*Quantum, error) {
+func (u *Universe) QueryQuantum(address identity.Address, qType int, pageIndex int, pageSize int, desc bool) []*Quantum {
+	dbQuantums, err := u.db.QueryQuantum(address.Hex(), qType, pageIndex, pageSize, desc)
+	if err != nil {
+		return nil
+	}
+	quantum := []*Quantum{}
+	for _, v := range dbQuantums {
+		q, _, _ := FromUDBQuantum(v)
+		quantum = append(quantum, q)
+	}
+	return quantum
+}
 
-	return nil, nil
+func (u *Universe) QueryIndividual(community *Community) []*Individual {
+	return nil
+}
+
+func (u *Universe) QueryCommunity(community *Community) []*Community {
+	return nil
+}
+
+func (u *Universe) GetIndividual(address identity.Address) *Individual {
+	dbIndividual, err := u.db.GetIndividual(address.Hex())
+	if err != nil {
+		return nil
+	}
+	individual, _ := FromUDBIndividual(dbIndividual)
+	return individual
+}
+func (u *Universe) GetQuantum(sig Sig) *Quantum {
+	dbQuantum, err := u.db.GetQuantum(Sig2Hex(sig))
+	if err != nil {
+		return nil
+	}
+	quantum, _, _ := FromUDBQuantum(dbQuantum)
+	return quantum
 }

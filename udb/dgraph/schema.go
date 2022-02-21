@@ -19,29 +19,34 @@ package dgraph
 // Schema defines data struct by DQL, if current server accept unchecked refs, then
 // create new quantum if sig in refs is not exist in system. or reject the quantum if not.
 const Schema = `
-community.base: uid .
-community.invitations: [uid] .
+# -- common --
+pdu.type: string @index(hash) .
+# -- community --
+community.note: uid .	# uid of content, first content of quantum which define this community
+community.base: uid .	# uid of community, base.define is the base quantum of define quantum
 community.maxInviteCnt: int .
-community.members: [uid] .
 community.minCosignCnt: int .
-community.rule: uid .
+community.define: uid . # uid of quantum, quantum which define current community
+# -- content --
 content.data: string .
 content.fmt: int @index(int) .
+# -- individual --
 individual.address: string @index(hash) .
-individual.communities: [uid] .
-individual.quantums: [uid] .
-quantum.contents: [uid] .
-quantum.refs: [uid] .
-quantum.sender: uid .
+individual.communities: [uid] @reverse . # uid of community, which current individual is member
+# -- quantum --
+quantum.contents: [uid] .  # uid of contents
+quantum.refs: [uid] @reverse .  # uid of quantums
+quantum.sender: uid @reverse .  # uid of individual
 quantum.sig: string @index(hash) .
 quantum.type: int @index(int) .
+quantum.timestamp: int @index(int) .
+# -- types --
 type community {
+	community.note
 	community.base
-	community.invitations
 	community.maxInviteCnt
-	community.members
 	community.minCosignCnt
-	community.rule
+	community.define
 }
 type content {
 	content.data
@@ -50,7 +55,6 @@ type content {
 type individual {
 	individual.address
 	individual.communities
-	individual.quantums
 }
 type quantum {
 	quantum.contents
@@ -58,4 +62,5 @@ type quantum {
 	quantum.sender
 	quantum.sig
 	quantum.type
+	quantum.timestamp
 }`
