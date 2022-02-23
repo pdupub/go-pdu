@@ -41,11 +41,13 @@ func TestUDBQuantum(t *testing.T) {
 		t.Error(err)
 	}
 
-	sig1 := "0x001"
-	sig2 := "0x002"
-	sig3 := "0x003"
+	sig1 := "0x001" // used by test 2
+	sig2 := "0x002" // used by test 3
+	sig3 := "0x003" // used by test 1
+	sig4 := "0x004" // used by test 5
 	sender1 := "0xa01"
 	sender2 := "0xa02"
+	sender3 := "0xa03"
 
 	// test1 : quantum with empty refs
 	t.Log("----------------------------------------------------------------------------------")
@@ -124,6 +126,61 @@ func TestUDBQuantum(t *testing.T) {
 		res, _ := json.Marshal(q)
 		t.Log("quantum", string(res))
 	}
+
+	// test 5 add & get community
+	// direct save as community, not by quantum
+	t.Log("----------------------------------------------------------------------------------")
+	quantum = &udb.Quantum{
+		Sig:  sig4,
+		Type: 3,
+		Refs: []*udb.Quantum{{Sig: sig2}, {Sig: sig3}},
+		Contents: []*udb.Content{{
+			Fmt:  1,
+			Data: "First Community", // note
+		}, {
+			Fmt:  33,
+			Data: "", // base community
+		}, {
+			Fmt:  4,
+			Data: "1", // minCosignCnt
+		}, {
+			Fmt:  4,
+			Data: "2", // maxInviteCnt
+		}, {
+			Fmt:  6,
+			Data: sender2, // initMembers
+		}, {
+			Fmt:  6,
+			Data: sender3, //  initMembers
+		},
+		},
+		Sender: &udb.Individual{Address: sender1},
+	}
+
+	_, _, _, err = sgcheck(cdgd, t, quantum, sender1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	community := &udb.Community{
+		MaxInviteCnt: 2,
+		MinCosignCnt: 1,
+		Define:       &udb.Quantum{Sig: sig4},
+		InitMembers:  []*udb.Individual{{Address: sender2}, {Address: sender3}},
+	}
+	cid, err := cdgd.NewCommunity(community)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log("cid", cid)
+	community2, err := cdgd.GetCommunity(sig4)
+	if err != nil {
+		t.Error(err)
+	}
+	c2, _ := json.Marshal(community2)
+
+	t.Log(string(c2))
 }
 
 func sgcheck(cdgd *CDGD, t *testing.T, quantum *udb.Quantum, sender string) (dbQ *udb.Quantum, uid string, sid string, err error) {

@@ -25,7 +25,6 @@ type Individual struct {
 	Address     identity.Address     `json:"address"`
 	Profile     map[string]*QContent `json:"profile"`
 	Communities []*Community         `json:"communities"`
-	Quantums    []*Quantum           `json:"quantums"`
 }
 
 func NewIndividual(address identity.Address) *Individual {

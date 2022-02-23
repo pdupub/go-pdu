@@ -26,7 +26,8 @@ community.note: uid .	# uid of content, first content of quantum which define th
 community.base: uid .	# uid of community, base.define is the base quantum of define quantum
 community.maxInviteCnt: int .
 community.minCosignCnt: int .
-community.define: uid . # uid of quantum, quantum which define current community
+community.define: uid @reverse . # uid of quantum, quantum which define current community
+community.initMembers: [uid] .   # uid of individual, only init members, not creator, not invited individuals
 # -- content --
 content.data: string .
 content.fmt: int @index(int) .
@@ -47,6 +48,7 @@ type community {
 	community.maxInviteCnt
 	community.minCosignCnt
 	community.define
+	community.initMembers
 }
 type content {
 	content.data

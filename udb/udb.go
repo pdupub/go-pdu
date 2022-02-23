@@ -56,13 +56,14 @@ type Individual struct {
 
 // Community record be created when rule quantum be accept by system, Invitations & Memebers can be updated.
 type Community struct {
-	UID          string     `json:"uid,omitempty"`
-	Note         *Content   `json:"community.note,omitempty"`
-	Base         *Community `json:"community.base,omitempty"`
-	MaxInviteCnt int        `json:"community.maxInviteCnt,omitempty"`
-	MinCosignCnt int        `json:"community.minCosignCnt,omitempty"`
-	Define       *Quantum   `json:"community.define,omitempty"`
-	DType        string     `json:"pdu.type,omitempty"`
+	UID          string        `json:"uid,omitempty"`
+	Note         *Content      `json:"community.note,omitempty"`
+	Base         *Community    `json:"community.base,omitempty"`
+	MaxInviteCnt int           `json:"community.maxInviteCnt,omitempty"`
+	MinCosignCnt int           `json:"community.minCosignCnt,omitempty"`
+	Define       *Quantum      `json:"community.define,omitempty"` // creator is sender of Define
+	InitMembers  []*Individual `json:"community.initMembers,omitempty"`
+	DType        string        `json:"pdu.type,omitempty"`
 }
 
 // UDB is ...
@@ -72,6 +73,9 @@ type UDB interface {
 	QueryQuantum(address string, qType int, pageIndex int, pageSize int, desc bool) ([]*Quantum, error)
 	GetQuantum(sig string) (*Quantum, error)
 	GetIndividual(address string) (*Individual, error)
+	NewCommunity(community *Community) (cid string, err error)
+	GetCommunity(sig string) (*Community, error)
+	JoinCommunity(defineSig string, address string) (cid string, sid string, err error)
 	DropData() error
 	Close() error
 }

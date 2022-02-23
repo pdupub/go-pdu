@@ -19,6 +19,7 @@ package dgraph
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -27,6 +28,11 @@ import (
 	"github.com/dgraph-io/dgo/v210/protos/api"
 	"github.com/pdupub/go-pdu/udb"
 	"google.golang.org/grpc"
+)
+
+var (
+	ErrQuantumMissing    = errors.New("quantum missing")
+	ErrIndividualMissing = errors.New("individual missing")
 )
 
 // CDGD is root struct for operate Cloud DGraph Database
@@ -310,4 +316,160 @@ func (cdgd *CDGD) GetIndividual(address string) (dbi *udb.Individual, err error)
 	}
 	dbi = r.IndividualRes[0]
 	return dbi, nil
+}
+
+// NewCommunity
+func (cdgd *CDGD) NewCommunity(community *udb.Community) (cid string, err error) {
+	// check quantum uid must exist
+	if community.Define == nil {
+		return cid, ErrQuantumMissing
+	}
+
+	// get define by community define sig
+	if community.Define.Sig == "" {
+		return cid, ErrQuantumMissing
+	}
+	quantum, err := cdgd.GetQuantum(community.Define.Sig)
+	if err != nil {
+		return cid, err
+	}
+	if quantum.Sender == nil {
+		return cid, ErrIndividualMissing
+	}
+
+	community.Define = quantum
+
+	// check countents length
+	if len(quantum.Contents) < 4 {
+		return cid, ErrQuantumMissing
+	}
+
+	// use quantum's first content uid as uid of note
+	community.Note = &udb.Content{UID: quantum.Contents[0].UID}
+
+	// set base by uid
+	// if uid of base community exist , it must alse be exist in database
+	if community.Base != nil && community.Base.Define != nil {
+		baseCommunity, err := cdgd.GetCommunity(community.Base.Define.Sig)
+		if err != nil {
+			return cid, err
+		}
+		community.Base = &udb.Community{UID: baseCommunity.UID}
+	}
+
+	// set initMembers by uid
+	for _, v := range community.InitMembers {
+		if v.Address == "" {
+			return cid, ErrIndividualMissing
+		}
+		individual, err := cdgd.GetIndividual(v.Address)
+		if err != nil {
+			return cid, err
+		}
+
+		if individual == nil {
+			community.InitMembers = append(community.InitMembers, cdgd.buildEmptyIndividual(v.Address))
+		} else {
+			community.InitMembers = append(community.InitMembers, individual)
+		}
+	}
+
+	community.DType = udb.DTypeCommunity
+	community.UID = "_:CommunityUID"
+
+	mu := &api.Mutation{
+		CommitNow: true,
+	}
+	pb, err := json.Marshal(community)
+	if err != nil {
+		return cid, err
+	}
+
+	mu.SetJson = pb
+	resp, err := cdgd.dg.NewTxn().Mutate(cdgd.ctx, mu)
+	if err != nil {
+		return cid, err
+	}
+
+	cid = resp.Uids["CommunityUID"]
+
+	// creator join community
+	cdgd.JoinCommunity(community.Define.Sig, community.Define.Sender.Address)
+
+	// init members join community
+	for _, v := range community.InitMembers {
+		cdgd.JoinCommunity(community.Define.Sig, v.Address)
+	}
+	return cid, err
+}
+
+func (cdgd *CDGD) JoinCommunity(defineSig string, address string) (cid string, sid string, err error) {
+
+	// update individual.community of creator & initMembers
+	community, _ := cdgd.GetCommunity(defineSig)
+	cid = community.UID
+	individual, _ := cdgd.GetIndividual(address)
+	sid = individual.UID
+	individual.Communities = append(individual.Communities, community)
+	mu := &api.Mutation{
+		CommitNow: true,
+	}
+	pb, err := json.Marshal(individual)
+	if err != nil {
+		return cid, sid, err
+	}
+
+	mu.SetJson = pb
+	_, err = cdgd.dg.NewTxn().Mutate(cdgd.ctx, mu)
+	if err != nil {
+		return cid, sid, err
+	}
+
+	return cid, sid, nil
+}
+
+func (cdgd *CDGD) GetCommunity(sig string) (dbc *udb.Community, err error) {
+
+	params := make(map[string]string)
+	params["$sig"] = sig
+	params["$dtype"] = udb.DTypeQuantum
+
+	// DQL
+	q := `
+			query QueryCommunity($sig: string, $dtype: string){
+				res(func: eq(quantum.sig, $sig)) @filter(eq(pdu.type, $dtype)){
+					uid
+					community: ~community.define {
+						uid
+						expand(community){
+							uid
+							expand(community, content, quantum, individual)
+							pdu.type
+						}
+						pdu.type
+					}
+				}
+			}
+		`
+
+	// send query request
+	resp, err := cdgd.dg.NewTxn().QueryWithVars(cdgd.ctx, q, params)
+	if err != nil {
+		return nil, err
+	}
+
+	type RespRes struct {
+		Result []*QueryResultRoot `json:"res"`
+	}
+	var r RespRes
+	err = json.Unmarshal(resp.Json, &r)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(r.Result) > 0 && len(r.Result[0].CommunityRes) > 0 {
+		dbc = r.Result[0].CommunityRes[0]
+	}
+
+	return dbc, nil
 }

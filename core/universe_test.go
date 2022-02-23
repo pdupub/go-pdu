@@ -140,10 +140,6 @@ func TestNewUniverse(t *testing.T) {
 func showIndividual(t *testing.T, individual *Individual) {
 	t.Log("individual")
 	t.Log("address", individual.Address.Hex())
-	t.Log("quantums:")
-	for _, v := range individual.Quantums {
-		t.Log("uid", Sig2Hex(v.Signature))
-	}
 	t.Log("profile:")
 	for k, v := range individual.Profile {
 		t.Log("key", k, "value", v)

@@ -45,28 +45,9 @@ func FromUDBIndividual(dbIndividual *udb.Individual) (individual *Individual, se
 	// update communities
 	communities := []*Community{}
 	for _, v := range dbIndividual.Communities {
-		communities = append(communities, &Community{RuleSig: Hex2Sig(v.Base.Sig)})
+		communities = append(communities, &Community{Define: Hex2Sig(v.Base.Define.Sig)})
 	}
 	individual.Communities = communities
-
-	// update quantums
-	quantums := []*Quantum{}
-	for _, v := range dbIndividual.Quantums {
-		quantums = append(quantums, &Quantum{Signature: Hex2Sig(v.Sig)})
-	}
-	individual.Quantums = quantums
-
-	// update profile
-	profileContents := []*QContent{}
-	for _, v := range dbIndividual.Profile {
-		if v.Type == QuantumTypeProfile {
-			for _, item := range v.Contents {
-				c, _ := NewContent(item.Fmt, []byte(item.Data))
-				profileContents = append(profileContents, c)
-			}
-		}
-	}
-	individual.UpsertProfile(profileContents)
 
 	return individual, senderDBID
 }
@@ -77,7 +58,7 @@ func ToUDBIndividual(individual *Individual, senderDBID string) *udb.Individual 
 	dbIndividual := udb.Individual{
 		UID:     senderDBID,
 		Address: individual.Address.Hex(),
-		DType:   []string{udb.DTypeIndividual},
+		DType:   udb.DTypeIndividual,
 	}
 
 	return &dbIndividual
@@ -124,7 +105,7 @@ func ToUDBQuantum(quantum *Quantum, quantumDBID string, senderDBID string) *udb.
 
 	contents := []*udb.Content{}
 	for _, v := range quantum.Contents {
-		contents = append(contents, &udb.Content{Fmt: v.Format, Data: string(v.Data), DType: []string{udb.DTypeContent}})
+		contents = append(contents, &udb.Content{Fmt: v.Format, Data: string(v.Data), DType: udb.DTypeContent})
 	}
 
 	addr, _ := quantum.Ecrecover()
@@ -137,7 +118,45 @@ func ToUDBQuantum(quantum *Quantum, quantumDBID string, senderDBID string) *udb.
 		Refs:     refs,
 		Contents: contents,
 		Sender:   sender,
-		DType:    []string{udb.DTypeQuantum},
+		DType:    udb.DTypeQuantum,
 	}
 	return &dbQuantum
+}
+
+func FromUDBCommunity(dbCommunity *udb.Community) (community *Community, communityDBID string) {
+	initMembers := []identity.Address{}
+	for _, v := range dbCommunity.InitMembers {
+		initMembers = append(initMembers, identity.HexToAddress(v.Address))
+	}
+
+	communityDBID = dbCommunity.UID
+	community = &Community{
+		Note:          &QContent{Format: dbCommunity.Note.Fmt, Data: []byte(dbCommunity.Note.Data)},
+		Define:        Hex2Sig(dbCommunity.Define.Sig),
+		Creator:       identity.HexToAddress(dbCommunity.Define.Sender.Address),
+		BaseCommunity: Hex2Sig(dbCommunity.Base.Define.Sig),
+		MinCosignCnt:  dbCommunity.MinCosignCnt,
+		MaxInviteCnt:  dbCommunity.MaxInviteCnt,
+		InitMembers:   initMembers,
+	}
+	return community, communityDBID
+}
+
+func ToUDBCommunity(community *Community, communityDBID string) *udb.Community {
+	initMembers := []*udb.Individual{}
+	for _, v := range community.InitMembers {
+		initMembers = append(initMembers, &udb.Individual{Address: v.Hex()})
+	}
+
+	// ignore content here
+	dbCommunity := udb.Community{
+		UID:          communityDBID,
+		Base:         &udb.Community{Define: &udb.Quantum{Sig: Sig2Hex(community.BaseCommunity)}},
+		MaxInviteCnt: community.MaxInviteCnt,
+		MinCosignCnt: community.MinCosignCnt,
+		Define:       &udb.Quantum{Sig: Sig2Hex(community.Define)},
+		InitMembers:  initMembers,
+		DType:        udb.DTypeCommunity,
+	}
+	return &dbCommunity
 }

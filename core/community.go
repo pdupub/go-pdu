@@ -24,12 +24,12 @@ import (
 
 type Community struct {
 	Note          *QContent          `json:"note"`
-	RuleSig       Sig                `json:"ruleSig"`
+	Define        Sig                `json:"define"`
 	Creator       identity.Address   `json:"creator"`
 	BaseCommunity Sig                `json:"baseCommunity"`
 	MinCosignCnt  int                `json:"minCosignCnt"`
 	MaxInviteCnt  int                `json:"maxInviteCnt"`
-	Members       []identity.Address `json:"members"`
+	InitMembers   []identity.Address `json:"initMembers"`
 }
 
 func NewCommunity(quantum *Quantum) (*Community, error) {
@@ -41,10 +41,9 @@ func NewCommunity(quantum *Quantum) (*Community, error) {
 		return nil, err
 	}
 	community := Community{
-		RuleSig: quantum.Signature,
+		Define:  quantum.Signature,
 		Creator: creator,
 	}
-	community.Members = append(community.Members, creator)
 
 	for i, content := range quantum.Contents {
 		if i == 0 {
@@ -73,7 +72,7 @@ func NewCommunity(quantum *Quantum) (*Community, error) {
 		}
 
 		if i >= 4 && content.Format == QCFmtStringHexAddress {
-			community.Members = append(community.Members, identity.HexToAddress(string(content.Data)))
+			community.InitMembers = append(community.InitMembers, identity.HexToAddress(string(content.Data)))
 		}
 	}
 
