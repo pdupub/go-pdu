@@ -16,7 +16,6 @@
 
 package core
 
-
 import (
 	"encoding/json"
 	"errors"

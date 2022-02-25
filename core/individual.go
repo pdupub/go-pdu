@@ -20,11 +20,29 @@ import (
 	"github.com/pdupub/go-pdu/identity"
 )
 
+// All Attitude State below is used to show my current subjective attitude to
+// that individual for new quantums, not influence the quantums already be accepted before.
+const (
+	AttitudeRejectOnRef   = -1 // reject the quantum which use any quantum from this address as reference
+	AttitudeReject        = 0  // reject any quantum from this address
+	AttitudeIgnoreContent = 1  // accept the quantum from this address, but not eval the content, such as invite ...
+	AttitudeAccept        = 2  // accept the quantum from this address as normal
+	AttitudeBroadcast     = 3  // accept the quantum from this address, broadcast them and used them as reference
+)
+
+// Attitude show the subjective attitude to individual & reasons
+type Attitude struct {
+	Level    int        `json:"level"`    // Attitude const level
+	Judgment string     `json:"judgment"` // my subjective judgment
+	Evidence []*Quantum `json:"evidence"` // evidence of my judgment, can be omit but all quantum should come from current individual
+}
+
 // Individual is the user in pdu system
 type Individual struct {
 	Address     identity.Address     `json:"address"`
 	Profile     map[string]*QContent `json:"profile"`
 	Communities []*Community         `json:"communities"`
+	Attitude    *Attitude            `json:"attitude"`
 }
 
 func NewIndividual(address identity.Address) *Individual {

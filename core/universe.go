@@ -41,13 +41,55 @@ func NewUniverse(db udb.UDB) (*Universe, error) {
 }
 
 func (u *Universe) RecvQuantum(quantum *Quantum) error {
-
-	dbQuantum := ToUDBQuantum(quantum, "", "")
-	_, _, err := u.db.NewQuantum(dbQuantum)
+	signer, err := quantum.Ecrecover()
 	if err != nil {
 		return err
 	}
+
+	dbQuantum := ToUDBQuantum(quantum, "", "")
+	_, _, err = u.db.NewQuantum(dbQuantum)
+	if err != nil {
+		return err
+	}
+
+	if quantum.Type == QuantumTypeCommunity {
+		community, err := NewCommunity(quantum)
+		if err != nil {
+			return err
+		}
+		dbCommunity := ToUDBCommunity(community, "")
+		_, err = u.db.NewCommunity(dbCommunity)
+		if err != nil {
+			return err
+		}
+
+		// creator join community
+		u.JoinCommunity(community.Define, signer)
+		// init members join community
+		for _, v := range dbCommunity.InitMembers {
+			u.JoinCommunity(community.Define, identity.HexToAddress(v.Address))
+		}
+	}
 	return nil
+}
+
+func (u *Universe) SetAttitude(address identity.Address, level int, judgment string, evidence ...[]Sig) error {
+
+	return nil
+}
+
+func (u *Universe) GetAttitude(address identity.Address) (*Attitude, error) {
+
+	return nil, nil
+}
+
+func (u *Universe) JoinCommunity(defineSig Sig, address identity.Address) error {
+	// update individual.community of creator & initMembers
+	community, _ := u.db.GetCommunity(Sig2Hex(defineSig))
+	individual, _ := u.db.GetIndividual(address.Hex())
+	individual.Communities = append(individual.Communities, community)
+
+	return u.db.Update(individual)
 }
 
 func (u *Universe) QueryQuantum(address identity.Address, qType int, pageIndex int, pageSize int, desc bool) []*Quantum {

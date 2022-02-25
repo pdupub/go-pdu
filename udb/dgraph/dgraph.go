@@ -296,7 +296,7 @@ func (cdgd *CDGD) GetIndividual(address string) (dbi *udb.Individual, err error)
 					uid
 					expand(individual) {
 						uid
-					  	expand(community)
+					  	expand(community, attitude)
 					  	pdu.type
 					}
 					pdu.type
@@ -393,39 +393,25 @@ func (cdgd *CDGD) NewCommunity(community *udb.Community) (cid string, err error)
 
 	cid = resp.Uids["CommunityUID"]
 
-	// creator join community
-	cdgd.JoinCommunity(community.Define.Sig, community.Define.Sender.Address)
-
-	// init members join community
-	for _, v := range community.InitMembers {
-		cdgd.JoinCommunity(community.Define.Sig, v.Address)
-	}
 	return cid, err
 }
 
-func (cdgd *CDGD) JoinCommunity(defineSig string, address string) (cid string, sid string, err error) {
-
-	// update individual.community of creator & initMembers
-	community, _ := cdgd.GetCommunity(defineSig)
-	cid = community.UID
-	individual, _ := cdgd.GetIndividual(address)
-	sid = individual.UID
-	individual.Communities = append(individual.Communities, community)
+func (cdgd *CDGD) Update(data interface{}) error {
 	mu := &api.Mutation{
 		CommitNow: true,
 	}
-	pb, err := json.Marshal(individual)
+	pb, err := json.Marshal(data)
 	if err != nil {
-		return cid, sid, err
+		return err
 	}
 
 	mu.SetJson = pb
 	_, err = cdgd.dg.NewTxn().Mutate(cdgd.ctx, mu)
 	if err != nil {
-		return cid, sid, err
+		return err
 	}
 
-	return cid, sid, nil
+	return nil
 }
 
 func (cdgd *CDGD) GetCommunity(sig string) (dbc *udb.Community, err error) {

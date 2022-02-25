@@ -49,20 +49,32 @@ func FromUDBIndividual(dbIndividual *udb.Individual) (individual *Individual, se
 	}
 	individual.Communities = communities
 
+	// update attitude
+	evidence := []*Quantum{}
+	if dbIndividual.Attitude != nil {
+		for _, v := range dbIndividual.Attitude.Evidence {
+			evidence = append(evidence, &Quantum{Signature: Hex2Sig(v.Sig)})
+		}
+		individual.Attitude = &Attitude{
+			Level:    1,
+			Judgment: "",
+			Evidence: evidence,
+		}
+	}
 	return individual, senderDBID
 }
 
-// ToUDBIndividual
-func ToUDBIndividual(individual *Individual, senderDBID string) *udb.Individual {
-	// TODO: add communities & quantums
-	dbIndividual := udb.Individual{
-		UID:     senderDBID,
-		Address: individual.Address.Hex(),
-		DType:   udb.DTypeIndividual,
-	}
+// ToUDBIndividual should not be used for any reason
+// func ToUDBIndividual(individual *Individual, senderDBID string) *udb.Individual {
+// 	// TODO: add communities & quantums
+// 	dbIndividual := udb.Individual{
+// 		UID:     senderDBID,
+// 		Address: individual.Address.Hex(),
+// 		DType:   udb.DTypeIndividual,
+// 	}
 
-	return &dbIndividual
-}
+// 	return &dbIndividual
+// }
 
 // FromUDBQuantum cover from *udb.Quantum to *Quantum and quantum uid and sender uid
 func FromUDBQuantum(dbQuantum *udb.Quantum) (quantum *Quantum, quantumDBID string, senderDBID string) {
@@ -123,6 +135,7 @@ func ToUDBQuantum(quantum *Quantum, quantumDBID string, senderDBID string) *udb.
 	return &dbQuantum
 }
 
+// FromUDBCommunity
 func FromUDBCommunity(dbCommunity *udb.Community) (community *Community, communityDBID string) {
 	initMembers := []identity.Address{}
 	for _, v := range dbCommunity.InitMembers {

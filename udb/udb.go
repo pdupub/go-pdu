@@ -51,7 +51,17 @@ type Individual struct {
 	UID         string       `json:"uid,omitempty"`
 	Address     string       `json:"individual.address,omitempty"`
 	Communities []*Community `json:"individual.communities,omitempty"`
+	Attitude    *Attitude    `json:"individual.attitude,omitempty"`
+	Timestamp   int          `json:"individual.timestamp,omitempty"`
 	DType       string       `json:"pdu.type,omitempty"`
+}
+
+type Attitude struct {
+	UID      string     `json:"uid,omitempty"`
+	Level    int        `json:"attitude.level,omitempty"`
+	Judgment string     `json:"attitude.judgment,omitempty"`
+	Evidence []*Quantum `json:"attitude.evidence,omitempty"`
+	DType    string     `json:"pdu.type,omitempty"`
 }
 
 // Community record be created when rule quantum be accept by system, Invitations & Memebers can be updated.
@@ -75,7 +85,7 @@ type UDB interface {
 	GetIndividual(address string) (*Individual, error)
 	NewCommunity(community *Community) (cid string, err error)
 	GetCommunity(sig string) (*Community, error)
-	JoinCommunity(defineSig string, address string) (cid string, sid string, err error)
+	Update(interface{}) error
 	DropData() error
 	Close() error
 }

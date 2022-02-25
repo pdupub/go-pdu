@@ -34,6 +34,12 @@ content.fmt: int @index(int) .
 # -- individual --
 individual.address: string @index(hash) .
 individual.communities: [uid] @reverse . # uid of community, which current individual is member
+individual.timestamp: int @index(int) .
+individual.attitude: uid .               # uid of attitude
+# -- attitude --
+attitude.level: int @index(int) .
+attitude.judgment: string .
+attitude.evidence: [uid] .          # uid of quantums, which can be used as evidence to support the judgment
 # -- quantum --
 quantum.contents: [uid] .  # uid of contents
 quantum.refs: [uid] @reverse .  # uid of quantums
@@ -57,6 +63,13 @@ type content {
 type individual {
 	individual.address
 	individual.communities
+	individual.attitude
+	individual.timestamp
+}
+type attitude {
+	attitude.level
+	attitude.judgment
+	attitude.evidence
 }
 type quantum {
 	quantum.contents
