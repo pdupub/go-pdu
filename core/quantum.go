@@ -77,6 +77,11 @@ const (
 	// User belong to community, quantum belong to user. (On trandation forum, posts usually belong to
 	// one topic and have lots of tag, is just the function easy to implemnt not base struct here)
 	QuantumTypeInvitation = 4
+
+	// QuantumTypeEnd specifies the quantum of ending life cycle
+	// When receive this quantum, no more quantum from same address should be received or broadcast.
+	// The decision of end from any identity should be respected, no matter for security reason or just want to leave.
+	QuantumTypeEnd = 5
 )
 
 // UnsignedQuantum defines the single message from user without signature,
