@@ -127,6 +127,7 @@ func (cdgd *CDGD) NewQuantum(quantum *udb.Quantum) (qid string, sid string, err 
 	}
 	if sender == nil {
 		sender = cdgd.buildEmptyIndividual(quantum.Sender.Address)
+		sender.Attitude = &udb.Attitude{Level: udb.DefaultAttitudeLevel}
 	} else {
 		sid = sender.UID
 	}

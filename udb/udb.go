@@ -21,7 +21,12 @@ const (
 	DTypeQuantum    = "quantum"
 	DTypeContent    = "content"
 	DTypeIndividual = "individual"
+	DTypeAttitude   = "attitude"
 	DTypeCommunity  = "community"
+)
+
+const (
+	DefaultAttitudeLevel = 2 // core.AttitudeAccept
 )
 
 // Quantum is similar to type quantum in schema, with all the predicate of quantum and two more item UID & DType
