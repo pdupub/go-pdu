@@ -37,9 +37,6 @@ func TestNewCommunity(t *testing.T) {
 	note, _ := NewContent(QCFmtStringTEXT, []byte("Coder"))
 	contents = append(contents, note)
 
-	baseSig := Sig([]byte("0x070d15041083041b48d0f2297357ce59ad18f6c608d70a1e6e04bcf494e366db"))
-	contents = append(contents, &QContent{Format: QCFmtBytesSignature, Data: baseSig})
-
 	k1, _ := NewContent(QCFmtStringInt, []byte(strconv.Itoa(1)))
 	contents = append(contents, k1)
 
@@ -47,6 +44,8 @@ func TestNewCommunity(t *testing.T) {
 	contents = append(contents, k2)
 
 	contents = append(contents, &QContent{Format: QCFmtStringHexAddress, Data: []byte(did.GetAddress().Hex())})
+
+	baseSig := Sig([]byte("0x070d15041083041b48d0f2297357ce59ad18f6c608d70a1e6e04bcf494e366db"))
 
 	newQuantum, _ := NewQuantum(QuantumTypeCommunity, contents, baseSig)
 	if err := newQuantum.Sign(creator); err != nil {
