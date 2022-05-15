@@ -6,8 +6,8 @@ require (
 	github.com/TTCECO/gttc v0.2.2
 	github.com/dgraph-io/dgo v1.0.0
 	github.com/dgraph-io/dgo/v210 v210.0.0-20211129111319-4c8247ebe697
-	github.com/ethereum/go-ethereum v1.10.9
-	github.com/google/uuid v1.1.5
+	github.com/ethereum/go-ethereum v1.10.17
+	github.com/google/uuid v1.2.0
 	github.com/graph-gophers/graphql-go v1.3.0
 	github.com/howeyc/gopass v0.0.0-20190910152052-7cb4b85ec19c
 	github.com/labstack/echo/v4 v4.3.0
