@@ -24,6 +24,50 @@ import (
 	"github.com/pdupub/go-pdu/params"
 )
 
+func TestInfoQuantum(t *testing.T) {
+	did, _ := identity.New()
+	did.UnlockWallet("../"+params.TestKeystore(0), params.TestPassword)
+
+	c0 := NewTextC("Hello!")
+	c1 := NewIntC(100)
+	c2 := NewTextC(">")
+	c3 := NewFloatC(99.9)
+
+	q, err := NewQuantum(QuantumTypeInfo, []*QContent{c0, c1, c2, c3}, FirstQuantumReference)
+	if err != nil {
+		t.Error(err)
+	}
+	q.Sign(did)
+	if j, err := json.Marshal(q); err != nil {
+		t.Error(err)
+	} else {
+		t.Log("###########################################################")
+		t.Log("signed q is:")
+		t.Log(string(j))
+		t.Log("hex signature is:", len(q.Signature))
+		t.Log(Sig2Hex(q.Signature))
+		t.Log("[]byte(sig) is:")
+		t.Log(Hex2Sig(string([]byte(Sig2Hex(q.Signature)))))
+		t.Log("q.Signature is:")
+		t.Log(q.Signature)
+		t.Log("###########################################################")
+	}
+
+	if d, err := q.Contents[0].GetData(); err != nil || d.(string) != "Hello!" {
+		t.Error(err)
+	}
+	if d, err := q.Contents[1].GetData(); err != nil || d.(int) != 100 {
+		t.Error(err)
+	}
+	if d, err := q.Contents[2].GetData(); err != nil || d.(string) != ">" {
+		t.Error(err)
+	}
+	if d, err := q.Contents[3].GetData(); err != nil || d.(float64) != 99.9 {
+		t.Error(err)
+	}
+
+}
+
 func TestSignAndVerify(t *testing.T) {
 	did, _ := identity.New()
 	did.UnlockWallet("../"+params.TestKeystore(0), params.TestPassword)

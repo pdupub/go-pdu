@@ -23,13 +23,12 @@ import (
 )
 
 type Community struct {
-	Note          *QContent          `json:"note"`
-	Define        Sig                `json:"define"`
-	Creator       identity.Address   `json:"creator"`
-	BaseCommunity Sig                `json:"baseCommunity"`
-	MinCosignCnt  int                `json:"minCosignCnt"`
-	MaxInviteCnt  int                `json:"maxInviteCnt"`
-	InitMembers   []identity.Address `json:"initMembers"`
+	Note         *QContent          `json:"note"`
+	Define       Sig                `json:"define"`
+	Creator      identity.Address   `json:"creator"`
+	MinCosignCnt int                `json:"minCosignCnt"`
+	MaxInviteCnt int                `json:"maxInviteCnt"`
+	InitMembers  []identity.Address `json:"initMembers"`
 }
 
 func NewCommunity(quantum *Quantum) (*Community, error) {
@@ -50,12 +49,7 @@ func NewCommunity(quantum *Quantum) (*Community, error) {
 			community.Note = content
 		}
 
-		if i == 1 && content.Format == QCFmtBytesSignature {
-			// default base community is nil
-			community.BaseCommunity = Sig(content.Data)
-		}
-
-		if i == 2 {
+		if i == 1 {
 			// default min cosign count is 1
 			community.MinCosignCnt = 1
 			if content.Format == QCFmtStringInt {
@@ -63,7 +57,7 @@ func NewCommunity(quantum *Quantum) (*Community, error) {
 			}
 		}
 
-		if i == 3 {
+		if i == 2 {
 			// default max invite count is 0
 			community.MaxInviteCnt = 0
 			if content.Format == QCFmtStringInt {
@@ -71,7 +65,7 @@ func NewCommunity(quantum *Quantum) (*Community, error) {
 			}
 		}
 
-		if i >= 4 && content.Format == QCFmtStringHexAddress {
+		if i >= 3 && content.Format == QCFmtStringHexAddress {
 			community.InitMembers = append(community.InitMembers, identity.HexToAddress(string(content.Data)))
 		}
 	}

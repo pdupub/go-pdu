@@ -22,7 +22,6 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -31,21 +30,12 @@ import (
 )
 
 var (
-	templatePath        string
-	passwordPath        string
-	projectPath         string
-	saltPath            string
-	references          string
-	message             string
-	resByData           bool
-	keyIndex            int
-	port                int
-	url                 string
-	nodeList            string
-	profileName         string
-	profileEmail        string
-	profileUrl          string
-	ignoreUnknownSource bool
+	passwordPath string
+	projectPath  string
+	saltPath     string
+	references   string
+	message      string
+	keyIndex     int
 )
 
 func main() {
@@ -54,7 +44,7 @@ func main() {
 		Use:   "pdu",
 		Short: "PDU command line interface (" + params.Version + ")",
 		Long: `Parallel Digital Universe
-	A decentralized identity-based social network
+	A decentralized social networking service
 	Website: https://pdu.pub`,
 	}
 
@@ -62,8 +52,6 @@ func main() {
 	rootCmd.AddCommand(StartCmd())
 	rootCmd.AddCommand(SendMsgCmd())
 	rootCmd.AddCommand(CreateKeystoreCmd())
-	rootCmd.PersistentFlags().StringVar(&url, "url", "http://127.0.0.1", "target url")
-	rootCmd.PersistentFlags().IntVar(&port, "port", params.DefaultPort, "port to start server or send msg")
 	rootCmd.PersistentFlags().StringVar(&projectPath, "projectPath", "./", "project root path")
 
 	if err := rootCmd.Execute(); err != nil {
@@ -78,6 +66,7 @@ func TestCmd() *cobra.Command {
 		Short: "Test some methods",
 		RunE: func(_ *cobra.Command, args []string) error {
 			fmt.Println("testing")
+
 			return nil
 		},
 	}
@@ -91,32 +80,10 @@ func StartCmd() *cobra.Command {
 		Short: "Start run node",
 		RunE: func(_ *cobra.Command, args []string) error {
 
-			// universe, err := core.NewUniverse()
-			// if err != nil {
-			// 	return err
-			// }
-
-			// entropy, err := core.NewEntropy()
-			// if err != nil {
-			// 	return err
-			// }
-			// universe.SetEntropy(entropy)
-
-			// society, err := core.NewSociety(core.GenesisRoots...)
-			// if err != nil {
-			// 	return err
-			// }
-			// universe.SetSociety(society)
-
-			// g := new(core.Genesis)
-			// g.SetUniverse(universe)
-			// p2p.New(templatePath, dbPath, g, port, ignoreUnknownSource, splitNodes())
 			return nil
 		},
 	}
-	cmd.Flags().BoolVar(&ignoreUnknownSource, "ignoreUS", true, "ignore unknown source")
-	cmd.Flags().StringVar(&templatePath, "tpl", "p2p/public", "path of template")
-	cmd.Flags().StringVar(&nodeList, "nodes", "", "node list")
+
 	return cmd
 }
 
@@ -124,7 +91,7 @@ func StartCmd() *cobra.Command {
 func SendMsgCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "send",
-		Short: "Send hello msg to node",
+		Short: "Send sampel msg to node",
 		Args:  cobra.RangeArgs(0, 1),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
 			if keyIndex < 0 || keyIndex > 99 {
@@ -139,76 +106,14 @@ func SendMsgCmd() *cobra.Command {
 
 			fmt.Println("msg author\t", did.GetKey().Address.Hex())
 
-			// ress := []*core.QRes{}
+			// TODO: write msg to firebase firestore as client
 
-			// bp := new(core.Quantum)
-
-			// bp, err = core.NewInfoQuantum(message, nil, ress...)
-			// if err != nil {
-			// 	return err
-			// }
-
-			// content, err := json.Marshal(bp)
-			// if err != nil {
-			// 	return err
-			// }
-
-			// var refs [][]byte
-			// if references != "" {
-			// 	for _, r := range strings.Split(references, ",") {
-			// 		if len(r) == 130 {
-			// 			refs = append(refs, common.Hex2Bytes(r))
-			// 		} else {
-			// 			ref, err := base64.StdEncoding.DecodeString(r)
-			// 			if err != nil {
-			// 				return err
-			// 			}
-
-			// 			refs = append(refs, ref)
-			// 		}
-			// 	}
-			// } else {
-			// 	// request latest msg from same author
-			// 	resp, err := http.Get(fmt.Sprintf("%s:%d/info/latest/%s", url, port, did.GetKey().Address.Hex()))
-			// 	if err != nil {
-			// 		return err
-			// 	}
-
-			// 	defer resp.Body.Close()
-			// 	body, err := ioutil.ReadAll(resp.Body)
-			// 	if err != nil {
-			// 		return err
-			// 	}
-			// 	resMsg := new(msg.SignedMsg)
-			// 	if err := json.Unmarshal(body, resMsg); err != nil {
-			// 		return err
-			// 	}
-			// 	if resMsg.Signature != nil {
-			// 		refs = append(refs, resMsg.Signature)
-			// 	}
-			// }
-			// m := msg.New(content, refs...)
-			// sm := msg.SignedMsg{Message: *m}
-			// if err := sm.Sign(did); err != nil {
-			// 	return err
-			// }
-			// fmt.Println("signature\t", common.Bytes2Hex(sm.Signature))
-			// resp, err := sm.Post(fmt.Sprintf("%s:%d", url, port))
-			// if err != nil {
-			// 	return err
-			// }
-
-			// fmt.Println("whole resp\t", string(resp))
 			return nil
 		},
 	}
 	cmd.Flags().IntVar(&keyIndex, "key", 0, "index of key used")
 	cmd.Flags().StringVar(&message, "msg", "Hello World!", "content of msg send")
 	cmd.Flags().StringVar(&references, "refs", "", "references split by comma")
-	cmd.Flags().StringVar(&profileName, "pname", "PDU-)", "profile name")
-	cmd.Flags().StringVar(&profileEmail, "pemail", "hi@pdu.pub", "profile email")
-	cmd.Flags().StringVar(&profileUrl, "purl", "https://pdu.pub", "profile url")
-	cmd.Flags().BoolVar(&resByData, "rbd", false, "build resource by image data")
 	return cmd
 }
 
@@ -238,49 +143,16 @@ func CreateKeystoreCmd() *cobra.Command {
 	return cmd
 }
 
-func splitNodes() []string {
-	nodes := []string{}
-	for _, n := range strings.Split(nodeList, ",") {
-		if len(n) == 0 {
-			continue
-		}
-		if !strings.HasPrefix(n, "https://") && !strings.HasPrefix(n, "http://") {
-			continue
-		}
-		nodes = append(nodes, n)
-	}
-	return nodes
-}
-
-func unlockTestDIDs(startPos, endPos int) []*identity.DID {
-	var dids []*identity.DID
-	for i := startPos; i < endPos; i++ {
-		did := new(identity.DID)
-		did.UnlockWallet(projectPath+params.TestKeystore(i), params.TestPassword)
-		dids = append(dids, did)
-	}
-	return dids
-}
-
 func getPassAndSalt() (pass []byte, salt []byte, err error) {
-	if len(passwordPath) > 0 {
-		pass, err = ioutil.ReadFile(passwordPath)
-		pass = []byte(strings.Replace(fmt.Sprintf("%s", pass), "\n", "", -1))
-	} else {
-		fmt.Printf("keystore pass: ")
-		pass, err = gopass.GetPasswd()
-	}
+
+	pass, err = ioutil.ReadFile(passwordPath)
+	pass = []byte(strings.Replace(string(pass), "\n", "", -1))
 	if err != nil {
 		return
 	}
 
-	if len(saltPath) > 0 {
-		salt, err = ioutil.ReadFile(saltPath)
-		salt = []byte(strings.Replace(fmt.Sprintf("%s", salt), "\n", "", -1))
-	} else {
-		fmt.Printf("keystore salt: ")
-		salt, err = gopass.GetPasswd()
-	}
+	salt, err = ioutil.ReadFile(saltPath)
+	salt = []byte(strings.Replace(string(salt), "\n", "", -1))
 	if err != nil {
 		return
 	}

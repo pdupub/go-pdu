@@ -59,15 +59,15 @@ const (
 	// contents[2] is the max number of invitation by one user
 	// {fmt:QCFmtStringInt, data:1} -1 means no limit, 0 means not allowed
 	// contents[3] ~ contents[15] is the initial users in this community
-	// {fmt:QCFmtBytesAddress, data:0x1232...}
+	// {fmt:QCFmtBytesAddress/QCFmtStringHexAddress, data:0x1232...}
 	// signer of this community is also the initial user in this community
 	QuantumTypeCommunity = 3
 
 	// QuantumTypeInvitation specifies the quantum of invitation
 	// contents[0] is the signature of target community rule quantum
-	// {fmt:QCFmtBytesSignature, data:signature of target community rule quantum}
+	// {fmt:QCFmtBytesSignature/QCFmtStringHexSignature, data:signature of target community rule quantum}
 	// contents[1] ~ contents[n] is the address of be invited
-	// {fmt:QCFmtBytesAddress, data:0x123...}
+	// {fmt:QCFmtBytesAddress/QCFmtStringHexAddress, data:0x123...}
 	// no matter all invitation send in same quantum of different quantum
 	// only first n address (rule.contents[2]) will be accepted
 	// user can not quit community, but any user can block any other user (or self) from any community
@@ -82,11 +82,15 @@ const (
 	QuantumTypeEnd = 5
 )
 
+var (
+	FirstQuantumReference = Hex2Sig("0x00")
+)
+
 // UnsignedQuantum defines the single message from user without signature,
 // all variables should be in alphabetical order.
 type UnsignedQuantum struct {
 	// Contents contain all data in this quantum
-	Contents []*QContent `json:"cs"`
+	Contents []*QContent `json:"cs,omitempty"`
 
 	// References must from the exist signature.
 	// References[0] is the last signature by user-self, 0x00000... if this quantum is the first quantum
@@ -112,7 +116,7 @@ func NewQuantum(t int, cs []*QContent, refs ...Sig) (*Quantum, error) {
 	if len(cs) > maxContentsCnt {
 		return nil, errQuantumContentsCntOutOfLimit
 	}
-	if len(refs) > maxReferencesCnt {
+	if len(refs) > maxReferencesCnt || len(refs) < 1 {
 		return nil, errQuantumRefsCntOutOfLimit
 	}
 	for _, v := range cs {
@@ -155,4 +159,56 @@ func (q *Quantum) Ecrecover() (identity.Address, error) {
 		return identity.Address{}, err
 	}
 	return identity.Ecrecover(b, q.Signature)
+}
+
+func CreateInfoQuantum(qcs []*QContent, refs ...Sig) (*Quantum, error) {
+	return NewQuantum(QuantumTypeInfo, qcs, refs...)
+}
+
+func CreateProfileQuantum(profiles map[string]interface{}, refs ...Sig) (*Quantum, error) {
+	var qcs []*QContent
+	for k, v := range profiles {
+		key := NewTextC(k)
+		var value *QContent
+		switch v.(type) {
+
+		case string:
+			value = NewTextC(v.(string))
+		case float64:
+			value = NewFloatC(v.(float64))
+		case int:
+			value = NewIntC(v.(int))
+		default:
+			value = NewTextC(v.(string))
+		}
+		qcs = append(qcs, key, value)
+	}
+
+	return NewQuantum(QuantumTypeProfile, qcs, refs...)
+}
+
+func CreateCommunityQuantum(note string, minCosignCnt int, maxInviteCnt int, initAddrsHex []string, refs ...Sig) (*Quantum, error) {
+	var qcs []*QContent
+
+	qcs = append(qcs, NewTextC(note))
+	qcs = append(qcs, NewIntC(minCosignCnt))
+	qcs = append(qcs, NewIntC(maxInviteCnt))
+	for _, addrHex := range initAddrsHex {
+		qcs = append(qcs, &QContent{Format: QCFmtStringHexAddress, Data: []byte(addrHex)})
+	}
+
+	return NewQuantum(QuantumTypeCommunity, qcs, refs...)
+}
+
+func CreateInvitationQuantum(target Sig, addrsHex []string, refs ...Sig) (*Quantum, error) {
+	var qcs []*QContent
+	qcs = append(qcs, &QContent{Format: QCFmtBytesSignature, Data: target})
+	for _, addrHex := range addrsHex {
+		qcs = append(qcs, &QContent{Format: QCFmtStringHexAddress, Data: []byte(addrHex)})
+	}
+	return NewQuantum(QuantumTypeInvitation, qcs, refs...)
+}
+
+func CreateEndQuantum(refs ...Sig) (*Quantum, error) {
+	return NewQuantum(QuantumTypeEnd, []*QContent{}, refs...)
 }

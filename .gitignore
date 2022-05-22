@@ -1,6 +1,5 @@
 # PDU
-pdu.db
-tmp/
+udb/fb/firebase-adminsdk.json
 
 # idea
 .vscode/

@@ -17,40 +17,33 @@ Golang implementation of PDU.
 - [Contributing](#contributing)
 
 ## PDU
-PDU is a decentralized identity-based social network, please read the WhitePaper on [github.com/pdupub/Documentation](https://github.com/pdupub/Documentation) for more details.
+PDU is a decentralized social networking service, please read the WhitePaper on [github.com/pdupub/Documentation](https://github.com/pdupub/documentation/blob/master/zh-CN/WhitePaperV2.md) for more details.
 
 
 ## Usage
 
 ```
 Parallel Digital Universe
-	A decentralized identity-based social network
+	A decentralized social networking service
 	Website: https://pdu.pub
 
 Usage:
   pdu [command]
 
 Available Commands:
-  auto        Auto Initialize PDU
   ck          Create keystores
+  completion  Generate the autocompletion script for the specified shell
   help        Help about any command
-  init        Initialize PDU
-  send        Send hello msg to node
+  send        Send sampel msg to node
   start       Start run node
-  test        Test some tmp func
-  upload      Upload file to node
+  test        Test some methods
 
 Flags:
-      --db string            path of database (default "pdu.db")
   -h, --help                 help for pdu
-      --nodes string         node list
-      --port int             port to start server or send msg (default 1323)
       --projectPath string   project root path (default "./")
-      --url string           target url (default "http://127.0.0.1")
 
 Use "pdu [command] --help" for more information about a command.
 ```
-
 
 
 ## Development
