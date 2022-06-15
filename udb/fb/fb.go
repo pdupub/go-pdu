@@ -18,6 +18,7 @@ package fb
 
 import (
 	"context"
+	"strconv"
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
@@ -40,8 +41,20 @@ type FBQuantum struct {
 }
 
 type FBIndividual struct {
-	LastSigHex  string `json:"last"`
-	LastSelfSeq int64  `json:"lseq"`
+	LastSigHex  string                    `json:"last"` // last sig of quantum
+	LastSelfSeq int64                     `json:"lseq"` // last self sequance
+	Profile     map[string]*core.QContent `json:"profile,omitempty"`
+	Attitude    *core.Attitude            `json:"attitude"`
+}
+
+type FBCommunity struct {
+	Note           *core.QContent  `json:"note"`
+	CreatorAddrHex string          `json:"creator"`
+	MinCosignCnt   int             `json:"minCosignCnt"`
+	MaxInviteCnt   int             `json:"maxInviteCnt"`
+	InitMembersHex []string        `json:"initMembers,omitempty"`
+	Members        map[string]bool `json:"members,omitempty"`
+	InviteCnt      map[string]int  `json:"inviteCnt,omitempty"`
 }
 
 type SysConfig struct {
@@ -113,12 +126,12 @@ func (fbs *FBS) DealNewQuantums() error {
 
 	sqMap := make(map[string]*core.Quantum) // sig:quantum
 	saMap := make(map[string]string)        // sig:address
-	rsMap := make(map[string]string)        // ref:sig
-	asMap := make(map[string]struct{})      // address:struct{}
+	rsMap := make(map[string]string)        // first_ref_sig:sig
+	asMap := make(map[string]bool)          // address:struct{} 	// address exist
 	var quantumSigHexSlice []string
 	individualCollection := fbs.client.Collection(collectionIndividual)
 	quantumCollection := fbs.client.Collection(collectionQuantum)
-
+	communityCollection := fbs.client.Collection(collectionCommunity)
 	// load all undeal quantums
 	iter := quantumCollection.Where("type", ">", 0).Documents(fbs.ctx)
 	for docSnapshot, err := iter.Next(); err != iterator.Done; docSnapshot, err = iter.Next() {
@@ -145,8 +158,21 @@ func (fbs *FBS) DealNewQuantums() error {
 			rsMap[core.Sig2Hex(qRes.References[0])] = docSnapshot.Ref.ID
 		}
 
+		// update individual attitude
 		if _, ok := asMap[addr.Hex()]; !ok {
-			asMap[addr.Hex()] = struct{}{}
+			iDocRef := individualCollection.Doc(addr.Hex())
+			snapshot, err := iDocRef.Get(fbs.ctx)
+			asMap[addr.Hex()] = true
+			if err == nil {
+				attitude, err := snapshot.DataAt("attitude")
+				if err == nil {
+					at := attitude.(map[string]interface{})
+					if int(at["level"].(float64)) < core.AttitudeIgnoreContent {
+						asMap[addr.Hex()] = false
+					}
+				}
+			}
+
 		}
 	}
 
@@ -175,7 +201,7 @@ func (fbs *FBS) DealNewQuantums() error {
 			qDocRef.Set(fbs.ctx, dMap, firestore.Merge([]string{"seq"}, []string{"sseq"}))
 
 			// add new individual
-			newIndividual := &FBIndividual{LastSigHex: sigHex, LastSelfSeq: int64(1)}
+			newIndividual := &FBIndividual{LastSigHex: sigHex, LastSelfSeq: int64(1), Attitude: &core.Attitude{Level: core.AttitudeAccept}}
 			dMap, _ = FBStruct2Data(newIndividual)
 			iDocRef.Set(fbs.ctx, dMap)
 
@@ -228,9 +254,98 @@ func (fbs *FBS) DealNewQuantums() error {
 	for _, sigHex := range quantumSigHexSlice {
 		qDocRef := quantumCollection.Doc(sigHex)
 		if quantum, ok := sqMap[sigHex]; ok {
-			if quantum.Type != 1 {
-				// TODO: deal funcs quantums here
+			addrHex := saMap[core.Sig2Hex(quantum.Signature)]
+
+			switch quantum.Type {
+			case core.QuantumTypeProfile:
+				profileMap := make(map[string]*core.QContent)
+				var mergeKeys []firestore.FieldPath
+				for i := 0; i < len(quantum.Contents); i += 2 {
+					k := string(quantum.Contents[i].Data)
+					mergeKeys = append(mergeKeys, []string{"profile", k})
+					profileMap[k] = quantum.Contents[i+1]
+				}
+
+				iDocRef := individualCollection.Doc(addrHex)
+				dMap, _ := FBStruct2Data(&FBIndividual{Profile: profileMap})
+				iDocRef.Set(fbs.ctx, dMap, firestore.Merge(mergeKeys...))
+			case core.QuantumTypeCommunity:
+				minCosignCnt, err := strconv.Atoi(string(quantum.Contents[1].Data))
+				if err != nil {
+					minCosignCnt = 1
+				}
+				maxInviteCnt, err := strconv.Atoi(string(quantum.Contents[2].Data))
+				if err != nil {
+					maxInviteCnt = 0
+				}
+
+				initMembers := []string{}
+				members := map[string]bool{addrHex: true}
+				inviteCnt := map[string]int{addrHex: minCosignCnt}
+				for i := 3; i < len(quantum.Contents) && i < 16; i++ {
+					memberHex := string(quantum.Contents[i].Data)
+					initMembers = append(initMembers, memberHex)
+					members[memberHex] = true
+					inviteCnt[memberHex] = minCosignCnt
+				}
+
+				dMap, _ := FBStruct2Data(&FBCommunity{
+					Note:           quantum.Contents[0],
+					CreatorAddrHex: addrHex,
+					MinCosignCnt:   minCosignCnt,
+					MaxInviteCnt:   maxInviteCnt,
+					InitMembersHex: initMembers,
+					Members:        members,
+					InviteCnt:      inviteCnt,
+				})
+				cDocRef := communityCollection.Doc(sigHex)
+				cDocRef.Set(fbs.ctx, dMap)
+
+			case core.QuantumTypeInvitation:
+				communtiyHex := core.Sig2Hex(quantum.Contents[0].Data)
+				targets := make(map[string]struct{})
+				for i := 1; i < len(quantum.Contents); i++ {
+					targets[string(quantum.Contents[i].Data)] = struct{}{}
+				}
+
+				cDocRef := communityCollection.Doc(communtiyHex)
+				if snapshot, err := cDocRef.Get(fbs.ctx); err == nil {
+					dMap := snapshot.Data()
+
+					if members, ok := dMap["members"]; ok {
+						if _, ok := members.(map[string]interface{})[addrHex]; ok {
+							inviteCnt := dMap["inviteCnt"].(map[string]interface{})
+
+							// TODO : count if out of max sign limit
+							var mergeKeys []firestore.FieldPath
+
+							newCommunity := &FBCommunity{Members: make(map[string]bool), InviteCnt: make(map[string]int)}
+							for target := range targets {
+								if cnt, ok := inviteCnt[target]; ok {
+									newCommunity.InviteCnt[target] = cnt.(int) + 1
+								} else {
+									newCommunity.InviteCnt[target] = 1
+								}
+								mergeKeys = append(mergeKeys, []string{"inviteCnt", target})
+								if newCommunity.InviteCnt[target] >= int(dMap["minCosignCnt"].(float64)) {
+									newCommunity.Members[addrHex] = true
+									mergeKeys = append(mergeKeys, []string{"members", target})
+								}
+							}
+							newMap, _ := FBStruct2Data(newCommunity)
+							cDocRef.Set(fbs.ctx, newMap, firestore.Merge(mergeKeys...))
+						}
+					}
+				}
+			case core.QuantumTypeEnd:
+				iDocRef := individualCollection.Doc(addrHex)
+				dMap, _ := FBStruct2Data(&FBIndividual{Attitude: &core.Attitude{Level: core.AttitudeReject}})
+				iDocRef.Set(fbs.ctx, dMap, firestore.Merge([]string{"attitude", "level"}))
+			default:
+				// core.QuantumTypeInfo or unknown
+
 			}
+			// reset quantum type, so this quantum has been deal
 			qDocRef.Set(fbs.ctx, map[string]int64{"type": int64(-quantum.Type)}, firestore.Merge([]string{"type"}))
 		}
 	}

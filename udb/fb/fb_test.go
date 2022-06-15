@@ -34,7 +34,6 @@ import (
 
 var testKeyJSON = "./firebase-adminsdk.json"
 var testProjectID = "tweetsample-201fd"
-var testCollection = "quantum"
 
 var clearBeforeTest = true
 
@@ -92,7 +91,7 @@ func testCreateInfoQuantum(t *testing.T, ctx context.Context, client *firestore.
 }
 
 func testClearQuantum(t *testing.T, ctx context.Context, client *firestore.Client) {
-	testCollection := client.Collection(testCollection)
+	testCollection := client.Collection(collectionQuantum)
 	docRefs, err := testCollection.DocumentRefs(ctx).GetAll()
 	if err != nil {
 		t.Error(err)
@@ -102,8 +101,18 @@ func testClearQuantum(t *testing.T, ctx context.Context, client *firestore.Clien
 		docRef.Delete(ctx)
 	}
 
-	individualCollection := client.Collection("individual")
+	individualCollection := client.Collection(collectionIndividual)
 	docRefs, err = individualCollection.DocumentRefs(ctx).GetAll()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for _, docRef := range docRefs {
+		docRef.Delete(ctx)
+	}
+
+	communityCollection := client.Collection(collectionCommunity)
+	docRefs, err = communityCollection.DocumentRefs(ctx).GetAll()
 	if err != nil {
 		t.Error(err)
 		return
@@ -121,7 +130,7 @@ func testClearQuantum(t *testing.T, ctx context.Context, client *firestore.Clien
 
 func testUploadQuantum(t *testing.T, ctx context.Context, client *firestore.Client, q *core.Quantum) (*core.Quantum, *firestore.DocumentRef) {
 
-	testCollection := client.Collection(testCollection)
+	testCollection := client.Collection(collectionQuantum)
 
 	docID, fbq := Quantum2FBQuantum(q)
 	dMap, _ := FBStruct2Data(fbq)
@@ -226,6 +235,10 @@ func testCreateQuantums(t *testing.T) {
 	profile2["name"] = "hahaha AAA"
 	profile2["city"] = "BeiJing"
 
+	profile22 := make(map[string]interface{})
+	profile22["city"] = "NONON"
+	profile22["temp"] = 12.3
+
 	q4, _ := testCreateProfileQuantum(t, ctx, client, did1, profile1, ref1[len(ref1)-1], ref2[len(ref2)-1], q2.Signature)
 	ref1 = append(ref1, q4.Signature)
 
@@ -240,6 +253,9 @@ func testCreateQuantums(t *testing.T) {
 
 	q8, _ := testCreateEndQuantum(t, ctx, client, did2, ref2[len(ref2)-1], q6.Signature, q7.Signature)
 	ref2 = append(ref2, q8.Signature)
+
+	q9, _ := testCreateProfileQuantum(t, ctx, client, did2, profile22, ref2[len(ref2)-1], ref3[len(ref3)-1], q8.Signature)
+	ref2 = append(ref2, q9.Signature)
 
 	t.Log(len(ref1), len(ref2), len(ref3))
 }
