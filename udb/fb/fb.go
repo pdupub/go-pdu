@@ -124,10 +124,10 @@ func (fbs *FBS) UpdateSysConfig(increase bool) error {
 
 func (fbs *FBS) DealNewQuantums() error {
 
-	sqMap := make(map[string]*core.Quantum) // sig:quantum
-	saMap := make(map[string]string)        // sig:address
-	rsMap := make(map[string]string)        // first_ref_sig:sig
-	asMap := make(map[string]bool)          // address:struct{} 	// address exist
+	signatureQuantumMap := make(map[string]*core.Quantum) // sig:quantum
+	signatureAddressMap := make(map[string]string)        // sig:address
+	referenceSignatureMap := make(map[string]string)      // first_ref_sig:sig
+	addressExistMap := make(map[string]bool)              // address:struct{} 	// address exist
 	var quantumSigHexSlice []string
 	individualCollection := fbs.client.Collection(collectionIndividual)
 	quantumCollection := fbs.client.Collection(collectionQuantum)
@@ -145,30 +145,31 @@ func (fbs *FBS) DealNewQuantums() error {
 		if err != nil {
 			return err
 		}
-		sqMap[docSnapshot.Ref.ID] = qRes
+		signatureQuantumMap[docSnapshot.Ref.ID] = qRes
 
 		// ecrecover the author address
 		addr, err := qRes.Ecrecover()
 		if err != nil {
 			return err
 		}
-		saMap[docSnapshot.Ref.ID] = addr.Hex()
+		signatureAddressMap[docSnapshot.Ref.ID] = addr.Hex()
 
 		if core.Sig2Hex(qRes.References[0]) != core.Sig2Hex(core.FirstQuantumReference) {
-			rsMap[core.Sig2Hex(qRes.References[0])] = docSnapshot.Ref.ID
+			referenceSignatureMap[core.Sig2Hex(qRes.References[0])] = docSnapshot.Ref.ID
 		}
 
 		// update individual attitude
-		if _, ok := asMap[addr.Hex()]; !ok {
+		if _, ok := addressExistMap[addr.Hex()]; !ok {
+			addressExistMap[addr.Hex()] = true
+
 			iDocRef := individualCollection.Doc(addr.Hex())
 			snapshot, err := iDocRef.Get(fbs.ctx)
-			asMap[addr.Hex()] = true
 			if err == nil {
 				attitude, err := snapshot.DataAt("attitude")
 				if err == nil {
 					at := attitude.(map[string]interface{})
 					if int(at["level"].(float64)) < core.AttitudeIgnoreContent {
-						asMap[addr.Hex()] = false
+						addressExistMap[addr.Hex()] = false
 					}
 				}
 			}
@@ -177,19 +178,19 @@ func (fbs *FBS) DealNewQuantums() error {
 	}
 
 	// set address for quantums
-	for sigHex := range sqMap {
+	for sigHex := range signatureQuantumMap {
 		// update quantums with address
 		qDocRef := quantumCollection.Doc(sigHex)
 		// update address info for quantum
-		dMap, _ := FBStruct2Data(&FBQuantum{AddrHex: saMap[sigHex]})
+		dMap, _ := FBStruct2Data(&FBQuantum{AddrHex: signatureAddressMap[sigHex]})
 		qDocRef.Set(fbs.ctx, dMap, firestore.Merge([]string{"address"}))
 	}
 
 	// process first quantums
-	for sigHex, quantum := range sqMap {
+	for sigHex, quantum := range signatureQuantumMap {
 		// check individual
 		qDocRef := quantumCollection.Doc(sigHex)
-		iDocRef := individualCollection.Doc(saMap[sigHex])
+		iDocRef := individualCollection.Doc(signatureAddressMap[sigHex])
 		iDocSnapshot, _ := iDocRef.Get(fbs.ctx)
 		if !iDocSnapshot.Exists() && core.Sig2Hex(quantum.References[0]) == core.Sig2Hex(core.FirstQuantumReference) {
 			// checked first quantums, can be accepted.
@@ -210,7 +211,7 @@ func (fbs *FBS) DealNewQuantums() error {
 	}
 
 	// process quantums
-	for addrHex := range asMap {
+	for addrHex := range addressExistMap {
 		iDocRef := individualCollection.Doc(addrHex)
 		iDocSnapshot, _ := iDocRef.Get(fbs.ctx)
 		if iDocSnapshot.Exists() {
@@ -220,9 +221,9 @@ func (fbs *FBS) DealNewQuantums() error {
 			}
 
 			for {
-				if sigHex, ok := rsMap[individual.LastSigHex]; ok {
+				if sigHex, ok := referenceSignatureMap[individual.LastSigHex]; ok {
 					// accept the quantum
-					if _, ok := sqMap[sigHex]; ok {
+					if _, ok := signatureQuantumMap[sigHex]; ok {
 
 						// checked first quantums, can be accepted.
 						if err := fbs.UpdateSysConfig(true); err != nil {
@@ -253,8 +254,8 @@ func (fbs *FBS) DealNewQuantums() error {
 
 	for _, sigHex := range quantumSigHexSlice {
 		qDocRef := quantumCollection.Doc(sigHex)
-		if quantum, ok := sqMap[sigHex]; ok {
-			addrHex := saMap[core.Sig2Hex(quantum.Signature)]
+		if quantum, ok := signatureQuantumMap[sigHex]; ok {
+			addrHex := signatureAddressMap[core.Sig2Hex(quantum.Signature)]
 
 			switch quantum.Type {
 			case core.QuantumTypeProfile:

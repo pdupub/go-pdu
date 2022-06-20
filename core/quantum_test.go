@@ -17,12 +17,26 @@
 package core
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"testing"
 
 	"github.com/pdupub/go-pdu/identity"
 	"github.com/pdupub/go-pdu/params"
+	"golang.org/x/crypto/sha3"
 )
+
+func TestUtils(t *testing.T) {
+	msg := "hello123"
+	t.Log("message ", msg)
+	t.Log("msg to bytes", []byte(msg))
+
+	d := sha3.NewLegacyKeccak256()
+	d.Write([]byte(msg))
+	hashBytes := d.Sum(nil)
+	t.Log("hash bytes", hashBytes)
+	t.Log("hash hex", hex.EncodeToString(hashBytes))
+}
 
 func TestInfoQuantum(t *testing.T) {
 	did, _ := identity.New()
@@ -72,22 +86,43 @@ func TestSignAndVerify(t *testing.T) {
 	did, _ := identity.New()
 	did.UnlockWallet("../"+params.TestKeystore(0), params.TestPassword)
 
-	refs := []Sig{[]byte("0x070d15041083041b48d0f2297357ce59ad18f6c608d70a1e6e04bcf494e366db"),
-		[]byte("0x08fd3282eecbf25d31a9a5e51ed2d79a806f14281fbb583a5ee4024589b959d9")}
+	refs := []Sig{Hex2Sig("0x3e34d7ba1ed979e0b5c5cb0507837554bf16798e5bde0b4b55df1f33a1e12fa22dff93ae2f2b362eabe866e6394d56cff4625f22efab18540769e827053a574c00"),
+		Hex2Sig("0x8bcb61fd8d0e280b7eaa92de0821bfedf62795ddfb1d8f6f6cf6ee6fb7974dd947fa9c73cf3ef1ac47003da28ab3f4c44eb58a619920a4d6fe8604ff4aa10c4e00")}
 
 	qc, err := NewContent(QCFmtStringTEXT, []byte("Hello World!"))
 	if err != nil {
 		t.Error(err)
 	}
+	t.Log("content fmt", QCFmtStringTEXT)
+	t.Log("content data", string(qc.Data))
 
 	q, err := NewQuantum(QuantumTypeInfo, []*QContent{qc}, refs...)
 	if err != nil {
 		t.Error(err)
 	}
 
+	b, err := json.Marshal(q.UnsignedQuantum)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log("unsigned q", string(b))
+	t.Log("###", b)
+
+	sig, err := did.Sign(b)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log("signature", Sig2Hex(sig))
+
 	if err := q.Sign(did); err != nil {
 		t.Error(err)
 	}
+
+	signedQ, err := json.Marshal(q)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log("signed q", string(signedQ))
 
 	addr, err := q.Ecrecover()
 	if err != nil {

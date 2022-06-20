@@ -93,7 +93,7 @@ type UnsignedQuantum struct {
 	Contents []*QContent `json:"cs,omitempty"`
 
 	// References must from the exist signature.
-	// References[0] is the last signature by user-self, 0x00000... if this quantum is the first quantum
+	// References[0] is the last signature by user-self, 0x00 if this quantum is the first quantum by user
 	// References[1] ~ References[n] is optional, recommend to use new & valid quantum
 	// If two quantums by same user with same References[0], these two quantums will cause conflict, and
 	// this user maybe block by others. The reason to do that punishment is user should act like individual,
