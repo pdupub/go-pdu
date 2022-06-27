@@ -17,6 +17,7 @@
 package fb
 
 import (
+	"encoding/json"
 	"strconv"
 	"testing"
 
@@ -274,7 +275,48 @@ func testDealQuantums(t *testing.T) {
 	}
 }
 
+func testGetQuantums(t *testing.T) {
+	ctx := context.Background()
+	fbs, err := NewFBS(ctx, testKeyJSON, testProjectID)
+	if err != nil {
+		t.Error(err)
+	}
+	if qs, _, err := fbs.GetQuantums(); err != nil {
+		t.Error(err)
+	} else {
+		for _, q := range qs {
+			resMap := make(map[string]interface{})
+			resMap["type"] = q.Type
+			resMap["signature"] = core.Sig2Hex(q.Signature)
+			var refs []string
+			for _, ref := range q.References {
+				refs = append(refs, core.Sig2Hex(ref))
+			}
+			resMap["refs"] = refs
+			resMap["cs"], err = CS2Readable(q.Contents)
+			if err != nil {
+				t.Error(err)
+			}
+			id, err := q.Ecrecover()
+			if err != nil {
+				t.Error(err)
+			}
+			resMap["address"] = id.Hex()
+			b, err := json.Marshal(resMap)
+			if err != nil {
+				t.Error(err)
+			}
+			t.Log(string(b))
+		}
+	}
+
+	if err := fbs.Close(); err != nil {
+		t.Error(err)
+	}
+}
+
 func TestMain(t *testing.T) {
 	testCreateQuantums(t)
 	testDealQuantums(t)
+	testGetQuantums(t)
 }

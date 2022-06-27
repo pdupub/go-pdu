@@ -31,13 +31,19 @@ type FBSig struct {
 	SigHex string `json:"refs"`
 }
 
+type FBContent struct {
+	Data   interface{} `json:"data,omitempty"`
+	Format int         `json:"fmt"`
+}
+
 type FBQuantum struct {
-	Contents []*core.QContent `json:"cs,omitempty"`
-	Type     int              `json:"type"`
-	FBRef    []*FBSig         `json:"refs"`
-	Sequence int64            `json:"seq,omitempty"`
-	SelfSeq  int64            `json:"sseq,omitempty"`
-	AddrHex  string           `json:"address,omitempty"`
+	Contents   []*core.QContent `json:"cs,omitempty"`
+	Type       int              `json:"type"`
+	FBRef      []*FBSig         `json:"refs"`
+	Sequence   int64            `json:"seq,omitempty"`
+	SelfSeq    int64            `json:"sseq,omitempty"`
+	AddrHex    string           `json:"address,omitempty"`
+	ReadableCS []*FBContent     `json:"rcs,omitempty"`
 }
 
 type FBIndividual struct {
@@ -73,6 +79,7 @@ const (
 	collectionCommunity  = "community"
 	collectionIndividual = "individual"
 	collectionConfig     = "config"
+	collectionReadableQ  = "rq"
 
 	documentConfigID = "system"
 )
@@ -257,6 +264,12 @@ func (fbs *FBS) DealNewQuantums() error {
 		if quantum, ok := signatureQuantumMap[sigHex]; ok {
 			addrHex := signatureAddressMap[core.Sig2Hex(quantum.Signature)]
 
+			// resave into db as readable data
+			if readableCS, err := CS2Readable(quantum.Contents); err == nil {
+				readableRecord := make(map[string]interface{})
+				readableRecord["rcs"] = readableCS
+				qDocRef.Set(fbs.ctx, readableRecord, firestore.Merge([]string{"rcs"}))
+			}
 			switch quantum.Type {
 			case core.QuantumTypeProfile:
 				profileMap := make(map[string]*core.QContent)
@@ -352,4 +365,30 @@ func (fbs *FBS) DealNewQuantums() error {
 	}
 
 	return nil
+}
+
+func (fbs *FBS) GetQuantums() ([]*core.Quantum, []*FBQuantum, error) {
+	var qs []*core.Quantum
+	var fbqs []*FBQuantum
+
+	quantumCollection := fbs.client.Collection(collectionQuantum)
+	// load all undeal quantums
+	iter := quantumCollection.Documents(fbs.ctx)
+	for docSnapshot, err := iter.Next(); err != iterator.Done; docSnapshot, err = iter.Next() {
+
+		// get data of snapshot
+		fbqRes, err := Data2FBQuantum(docSnapshot.Data())
+		if err != nil {
+			return nil, nil, err
+		}
+
+		qRes, err := FBQuantum2Quantum(docSnapshot.Ref.ID, fbqRes)
+		if err != nil {
+			return nil, nil, err
+		}
+		fbqs = append(fbqs, fbqRes)
+		qs = append(qs, qRes)
+	}
+
+	return qs, fbqs, nil
 }

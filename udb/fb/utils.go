@@ -18,8 +18,16 @@ package fb
 
 import (
 	"encoding/json"
+	"errors"
+	"strconv"
 
 	"github.com/pdupub/go-pdu/core"
+	"github.com/pdupub/go-pdu/identity"
+)
+
+var (
+	errContentFmtMissing = errors.New("content fmt is missing")
+	errContentsMissing   = errors.New("contents is missing")
 )
 
 func Quantum2FBQuantum(q *core.Quantum) (string, *FBQuantum) {
@@ -62,7 +70,11 @@ func Data2FBIndividual(d map[string]interface{}) (*FBIndividual, error) {
 func FBQuantum2Quantum(uid string, fbq *FBQuantum) (*core.Quantum, error) {
 	q := core.Quantum{}
 	q.Contents = fbq.Contents
-	q.Type = fbq.Type
+	if fbq.Type > 0 {
+		q.Type = fbq.Type
+	} else {
+		q.Type = -fbq.Type
+	}
 	q.Signature = core.Hex2Sig(uid)
 	for _, ref := range fbq.FBRef {
 		q.References = append(q.References, core.Hex2Sig(ref.SigHex))
@@ -81,4 +93,44 @@ func FBStruct2Data(fbstruct interface{}) (map[string]interface{}, error) {
 		return nil, err
 	}
 	return aMap, nil
+}
+
+func CS2Readable(contents interface{}) (interface{}, error) {
+
+	switch contents := contents.(type) {
+	case interface{}:
+		readableCS := []interface{}{}
+		for _, v := range contents.([]*core.QContent) {
+			cc, err := Content2Readable(v)
+			if err != nil {
+				return nil, err
+			}
+			readableCS = append(readableCS, cc)
+		}
+		return readableCS, nil
+	}
+	return nil, errContentsMissing
+}
+
+func Content2Readable(content *core.QContent) (map[string]interface{}, error) {
+	cc := make(map[string]interface{})
+	switch content.Format {
+	case core.QCFmtStringTEXT, core.QCFmtStringHexAddress, core.QCFmtStringHexSignature:
+		cc["data"] = string(content.Data)
+	case core.QCFmtStringInt, core.QCFmtStringFloat:
+		dataFloat, err := strconv.ParseFloat(string(content.Data), 64)
+		if err != nil {
+			return nil, err
+		}
+		cc["data"] = dataFloat
+	case core.QCFmtBytesAddress:
+		cc["data"] = identity.BytesToAddress(content.Data).Hex()
+	case core.QCFmtBytesSignature:
+		cc["data"] = core.Sig2Hex(content.Data)
+	default:
+		return nil, errContentFmtMissing
+	}
+	cc["fmt"] = content.Format
+
+	return cc, nil
 }

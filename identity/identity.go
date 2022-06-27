@@ -41,6 +41,10 @@ func New() (*DID, error) {
 	return &DID{}, nil
 }
 
+func BytesToAddress(bytes []byte) Address {
+	return Address(common.BytesToAddress(bytes))
+}
+
 // UnlockWallet used to unlock wallet
 func (d *DID) UnlockWallet(keyFilePath, password string) error {
 	keyJSON, err := ioutil.ReadFile(keyFilePath)
