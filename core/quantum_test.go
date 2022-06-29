@@ -42,10 +42,10 @@ func TestInfoQuantum(t *testing.T) {
 	did, _ := identity.New()
 	did.UnlockWallet("../"+params.TestKeystore(0), params.TestPassword)
 
-	c0 := NewTextC("Hello!")
-	c1 := NewIntC(100)
-	c2 := NewTextC(">")
-	c3 := NewFloatC(99.9)
+	c0 := CreateTextContent("Hello!")
+	c1 := CreateIntContent(100)
+	c2 := CreateTextContent(">")
+	c3 := CreateFloatContent(99.9)
 
 	q, err := NewQuantum(QuantumTypeInfo, []*QContent{c0, c1, c2, c3}, FirstQuantumReference)
 	if err != nil {
@@ -70,7 +70,7 @@ func TestInfoQuantum(t *testing.T) {
 	if d, err := q.Contents[0].GetData(); err != nil || d.(string) != "Hello!" {
 		t.Error(err)
 	}
-	if d, err := q.Contents[1].GetData(); err != nil || d.(int) != 100 {
+	if d, err := q.Contents[1].GetData(); err != nil || d.(int64) != 100 {
 		t.Error(err)
 	}
 	if d, err := q.Contents[2].GetData(); err != nil || d.(string) != ">" {

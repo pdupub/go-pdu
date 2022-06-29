@@ -27,7 +27,7 @@ func TestNewContent(t *testing.T) {
 	}
 	t.Log(qc.Format)
 
-	qc = NewTextC("Hello")
+	qc = CreateTextContent("Hello")
 	if d, err := qc.GetData(); err != nil {
 		t.Error(err)
 	} else if d.(string) != "Hello" {
@@ -36,7 +36,7 @@ func TestNewContent(t *testing.T) {
 		t.Log(d.(string))
 	}
 
-	qc = NewEmptyC()
+	qc = CreateEmptyContent()
 	if d, err := qc.GetData(); err != nil {
 		t.Error(err)
 	} else if d.(string) != "" {
@@ -45,16 +45,16 @@ func TestNewContent(t *testing.T) {
 		t.Log(d.(string))
 	}
 
-	qc = NewIntC(12345)
+	qc = CreateIntContent(12345)
 	if d, err := qc.GetData(); err != nil {
 		t.Error(err)
-	} else if d.(int) != 12345 {
+	} else if d.(int64) != 12345 {
 		t.Error(errContentParseFail)
 	} else {
-		t.Log(d.(int))
+		t.Log(d.(int64))
 	}
 
-	qc = NewFloatC(123.45)
+	qc = CreateFloatContent(123.45)
 	if d, err := qc.GetData(); err != nil {
 		t.Error(err)
 	} else if d.(float64) != 123.45 {

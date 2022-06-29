@@ -59,15 +59,15 @@ const (
 	// contents[2] is the max number of invitation by one user
 	// {fmt:QCFmtStringInt, data:1} -1 means no limit, 0 means not allowed
 	// contents[3] ~ contents[15] is the initial users in this community
-	// {fmt:QCFmtBytesAddress/QCFmtStringHexAddress, data:0x1232...}
+	// {fmt:QCFmtBytesAddress/QCFmtStringAddressHex, data:0x1232...}
 	// signer of this community is also the initial user in this community
 	QuantumTypeCommunity = 3
 
 	// QuantumTypeInvitation specifies the quantum of invitation
 	// contents[0] is the signature of target community rule quantum
-	// {fmt:QCFmtBytesSignature/QCFmtStringHexSignature, data:signature of target community rule quantum}
+	// {fmt:QCFmtBytesSignature/QCFmtStringSignatureHex, data:signature of target community rule quantum}
 	// contents[1] ~ contents[n] is the address of be invited
-	// {fmt:QCFmtBytesAddress/QCFmtStringHexAddress, data:0x123...}
+	// {fmt:QCFmtBytesAddress/QCFmtStringAddressHex, data:0x123...}
 	// no matter all invitation send in same quantum of different quantum
 	// only first n address (rule.contents[2]) will be accepted
 	// user can not quit community, but any user can block any other user (or self) from any community
@@ -168,18 +168,20 @@ func CreateInfoQuantum(qcs []*QContent, refs ...Sig) (*Quantum, error) {
 func CreateProfileQuantum(profiles map[string]interface{}, refs ...Sig) (*Quantum, error) {
 	var qcs []*QContent
 	for k, v := range profiles {
-		key := NewTextC(k)
+		key := CreateTextContent(k)
 		var value *QContent
 		switch v.(type) {
-
 		case string:
-			value = NewTextC(v.(string))
+			value = CreateTextContent(v.(string))
 		case float64:
-			value = NewFloatC(v.(float64))
+			value = CreateFloatContent(v.(float64))
 		case int:
-			value = NewIntC(v.(int))
+			value = CreateIntContent(int64(v.(int)))
+		case int64:
+			value = CreateIntContent(v.(int64))
 		default:
-			value = NewTextC(v.(string))
+			// img for avator will be deal later
+			return nil, errContentFmtNotFit
 		}
 		qcs = append(qcs, key, value)
 	}
@@ -190,11 +192,11 @@ func CreateProfileQuantum(profiles map[string]interface{}, refs ...Sig) (*Quantu
 func CreateCommunityQuantum(note string, minCosignCnt int, maxInviteCnt int, initAddrsHex []string, refs ...Sig) (*Quantum, error) {
 	var qcs []*QContent
 
-	qcs = append(qcs, NewTextC(note))
-	qcs = append(qcs, NewIntC(minCosignCnt))
-	qcs = append(qcs, NewIntC(maxInviteCnt))
+	qcs = append(qcs, CreateTextContent(note))
+	qcs = append(qcs, CreateIntContent(int64(minCosignCnt)))
+	qcs = append(qcs, CreateIntContent(int64(maxInviteCnt)))
 	for _, addrHex := range initAddrsHex {
-		qcs = append(qcs, &QContent{Format: QCFmtStringHexAddress, Data: []byte(addrHex)})
+		qcs = append(qcs, &QContent{Format: QCFmtStringAddressHex, Data: []byte(addrHex)})
 	}
 
 	return NewQuantum(QuantumTypeCommunity, qcs, refs...)
@@ -204,7 +206,7 @@ func CreateInvitationQuantum(target Sig, addrsHex []string, refs ...Sig) (*Quant
 	var qcs []*QContent
 	qcs = append(qcs, &QContent{Format: QCFmtBytesSignature, Data: target})
 	for _, addrHex := range addrsHex {
-		qcs = append(qcs, &QContent{Format: QCFmtStringHexAddress, Data: []byte(addrHex)})
+		qcs = append(qcs, &QContent{Format: QCFmtStringAddressHex, Data: []byte(addrHex)})
 	}
 	return NewQuantum(QuantumTypeInvitation, qcs, refs...)
 }

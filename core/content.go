@@ -18,6 +18,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 )
 
@@ -27,8 +28,8 @@ const (
 	QCFmtStringJSON         = 3
 	QCFmtStringInt          = 4
 	QCFmtStringFloat        = 5
-	QCFmtStringHexAddress   = 6
-	QCFmtStringHexSignature = 7
+	QCFmtStringAddressHex   = 6
+	QCFmtStringSignatureHex = 7
 
 	QCFmtBytesSignature = 33
 	QCFmtBytesAddress   = 34
@@ -45,6 +46,7 @@ const (
 
 var (
 	errContentParseFail = errors.New("contents parse fail")
+	errContentFmtNotFit = errors.New("content format not fit")
 )
 
 // QContent is one piece of data in Quantum,
@@ -58,34 +60,36 @@ func NewContent(fmt int, data []byte) (*QContent, error) {
 	return &QContent{Format: fmt, Data: data}, nil
 }
 
-func NewTextC(t string) *QContent {
+func CreateTextContent(t string) *QContent {
 	c, _ := NewContent(QCFmtStringTEXT, []byte(t))
 	return c
 }
 
-func NewEmptyC() *QContent {
+func CreateEmptyContent() *QContent {
 	c, _ := NewContent(QCFmtStringTEXT, []byte(""))
 	return c
 }
 
-func NewIntC(num int) *QContent {
-	c, _ := NewContent(QCFmtStringInt, []byte(strconv.Itoa(num)))
+func CreateIntContent(num int64) *QContent {
+	c, _ := NewContent(QCFmtStringInt, []byte(fmt.Sprintf("%d", num)))
 	return c
 }
 
-func NewFloatC(num float64) *QContent {
-	c, _ := NewContent(QCFmtStringFloat, []byte(strconv.FormatFloat(num, 'E', -1, 64)))
+func CreateFloatContent(num float64) *QContent {
+	c, _ := NewContent(QCFmtStringFloat, []byte(fmt.Sprintf("%g", num)))
 	return c
 }
 
 func (c *QContent) GetData() (interface{}, error) {
 	switch c.Format {
-	case QCFmtStringTEXT:
+	case QCFmtStringTEXT, QCFmtStringURL, QCFmtStringJSON, QCFmtStringAddressHex, QCFmtBytesSignature:
 		return string(c.Data), nil
 	case QCFmtStringInt:
-		return strconv.Atoi(string(c.Data))
+		return strconv.ParseInt(string(c.Data), 10, 64)
 	case QCFmtStringFloat:
 		return strconv.ParseFloat(string(c.Data), 64)
+	default:
+		return c.Data, nil
 	}
 
 	return nil, errContentParseFail

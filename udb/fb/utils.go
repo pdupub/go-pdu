@@ -115,7 +115,7 @@ func CS2Readable(contents interface{}) (interface{}, error) {
 func Content2Readable(content *core.QContent) (map[string]interface{}, error) {
 	cc := make(map[string]interface{})
 	switch content.Format {
-	case core.QCFmtStringTEXT, core.QCFmtStringHexAddress, core.QCFmtStringHexSignature:
+	case core.QCFmtStringTEXT, core.QCFmtStringAddressHex, core.QCFmtStringSignatureHex:
 		cc["data"] = string(content.Data)
 	case core.QCFmtStringInt, core.QCFmtStringFloat:
 		dataFloat, err := strconv.ParseFloat(string(content.Data), 64)

@@ -122,11 +122,11 @@ func testClearQuantum(t *testing.T, ctx context.Context, client *firestore.Clien
 		docRef.Delete(ctx)
 	}
 
-	configCollection := client.Collection("config")
-	configDocRef := configCollection.Doc("system")
+	configCollection := client.Collection("universe")
+	configDocRef := configCollection.Doc("status")
 	configMap := make(map[string]int64)
-	configMap["sequence"] = 0
-	configDocRef.Set(ctx, configMap, firestore.Merge([]string{"sequence"}))
+	configMap["universeSequence"] = 0
+	configDocRef.Set(ctx, configMap, firestore.Merge([]string{"universeSequence"}))
 }
 
 func testUploadQuantum(t *testing.T, ctx context.Context, client *firestore.Client, q *core.Quantum) (*core.Quantum, *firestore.DocumentRef) {
@@ -204,10 +204,10 @@ func testCreateQuantums(t *testing.T) {
 	ref3 := []core.Sig{}
 	// ref4 := []core.Sig{}
 
-	c0 := core.NewTextC("Hello! ")
-	c1 := core.NewIntC(100)
-	c2 := core.NewTextC(">")
-	c3 := core.NewFloatC(99.9)
+	c0 := core.CreateTextContent("Hello! ")
+	c1 := core.CreateIntContent(100)
+	c2 := core.CreateTextContent(">")
+	c3 := core.CreateFloatContent(99.9)
 
 	q1, _ := testCreateInfoQuantum(t, ctx, client, did1, []*core.QContent{c0}, core.FirstQuantumReference)
 	ref1 = append(ref1, q1.Signature)
@@ -219,11 +219,11 @@ func testCreateQuantums(t *testing.T) {
 	ref3 = append(ref3, q3.Signature)
 
 	for i := 2; i < 6; i++ {
-		q11, _ := testCreateInfoQuantum(t, ctx, client, did1, []*core.QContent{core.NewTextC("Hello! A " + strconv.Itoa(i))}, ref1[len(ref1)-1], ref2[len(ref2)-1])
+		q11, _ := testCreateInfoQuantum(t, ctx, client, did1, []*core.QContent{core.CreateTextContent("Hello! A " + strconv.Itoa(i))}, ref1[len(ref1)-1], ref2[len(ref2)-1])
 		ref1 = append(ref1, q11.Signature)
-		q22, _ := testCreateInfoQuantum(t, ctx, client, did2, []*core.QContent{core.NewTextC("Hello! B " + strconv.Itoa(i))}, ref2[len(ref2)-1], ref3[len(ref3)-1], ref1[len(ref1)-1])
+		q22, _ := testCreateInfoQuantum(t, ctx, client, did2, []*core.QContent{core.CreateTextContent("Hello! B " + strconv.Itoa(i))}, ref2[len(ref2)-1], ref3[len(ref3)-1], ref1[len(ref1)-1])
 		ref2 = append(ref2, q22.Signature)
-		q33, _ := testCreateInfoQuantum(t, ctx, client, did3, []*core.QContent{core.NewTextC("Hello! C " + strconv.Itoa(i))}, ref3[len(ref3)-1], ref2[len(ref2)-1])
+		q33, _ := testCreateInfoQuantum(t, ctx, client, did3, []*core.QContent{core.CreateTextContent("Hello! C " + strconv.Itoa(i))}, ref3[len(ref3)-1], ref2[len(ref2)-1])
 		ref3 = append(ref3, q33.Signature)
 	}
 
@@ -263,27 +263,36 @@ func testCreateQuantums(t *testing.T) {
 
 func testDealQuantums(t *testing.T) {
 	ctx := context.Background()
-	fbs, err := NewFBS(ctx, testKeyJSON, testProjectID)
+	fbu, err := NewFBUniverse(ctx, testKeyJSON, testProjectID)
 	if err != nil {
 		t.Error(err)
 	}
-	if err := fbs.DealNewQuantums(); err != nil {
+	if err := fbu.ProcessQuantum(0, 100); err != nil {
 		t.Error(err)
 	}
-	if err := fbs.Close(); err != nil {
+	if err := fbu.Close(); err != nil {
 		t.Error(err)
 	}
 }
 
 func testGetQuantums(t *testing.T) {
+	didMap := make(map[string]*identity.DID)
+
+	for i := 0; i < 4; i++ {
+		did, _ := identity.New()
+		did.UnlockWallet("../../"+params.TestKeystore(i), params.TestPassword)
+		didMap[did.GetAddress().Hex()] = did
+	}
+
 	ctx := context.Background()
-	fbs, err := NewFBS(ctx, testKeyJSON, testProjectID)
+	fbu, err := NewFBUniverse(ctx, testKeyJSON, testProjectID)
 	if err != nil {
 		t.Error(err)
 	}
-	if qs, _, err := fbs.GetQuantums(); err != nil {
+	if qs, err := fbu.QueryQuantum(identity.Address{}, 0, 0, 100, false); err != nil {
 		t.Error(err)
 	} else {
+		var sigs []string
 		for _, q := range qs {
 			resMap := make(map[string]interface{})
 			resMap["type"] = q.Type
@@ -302,15 +311,23 @@ func testGetQuantums(t *testing.T) {
 				t.Error(err)
 			}
 			resMap["address"] = id.Hex()
+			if _, ok := didMap[id.Hex()]; !ok {
+				t.Error("signer not exist")
+			}
+
 			b, err := json.Marshal(resMap)
 			if err != nil {
 				t.Error(err)
 			}
 			t.Log(string(b))
+			sigs = append(sigs, core.Sig2Hex(q.Signature))
+		}
+		for _, sig := range sigs {
+			t.Log(sig)
 		}
 	}
 
-	if err := fbs.Close(); err != nil {
+	if err := fbu.Close(); err != nil {
 		t.Error(err)
 	}
 }

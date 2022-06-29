@@ -20,55 +20,40 @@ import (
 	"github.com/pdupub/go-pdu/identity"
 )
 
-// Universe is struct contain all quantums which be received, select and accept by yourself.
+// Universe is interface contain all quantums which be received, selected and accepted by yourself.
 // Your universe may same or not with other's, usually your universe only contains part of whole
 // exist quantums (not conflict). By methods in Universe, communities be created by quantum and individuals
 // be invited into community can be found. Universse also have some aggregate infomation on quantums.
-type Universe struct {
-	// `json:"address"`
+type Universe interface {
+	// ReceiveQuantum just receive origin quantums, not verify signature
+	ReceiveQuantum(originQuantums []*Quantum) error
 
-}
+	// ProcessSingleQuantum verify the signature, decide whether to accept or not, process the quantum by QType
+	// return err if quantum not accept. casuse of verif-fail, signer be punished, conflict or any reason from U)
+	ProcessSingleQuantum(sig Sig) error
 
-// NewUniverse is
-func NewUniverse(db *UDB) (*Universe, error) {
-	universe := Universe{}
-	return &universe, nil
-}
+	// ProcessQuantum do RecvQuantum with more efficient way, err will not be return if quantum not be accepted.
+	// signature of quantums in accept or rejected is processed.
+	ProcessQuantum(skip, limit int) (accept []Sig, wait []Sig, rejected []Sig, err error)
 
-func (u *Universe) RecvQuantum(quantum *Quantum) error {
-	return nil
-}
+	// JudgeIndividual update judgement info of Individual and process all/part of quantums from this signer if necessary.
+	JudgeIndividual(address identity.Address, level int, judgment string, evidence ...[]Sig) error
 
-func (u *Universe) SetAttitude(address identity.Address, level int, judgment string, evidence ...[]Sig) error {
+	// JudgeCommunity update the attitude of Community, filter the individual in this community or not
+	JudgeCommunity(sig Sig, level int, statement string) error
 
-	return nil
-}
+	// QueryQuantum query quantums from whole accepted quantums if address is nil, not filter by type if qType is 0
+	QueryQuantum(address identity.Address, qType int, skip int, limit int, desc bool) ([]*Quantum, error)
 
-func (u *Universe) GetAttitude(address identity.Address) (*Attitude, error) {
+	// QueryIndividual query Individual from Community
+	QueryIndividual(sig Sig, skip int, limit int, desc bool) ([]*Individual, error)
 
-	return nil, nil
-}
+	// GetCommunity return nil if not exist
+	GetCommunity(sig Sig) *Community
 
-func (u *Universe) JoinCommunity(defineSig Sig, address identity.Address) error {
-	// update individual.community of creator & initMembers
-	return nil
-}
+	// GetIndividual return nil if not exist
+	GetIndividual(address identity.Address) *Individual
 
-func (u *Universe) QueryQuantum(address identity.Address, qType int, pageIndex int, pageSize int, desc bool) []*Quantum {
-	return nil
-}
-
-func (u *Universe) QueryIndividual(community *Community) []*Individual {
-	return nil
-}
-
-func (u *Universe) QueryCommunity(community *Community) []*Community {
-	return nil
-}
-
-func (u *Universe) GetIndividual(address identity.Address) *Individual {
-	return nil
-}
-func (u *Universe) GetQuantum(sig Sig) *Quantum {
-	return nil
+	// GetQuantum return nil if not exist
+	GetQuantum(sig Sig) *Quantum
 }

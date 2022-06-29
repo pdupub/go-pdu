@@ -65,7 +65,7 @@ func NewCommunity(quantum *Quantum) (*Community, error) {
 			}
 		}
 
-		if i >= 3 && content.Format == QCFmtStringHexAddress {
+		if i >= 3 && content.Format == QCFmtStringAddressHex {
 			community.InitMembers = append(community.InitMembers, identity.HexToAddress(string(content.Data)))
 		}
 	}

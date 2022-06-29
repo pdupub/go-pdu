@@ -43,7 +43,7 @@ func TestNewCommunity(t *testing.T) {
 	k2, _ := NewContent(QCFmtStringInt, []byte(strconv.Itoa(2)))
 	contents = append(contents, k2)
 
-	contents = append(contents, &QContent{Format: QCFmtStringHexAddress, Data: []byte(did.GetAddress().Hex())})
+	contents = append(contents, &QContent{Format: QCFmtStringAddressHex, Data: []byte(did.GetAddress().Hex())})
 
 	baseSig := Sig([]byte("0x070d15041083041b48d0f2297357ce59ad18f6c608d70a1e6e04bcf494e366db"))
 
