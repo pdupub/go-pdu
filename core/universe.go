@@ -26,7 +26,7 @@ import (
 // be invited into community can be found. Universse also have some aggregate infomation on quantums.
 type Universe interface {
 	// ReceiveQuantum just receive origin quantums, not verify signature
-	ReceiveQuantum(originQuantums []*Quantum) error
+	ReceiveQuantum(originQuantums []*Quantum) (receive []Sig, err error)
 
 	// ProcessSingleQuantum verify the signature, decide whether to accept or not, process the quantum by QType
 	// return err if quantum not accept. casuse of verif-fail, signer be punished, conflict or any reason from U)
@@ -34,7 +34,7 @@ type Universe interface {
 
 	// ProcessQuantum do RecvQuantum with more efficient way, err will not be return if quantum not be accepted.
 	// signature of quantums in accept or rejected is processed.
-	ProcessQuantum(skip, limit int) (accept []Sig, wait []Sig, rejected []Sig, err error)
+	ProcessQuantum(skip, limit int) (accept []Sig, wait []Sig, reject []Sig, err error)
 
 	// JudgeIndividual update judgement info of Individual and process all/part of quantums from this signer if necessary.
 	JudgeIndividual(address identity.Address, level int, judgment string, evidence ...[]Sig) error
@@ -45,7 +45,7 @@ type Universe interface {
 	// QueryQuantum query quantums from whole accepted quantums if address is nil, not filter by type if qType is 0
 	QueryQuantum(address identity.Address, qType int, skip int, limit int, desc bool) ([]*Quantum, error)
 
-	// QueryIndividual query Individual from Community
+	// QueryIndividual query Individual from whole universe if community sig is nil.
 	QueryIndividual(sig Sig, skip int, limit int, desc bool) ([]*Individual, error)
 
 	// GetCommunity return nil if not exist

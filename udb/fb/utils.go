@@ -67,6 +67,20 @@ func Data2FBIndividual(d map[string]interface{}) (*FBIndividual, error) {
 	return fbq, nil
 }
 
+func Data2FBCommunity(d map[string]interface{}) (*FBCommunity, error) {
+	dataBytes, err := json.Marshal(d)
+	if err != nil {
+		return nil, err
+	}
+
+	fbq := new(FBCommunity)
+	err = json.Unmarshal(dataBytes, fbq)
+	if err != nil {
+		return nil, err
+	}
+	return fbq, nil
+}
+
 func FBQuantum2Quantum(uid string, fbq *FBQuantum) (*core.Quantum, error) {
 	q := core.Quantum{}
 	q.Contents = fbq.Contents
@@ -80,6 +94,32 @@ func FBQuantum2Quantum(uid string, fbq *FBQuantum) (*core.Quantum, error) {
 		q.References = append(q.References, core.Hex2Sig(ref.SigHex))
 	}
 	return &q, nil
+}
+
+func FBIndividual2Individual(uid string, fbi *FBIndividual) (*core.Individual, error) {
+	i := core.Individual{}
+	i.Address = identity.HexToAddress(uid)
+	i.Profile = fbi.Profile
+	// i.Communities
+	i.Attitude = fbi.Attitude
+	i.LastSig = core.Hex2Sig(fbi.LastSigHex)
+	i.LastSeq = fbi.LastSelfSeq
+	return &i, nil
+}
+
+func FBCommunity2Community(uid string, fbc *FBCommunity) (*core.Community, error) {
+	c := core.Community{}
+	c.Note = fbc.Note
+	c.Define = core.Hex2Sig(uid)
+	c.Creator = identity.HexToAddress(fbc.CreatorAddrHex)
+	c.MinCosignCnt = fbc.MinCosignCnt
+	c.MaxInviteCnt = fbc.MaxInviteCnt
+
+	for _, addrHex := range fbc.InitMembersHex {
+		c.InitMembers = append(c.InitMembers, identity.HexToAddress(addrHex))
+	}
+
+	return &c, nil
 }
 
 func FBStruct2Data(fbstruct interface{}) (map[string]interface{}, error) {

@@ -40,13 +40,15 @@ type Attitude struct {
 // Individual is the user in pdu system
 type Individual struct {
 	Address     identity.Address     `json:"address"`
-	Profile     map[string]*QContent `json:"profile"`
-	Communities []*Community         `json:"communities"`
+	Profile     map[string]*QContent `json:"profile,omitempty"`
+	Communities []*Community         `json:"communities,omitempty"`
 	Attitude    *Attitude            `json:"attitude"`
+	LastSig     Sig                  `json:"lastSignature,omitempty"`
+	LastSeq     int64                `json:"lastSequence,omitempty"`
 }
 
 func NewIndividual(address identity.Address) *Individual {
-	return &Individual{Address: address, Profile: make(map[string]*QContent)}
+	return &Individual{Address: address, Profile: make(map[string]*QContent), Attitude: &Attitude{Level: AttitudeAccept}}
 }
 
 func (ind Individual) GetAddress() identity.Address {
@@ -61,5 +63,10 @@ func (ind *Individual) UpsertProfile(cs []*QContent) error {
 			ind.Profile[k] = cs[i+1]
 		}
 	}
+	return nil
+}
+
+func (ind *Individual) UpdateAttitude(na *Attitude) error {
+	ind.Attitude = na
 	return nil
 }

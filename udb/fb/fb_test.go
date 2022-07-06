@@ -267,7 +267,7 @@ func testDealQuantums(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if err := fbu.ProcessQuantum(0, 100); err != nil {
+	if _, _, _, err := fbu.ProcessQuantum(0, 100); err != nil {
 		t.Error(err)
 	}
 	if err := fbu.Close(); err != nil {
@@ -332,8 +332,29 @@ func testGetQuantums(t *testing.T) {
 	}
 }
 
+func testTemp(t *testing.T) {
+	t.Log("temp test")
+	ctx := context.Background()
+	var fbu core.Universe
+	var err error
+	fbu, err = NewFBUniverse(ctx, testKeyJSON, testProjectID)
+	if err != nil {
+		t.Error(err)
+	}
+	quantums, err := fbu.QueryQuantum(identity.Address{}, 0, 0, 3, false)
+	if err != nil {
+		t.Error(err)
+	}
+	for _, q := range quantums {
+		t.Log(q)
+	}
+	community := fbu.GetCommunity(core.Hex2Sig("0xe2f00788cd5a4ba91c6c0a1e6e0944da1631a236ed7df74b83521dba9397dcd44f4c46792f0235099cc7352e33d82be29da1b08f23e25276a7095100862e2ac601"))
+	t.Log(community)
+}
+
 func TestMain(t *testing.T) {
 	testCreateQuantums(t)
 	testDealQuantums(t)
 	testGetQuantums(t)
+	testTemp(t)
 }

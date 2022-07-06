@@ -18,6 +18,7 @@ package fb
 
 import (
 	"context"
+	"errors"
 	"strconv"
 
 	"cloud.google.com/go/firestore"
@@ -26,6 +27,10 @@ import (
 	"github.com/pdupub/go-pdu/identity"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+)
+
+var (
+	errDocumentLoadDataFail = errors.New("document load data fail")
 )
 
 type FBSig struct {
@@ -72,7 +77,7 @@ type FBUniverse struct {
 	ctx    context.Context
 	app    *firebase.App
 	client *firestore.Client
-	config *UniverseStatus
+	status *UniverseStatus
 }
 
 const (
@@ -87,7 +92,7 @@ const (
 )
 
 func NewFBUniverse(ctx context.Context, keyFilename string, projectID string) (*FBUniverse, error) {
-	fbu := &FBUniverse{ctx: ctx, config: &UniverseStatus{}}
+	fbu := &FBUniverse{ctx: ctx, status: &UniverseStatus{}}
 	opt := option.WithCredentialsFile(keyFilename)
 	config := &firebase.Config{ProjectID: projectID}
 	app, err := firebase.NewApp(ctx, config, opt)
@@ -103,7 +108,7 @@ func NewFBUniverse(ctx context.Context, keyFilename string, projectID string) (*
 	fbu.client = client
 
 	// init config
-	fbu.UpdateUniverseSequence(false)
+	fbu.updateUniverseSequence(false)
 
 	return fbu, nil
 }
@@ -112,32 +117,32 @@ func (fbu *FBUniverse) Close() error {
 	return fbu.client.Close()
 }
 
-func (fbu *FBUniverse) UpdateUniverseSequence(increase bool) error {
-	config := fbu.client.Collection(collectionUniverse)
-	docRef := config.Doc(universeStatusDocID)
+func (fbu *FBUniverse) updateUniverseSequence(increase bool) error {
+	universeCollection := fbu.client.Collection(collectionUniverse)
+	docRef := universeCollection.Doc(universeStatusDocID)
 	docSnapshot, err := docRef.Get(fbu.ctx)
 	if err != nil {
 		return err
 	}
 	dMap := docSnapshot.Data()
 	if sequence, ok := dMap["universeSequence"]; ok {
-		fbu.config.Sequence = sequence.(int64)
+		fbu.status.Sequence = sequence.(int64)
 		if increase {
-			fbu.config.Sequence += 1
-			dMap["universeSequence"] = fbu.config.Sequence
+			fbu.status.Sequence += 1
+			dMap["universeSequence"] = fbu.status.Sequence
 			docRef.Set(fbu.ctx, dMap)
 		}
 	}
 	return nil
 }
 
-func (fbu *FBUniverse) ProcessQuantum(skip, limit int) error {
+func (fbu *FBUniverse) ProcessQuantum(skip, limit int) (accept []core.Sig, wait []core.Sig, reject []core.Sig, err error) {
 
 	signatureQuantumMap := make(map[string]*core.Quantum) // sig:quantum
 	signatureAddressMap := make(map[string]string)        // sig:address
 	referenceSignatureMap := make(map[string]string)      // first_ref_sig:sig
 	addressExistMap := make(map[string]bool)              // address:struct{} 	// address exist
-	var quantumSigHexSlice []string
+
 	individualCollection := fbu.client.Collection(collectionIndividual)
 	quantumCollection := fbu.client.Collection(collectionQuantum)
 	communityCollection := fbu.client.Collection(collectionCommunity)
@@ -145,22 +150,27 @@ func (fbu *FBUniverse) ProcessQuantum(skip, limit int) error {
 	iter := quantumCollection.Where("type", ">", 0).Offset(skip).Limit(limit).Documents(fbu.ctx)
 	for docSnapshot, err := iter.Next(); err != iterator.Done; docSnapshot, err = iter.Next() {
 
+		if docSnapshot == nil {
+			return nil, nil, nil, errDocumentLoadDataFail
+		}
+
 		// get data of snapshot
 		fbqRes, err := Data2FBQuantum(docSnapshot.Data())
 		if err != nil {
-			return err
+			continue
 		}
 		qRes, err := FBQuantum2Quantum(docSnapshot.Ref.ID, fbqRes)
 		if err != nil {
-			return err
+			continue
 		}
-		signatureQuantumMap[docSnapshot.Ref.ID] = qRes
 
 		// ecrecover the author address
 		addr, err := qRes.Ecrecover()
 		if err != nil {
-			return err
+			continue
 		}
+
+		signatureQuantumMap[docSnapshot.Ref.ID] = qRes
 		signatureAddressMap[docSnapshot.Ref.ID] = addr.Hex()
 
 		if core.Sig2Hex(qRes.References[0]) != core.Sig2Hex(core.FirstQuantumReference) {
@@ -203,11 +213,13 @@ func (fbu *FBUniverse) ProcessQuantum(skip, limit int) error {
 		iDocSnapshot, _ := iDocRef.Get(fbu.ctx)
 		if !iDocSnapshot.Exists() && core.Sig2Hex(quantum.References[0]) == core.Sig2Hex(core.FirstQuantumReference) {
 			// checked first quantums, can be accepted.
-			if err := fbu.UpdateUniverseSequence(true); err != nil {
-				return err
+			if err := fbu.updateUniverseSequence(true); err != nil {
+				// reject
+				reject = append(reject, core.Hex2Sig(sigHex))
+				continue
 			}
 			// add sequence to quantum
-			dMap, _ := FBStruct2Data(&FBQuantum{Sequence: fbu.config.Sequence, SelfSeq: int64(1)})
+			dMap, _ := FBStruct2Data(&FBQuantum{Sequence: fbu.status.Sequence, SelfSeq: int64(1)})
 			qDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"seq"}, []string{"sseq"}))
 
 			// add new individual
@@ -215,7 +227,7 @@ func (fbu *FBUniverse) ProcessQuantum(skip, limit int) error {
 			dMap, _ = FBStruct2Data(newIndividual)
 			iDocRef.Set(fbu.ctx, dMap)
 
-			quantumSigHexSlice = append(quantumSigHexSlice, sigHex)
+			accept = append(accept, core.Hex2Sig(sigHex))
 		}
 	}
 
@@ -226,7 +238,7 @@ func (fbu *FBUniverse) ProcessQuantum(skip, limit int) error {
 		if iDocSnapshot.Exists() {
 			individual, err := Data2FBIndividual(iDocSnapshot.Data())
 			if err != nil {
-				return err
+				continue
 			}
 
 			for {
@@ -235,8 +247,9 @@ func (fbu *FBUniverse) ProcessQuantum(skip, limit int) error {
 					if _, ok := signatureQuantumMap[sigHex]; ok {
 
 						// checked first quantums, can be accepted.
-						if err := fbu.UpdateUniverseSequence(true); err != nil {
-							return err
+						if err := fbu.updateUniverseSequence(true); err != nil {
+							reject = append(reject, core.Hex2Sig(sigHex))
+							continue
 						}
 
 						individual.LastSigHex = sigHex
@@ -244,14 +257,14 @@ func (fbu *FBUniverse) ProcessQuantum(skip, limit int) error {
 
 						qDocRef := quantumCollection.Doc(sigHex)
 						// add sequence to quantum
-						dMap, _ := FBStruct2Data(&FBQuantum{Sequence: fbu.config.Sequence, SelfSeq: individual.LastSelfSeq})
+						dMap, _ := FBStruct2Data(&FBQuantum{Sequence: fbu.status.Sequence, SelfSeq: individual.LastSelfSeq})
 						qDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"seq"}, []string{"sseq"}))
 
 						// add new individual
 						dMap, _ = FBStruct2Data(individual)
 						iDocRef.Set(fbu.ctx, dMap)
 
-						quantumSigHexSlice = append(quantumSigHexSlice, sigHex)
+						accept = append(accept, core.Hex2Sig(sigHex))
 
 					}
 				} else {
@@ -261,7 +274,8 @@ func (fbu *FBUniverse) ProcessQuantum(skip, limit int) error {
 		}
 	}
 
-	for _, sigHex := range quantumSigHexSlice {
+	for _, sig := range accept {
+		sigHex := core.Sig2Hex(sig)
 		qDocRef := quantumCollection.Doc(sigHex)
 		if quantum, ok := signatureQuantumMap[sigHex]; ok {
 			addrHex := signatureAddressMap[core.Sig2Hex(quantum.Signature)]
@@ -366,22 +380,43 @@ func (fbu *FBUniverse) ProcessQuantum(skip, limit int) error {
 		}
 	}
 
-	return nil
+	for _, k := range accept {
+		delete(signatureAddressMap, core.Sig2Hex(k))
+	}
+	for _, k := range reject {
+		delete(signatureAddressMap, core.Sig2Hex(k))
+	}
+	for k, _ := range signatureAddressMap {
+		wait = append(wait, core.Hex2Sig(k))
+	}
+
+	return
 }
 
 func (fbu *FBUniverse) QueryQuantum(address identity.Address, qType int, skip int, limit int, desc bool) ([]*core.Quantum, error) {
 	var qs []*core.Quantum
 
 	quantumCollection := fbu.client.Collection(collectionQuantum)
+	quantumQuery := quantumCollection.Query
 
 	// TODO: filter by params
+	emptyAddress := identity.Address{}
+	if address != emptyAddress {
+		quantumQuery = quantumQuery.Where("address", "==", address.Hex())
+	}
+
+	if qType != 0 {
+		quantumQuery = quantumQuery.Where("type", "==", -(qType))
+	}
+
+	iter := quantumQuery.Offset(skip).Limit(limit).Documents(fbu.ctx)
 
 	// load all undeal quantums
-	iter := quantumCollection.Documents(fbu.ctx)
 	for docSnapshot, err := iter.Next(); err != iterator.Done; docSnapshot, err = iter.Next() {
 
+		dMap := docSnapshot.Data()
 		// get data of snapshot
-		fbqRes, err := Data2FBQuantum(docSnapshot.Data())
+		fbqRes, err := Data2FBQuantum(dMap)
 		if err != nil {
 			return nil, err
 		}
@@ -397,19 +432,37 @@ func (fbu *FBUniverse) QueryQuantum(address identity.Address, qType int, skip in
 	return qs, nil
 }
 
-func (fbu *FBUniverse) ReceiveQuantum(originQuantums []*core.Quantum) error {
-	return nil
+func (fbu *FBUniverse) ReceiveQuantum(originQuantums []*core.Quantum) (receive []core.Sig, err error) {
+	quantumCollection := fbu.client.Collection(collectionQuantum)
+	for _, q := range originQuantums {
+		docID, fbq := Quantum2FBQuantum(q)
+		dMap, _ := FBStruct2Data(fbq)
+
+		// add document
+		docRef := quantumCollection.Doc(docID)
+		_, err := docRef.Set(fbu.ctx, dMap)
+
+		if err != nil {
+			return receive, err
+		}
+		receive = append(receive, core.Hex2Sig(docID))
+	}
+	return
 }
 
 func (fbu *FBUniverse) ProcessSingleQuantum(sig core.Sig) error {
+	// TODO: check if exist
+	// TODO: check if unprocessed
 	return nil
 }
 
 func (fbu *FBUniverse) JudgeIndividual(address identity.Address, level int, judgment string, evidence ...[]core.Sig) error {
+	// defult status should be accept & broadcast
 	return nil
 }
 
 func (fbu *FBUniverse) JudgeCommunity(sig core.Sig, level int, statement string) error {
+	// defulat community should be not follow
 	return nil
 }
 
@@ -418,7 +471,24 @@ func (fbu *FBUniverse) QueryIndividual(sig core.Sig, skip int, limit int, desc b
 }
 
 func (fbu *FBUniverse) GetCommunity(sig core.Sig) *core.Community {
-	return nil
+	communityCollection := fbu.client.Collection(collectionCommunity)
+	docID := core.Sig2Hex(sig)
+	docRef := communityCollection.Doc(docID)
+	docSnapshot, err := docRef.Get(fbu.ctx)
+	if err != nil {
+		return nil
+	}
+
+	fbCommunity, err := Data2FBCommunity(docSnapshot.Data())
+	if err != nil {
+		return nil
+	}
+
+	community, err := FBCommunity2Community(docID, fbCommunity)
+	if err != nil {
+		return nil
+	}
+	return community
 }
 
 func (fbu *FBUniverse) GetIndividual(address identity.Address) *core.Individual {
