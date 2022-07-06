@@ -396,3 +396,35 @@ func (fbu *FBUniverse) QueryQuantum(address identity.Address, qType int, skip in
 
 	return qs, nil
 }
+
+func (fbu *FBUniverse) ReceiveQuantum(originQuantums []*core.Quantum) error {
+	return nil
+}
+
+func (fbu *FBUniverse) ProcessSingleQuantum(sig core.Sig) error {
+	return nil
+}
+
+func (fbu *FBUniverse) JudgeIndividual(address identity.Address, level int, judgment string, evidence ...[]core.Sig) error {
+	return nil
+}
+
+func (fbu *FBUniverse) JudgeCommunity(sig core.Sig, level int, statement string) error {
+	return nil
+}
+
+func (fbu *FBUniverse) QueryIndividual(sig core.Sig, skip int, limit int, desc bool) ([]*core.Individual, error) {
+	return nil, nil
+}
+
+func (fbu *FBUniverse) GetCommunity(sig core.Sig) *core.Community {
+	return nil
+}
+
+func (fbu *FBUniverse) GetIndividual(address identity.Address) *core.Individual {
+	return nil
+}
+
+func (fbu *FBUniverse) GetQuantum(sig core.Sig) *core.Quantum {
+	return nil
+}
