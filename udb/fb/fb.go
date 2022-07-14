@@ -413,6 +413,9 @@ func (fbu *FBUniverse) QueryQuantum(address identity.Address, qType int, skip in
 
 	// load all undeal quantums
 	for docSnapshot, err := iter.Next(); err != iterator.Done; docSnapshot, err = iter.Next() {
+		if docSnapshot == nil {
+			return nil, errDocumentLoadDataFail
+		}
 
 		dMap := docSnapshot.Data()
 		// get data of snapshot
@@ -467,7 +470,35 @@ func (fbu *FBUniverse) JudgeCommunity(sig core.Sig, level int, statement string)
 }
 
 func (fbu *FBUniverse) QueryIndividual(sig core.Sig, skip int, limit int, desc bool) ([]*core.Individual, error) {
-	return nil, nil
+	communityCollection := fbu.client.Collection(collectionCommunity)
+	docID := core.Sig2Hex(sig)
+	docRef := communityCollection.Doc(docID)
+	docSnapshot, err := docRef.Get(fbu.ctx)
+	if err != nil {
+		return nil, nil
+	}
+
+	fbCommunity, err := Data2FBCommunity(docSnapshot.Data())
+	if err != nil {
+		return nil, nil
+	}
+	index := 0
+	count := 0
+	individuals := []*core.Individual{}
+	for addrHex := range fbCommunity.Members {
+		if skip <= index {
+			ind := fbu.GetIndividual(identity.HexToAddress(addrHex))
+			if ind != nil {
+				individuals = append(individuals, ind)
+				count += 1
+				if count >= limit {
+					break
+				}
+			}
+		}
+		index += 1
+	}
+	return individuals, nil
 }
 
 func (fbu *FBUniverse) GetCommunity(sig core.Sig) *core.Community {
@@ -492,9 +523,44 @@ func (fbu *FBUniverse) GetCommunity(sig core.Sig) *core.Community {
 }
 
 func (fbu *FBUniverse) GetIndividual(address identity.Address) *core.Individual {
-	return nil
+	individualCollection := fbu.client.Collection(collectionIndividual)
+	docID := address.Hex()
+	docRef := individualCollection.Doc(docID)
+	docSnapshot, err := docRef.Get(fbu.ctx)
+	if err != nil {
+		return nil
+	}
+
+	fbIndividual, err := Data2FBIndividual(docSnapshot.Data())
+	if err != nil {
+		return nil
+	}
+
+	individual, err := FBIndividual2Individual(docID, fbIndividual)
+	if err != nil {
+		return nil
+	}
+	return individual
 }
 
 func (fbu *FBUniverse) GetQuantum(sig core.Sig) *core.Quantum {
-	return nil
+	quantumCollection := fbu.client.Collection(collectionQuantum)
+	docID := core.Sig2Hex(sig)
+	docRef := quantumCollection.Doc(docID)
+	docSnapshot, err := docRef.Get(fbu.ctx)
+	if err != nil {
+		return nil
+	}
+
+	fbQuantum, err := Data2FBQuantum(docSnapshot.Data())
+	if err != nil {
+		return nil
+	}
+
+	quantum, err := FBQuantum2Quantum(docID, fbQuantum)
+	if err != nil {
+		return nil
+	}
+
+	return quantum
 }
