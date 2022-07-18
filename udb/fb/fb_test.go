@@ -363,8 +363,8 @@ func testTemp(t *testing.T) {
 }
 
 func TestMain(t *testing.T) {
-	// testCreateQuantums(t)
-	// testDealQuantums(t)
-	// testGetQuantums(t)
-	testTemp(t)
+	testCreateQuantums(t)
+	testDealQuantums(t)
+	testGetQuantums(t)
+	// testTemp(t)
 }

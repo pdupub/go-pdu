@@ -20,26 +20,29 @@ import (
 	"github.com/pdupub/go-pdu/identity"
 )
 
-// Universe is interface contain all quantums which be received, selected and accepted by yourself.
-// Your universe may same or not with other's, usually your universe only contains part of whole
-// exist quantums (not conflict). By methods in Universe, communities be created by quantum and individuals
-// be invited into community can be found. Universse also have some aggregate infomation on quantums.
+// Universe is an interface that describes an PDU Universe. A type that implements Universe
+// contains all quantums which be received and accepted and has ability to process the quantums.
+// The owner of node have right to decide accept or reject any quantums as they wish, so any
+// universe may same or not with other's, usually one universe only contains part of whole
+// exist quantums, which is not self-conflict.
 type Universe interface {
-	// ReceiveQuantum just receive origin quantums, not verify signature
-	ReceiveQuantum(originQuantums []*Quantum) (receive []Sig, err error)
+	// ReceiveQuantum will proccess quantums, verify the signature of each quantum. reject the quantums
+	// from address in blacklist or conflict with quantums already exist. Both accept and wait quantums
+	// will be saved. wait quantums usually cause by ref[0] is missing, so can not be broadcast and implement.
+	ReceiveQuantum(originQuantums []*Quantum) (accept []Sig, wait []Sig, reject []Sig, err error)
 
 	// ProcessSingleQuantum verify the signature, decide whether to accept or not, process the quantum by QType
-	// return err if quantum not accept. casuse of verif-fail, signer be punished, conflict or any reason from U)
+	// return err if quantum not accept. casuse of verif-fail, signer in blacklist, conflict or any reason.
 	ProcessSingleQuantum(sig Sig) error
 
-	// ProcessQuantum do RecvQuantum with more efficient way, err will not be return if quantum not be accepted.
-	// signature of quantums in accept or rejected is processed.
+	// ProcessQuantum have same function of ReceiveQuantum, but process quantums already in universe, which is
+	// quantums from return "wait" of ReceiveQuantum.
 	ProcessQuantum(skip, limit int) (accept []Sig, wait []Sig, reject []Sig, err error)
 
-	// JudgeIndividual update judgement info of Individual and process all/part of quantums from this signer if necessary.
+	// JudgeIndividual update the attitude towards Individual and how to process quantums from this signer.
 	JudgeIndividual(address identity.Address, level int, judgment string, evidence ...[]Sig) error
 
-	// JudgeCommunity update the attitude of Community, filter the individual in this community or not
+	// JudgeCommunity update the attitude towards Community, decide if filter the individual in this community or not
 	JudgeCommunity(sig Sig, level int, statement string) error
 
 	// QueryQuantum query quantums from whole accepted quantums if address is nil, not filter by type if qType is 0
@@ -48,12 +51,12 @@ type Universe interface {
 	// QueryIndividual query Individual from whole universe if community sig is nil.
 	QueryIndividual(sig Sig, skip int, limit int, desc bool) ([]*Individual, error)
 
-	// GetCommunity return nil if not exist
-	GetCommunity(sig Sig) *Community
+	// GetCommunity return community by signature of community create signature.
+	GetCommunity(sig Sig) (*Community, error)
 
-	// GetIndividual return nil if not exist
-	GetIndividual(address identity.Address) *Individual
+	// GetIndividual return individual by address.
+	GetIndividual(address identity.Address) (*Individual, error)
 
-	// GetQuantum return nil if not exist
-	GetQuantum(sig Sig) *Quantum
+	// GetQuantum return quantum by signature of quantum.
+	GetQuantum(sig Sig) (*Quantum, error)
 }

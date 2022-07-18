@@ -435,7 +435,7 @@ func (fbu *FBUniverse) QueryQuantum(address identity.Address, qType int, skip in
 	return qs, nil
 }
 
-func (fbu *FBUniverse) ReceiveQuantum(originQuantums []*core.Quantum) (receive []core.Sig, err error) {
+func (fbu *FBUniverse) ReceiveQuantum(originQuantums []*core.Quantum) (accept []core.Sig, wait []core.Sig, reject []core.Sig, err error) {
 	quantumCollection := fbu.client.Collection(collectionQuantum)
 	for _, q := range originQuantums {
 		docID, fbq := Quantum2FBQuantum(q)
@@ -446,11 +446,10 @@ func (fbu *FBUniverse) ReceiveQuantum(originQuantums []*core.Quantum) (receive [
 		_, err := docRef.Set(fbu.ctx, dMap)
 
 		if err != nil {
-			return receive, err
+			return nil, nil, nil, err
 		}
-		receive = append(receive, core.Hex2Sig(docID))
 	}
-	return
+	return fbu.ProcessQuantum(0, len(originQuantums))
 }
 
 func (fbu *FBUniverse) ProcessSingleQuantum(sig core.Sig) error {
@@ -487,8 +486,8 @@ func (fbu *FBUniverse) QueryIndividual(sig core.Sig, skip int, limit int, desc b
 	individuals := []*core.Individual{}
 	for addrHex := range fbCommunity.Members {
 		if skip <= index {
-			ind := fbu.GetIndividual(identity.HexToAddress(addrHex))
-			if ind != nil {
+			ind, err := fbu.GetIndividual(identity.HexToAddress(addrHex))
+			if err != nil {
 				individuals = append(individuals, ind)
 				count += 1
 				if count >= limit {
@@ -501,66 +500,66 @@ func (fbu *FBUniverse) QueryIndividual(sig core.Sig, skip int, limit int, desc b
 	return individuals, nil
 }
 
-func (fbu *FBUniverse) GetCommunity(sig core.Sig) *core.Community {
+func (fbu *FBUniverse) GetCommunity(sig core.Sig) (*core.Community, error) {
 	communityCollection := fbu.client.Collection(collectionCommunity)
 	docID := core.Sig2Hex(sig)
 	docRef := communityCollection.Doc(docID)
 	docSnapshot, err := docRef.Get(fbu.ctx)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	fbCommunity, err := Data2FBCommunity(docSnapshot.Data())
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	community, err := FBCommunity2Community(docID, fbCommunity)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return community
+	return community, nil
 }
 
-func (fbu *FBUniverse) GetIndividual(address identity.Address) *core.Individual {
+func (fbu *FBUniverse) GetIndividual(address identity.Address) (*core.Individual, error) {
 	individualCollection := fbu.client.Collection(collectionIndividual)
 	docID := address.Hex()
 	docRef := individualCollection.Doc(docID)
 	docSnapshot, err := docRef.Get(fbu.ctx)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	fbIndividual, err := Data2FBIndividual(docSnapshot.Data())
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	individual, err := FBIndividual2Individual(docID, fbIndividual)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return individual
+	return individual, nil
 }
 
-func (fbu *FBUniverse) GetQuantum(sig core.Sig) *core.Quantum {
+func (fbu *FBUniverse) GetQuantum(sig core.Sig) (*core.Quantum, error) {
 	quantumCollection := fbu.client.Collection(collectionQuantum)
 	docID := core.Sig2Hex(sig)
 	docRef := quantumCollection.Doc(docID)
 	docSnapshot, err := docRef.Get(fbu.ctx)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	fbQuantum, err := Data2FBQuantum(docSnapshot.Data())
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	quantum, err := FBQuantum2Quantum(docID, fbQuantum)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	return quantum
+	return quantum, nil
 }

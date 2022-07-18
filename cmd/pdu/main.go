@@ -79,7 +79,7 @@ func StartCmd() *cobra.Command {
 		Use:   "start",
 		Short: "Start run node",
 		RunE: func(_ *cobra.Command, args []string) error {
-
+			fmt.Println("todo ...")
 			return nil
 		},
 	}
