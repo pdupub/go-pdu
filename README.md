@@ -17,7 +17,7 @@ Golang implementation of PDU.
 - [Contributing](#contributing)
 
 ## PDU
-PDU is a decentralized identity-based social network, please read the WhitePaper on [github.com/pdupub/Documentation](https://github.com/pdupub/Documentation) for more details.
+PDU is a decentralized social networking service, please read the WhitePaper on [https://pdu.pub](https://pdu.pub/docs/zh/WhitePaperV2.html) for more details.
 
 
 ## Usage
@@ -80,5 +80,4 @@ make install
 3. Send a pull request and bug the maintainer until it gets merged and published
 
 
-<a href="https://pdu.pub"><img height="32" align="right" src="https://pdu.pub/images/icon.svg"></a>
-
+<a href="https://pdu.pub"><img height="32" align="right" src="https://pdu.pub/assets/img/logo.png"></a>
