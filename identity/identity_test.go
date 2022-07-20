@@ -34,6 +34,25 @@ type TestInfo struct {
 	String string            `json:"string"`
 }
 
+func TestSignMsg(t *testing.T) {
+	did, _ := New()
+	privateKeyHex := "689ac13dc3f424c8d5a6ef07a2e443311fc40ae4c370dac127bf5c1267e1ac98"
+	t.Log("Private key :", privateKeyHex)
+	if err := did.LoadECDSA(privateKeyHex); err != nil {
+		t.Error(err)
+	}
+	t.Log("Public key :", did.key.PrivateKey.PublicKey)
+
+	message := "Hello"
+	t.Log("Message :", message)
+	sig, err := did.Sign([]byte(message))
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log("address", did.key.Address.Hex())
+	t.Log("signature", common.Bytes2Hex(sig))
+}
+
 func TestNew(t *testing.T) {
 	did, _ := New()
 	did.UnlockWallet("../"+params.TestKeystore(0), params.TestPassword)

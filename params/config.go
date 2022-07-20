@@ -18,13 +18,16 @@ package params
 
 import (
 	"fmt"
-
-	"github.com/ethereum/go-ethereum/common"
 )
 
 const (
-	DefaultPort   = 1323
-	DefaultDBPath = "pdu.db"
+	DefaultPort = 1323
+)
+
+// url & api token
+const (
+	TestDGraphURL   = "https://blue-surf-570228.us-east-1.aws.cloud.dgraph.io/graphql"
+	TestDGraphToken = "OTNiNjMyMTM1ODU3ZWE2NWU3YWQyNmM2MzgwZmViODg="
 )
 
 // for test
@@ -36,8 +39,8 @@ func TestKeystore(i int) string {
 	return fmt.Sprintf("identity/testdata/keyfile_%d.json", i)
 }
 
-func TestAddrs() []common.Address {
-	addrsHex := []string{"0xaf040ed5498f9808550402ebb6c193e2a73b860a",
+func TestAddrsHex() []string {
+	return []string{"0xaf040ed5498f9808550402ebb6c193e2a73b860a",
 		"0x4c62002051d76ba82e43e1a5785590dfca261c10",
 		"0x50cc750695f0701e193b95f833ab04256d3d9daa",
 		"0xcab7ecfd63f93d405656633db6d0d8a236b74aff",
@@ -138,9 +141,4 @@ func TestAddrs() []common.Address {
 		"0xe991899b8c0b36de12613974653753e546fae778",
 		"0xd6eaa55f1d61e304dc1eb7aee0e80b35b617d9b5",
 	}
-	var addrs []common.Address
-	for _, h := range addrsHex {
-		addrs = append(addrs, common.HexToAddress(h))
-	}
-	return addrs
 }

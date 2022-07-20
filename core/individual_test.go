@@ -14,28 +14,33 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package params
+package core
 
 import (
-	"fmt"
+	"testing"
+
+	"github.com/pdupub/go-pdu/identity"
+	"github.com/pdupub/go-pdu/params"
 )
 
-const (
-	// VersionMajor is Major version component of the current release
-	VersionMajor = 0
-	// VersionMinor is Minor version component of the current release
-	VersionMinor = 3
-	// VersionPatch is Patch version component of the current release
-	VersionPatch = 0
-	// VersionMeta is Version metadata to append to the version string
-	VersionMeta = "unstable"
-)
+func TestNewIndividual(t *testing.T) {
+	did, _ := identity.New()
+	did.UnlockWallet("../"+params.TestKeystore(0), params.TestPassword)
 
-// Version holds the textual version string.
-var Version = func() string {
-	v := fmt.Sprintf("%d.%d.%d", VersionMajor, VersionMinor, VersionPatch)
-	if VersionMeta != "" {
-		v += "-" + VersionMeta
+	newInd := NewIndividual(did.GetAddress())
+
+	if did.GetAddress() != newInd.GetAddress() {
+		t.Error("address not match")
 	}
-	return v
-}()
+
+	k1, _ := NewContent(QCFmtStringTEXT, []byte("nickname"))
+	v1, _ := NewContent(QCFmtStringTEXT, []byte("pdu"))
+
+	if err := newInd.UpsertProfile([]*QContent{k1, v1}); err != nil {
+		t.Error(err)
+	}
+
+	for k := range newInd.Profile {
+		t.Log(k)
+	}
+}

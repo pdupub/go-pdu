@@ -24,25 +24,19 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/identity"
-	"github.com/pdupub/go-pdu/msg"
 )
 
-//export signMsg
-func signMsg(privKeyHexC, messageC, refC *C.char) *C.char {
+//export signMsgSample
+func signMsgSample(privKeyHexC, messageC, refC *C.char) *C.char {
+	// load did
 	privKey := C.GoString(privKeyHexC)
-	message := C.GoString(messageC)
-	ref := C.GoString(refC)
-
 	did := new(identity.DID)
 	did.LoadECDSA(privKey)
-	bp, _ := core.NewPhoton(core.PhotonTypeInfo, []byte(message))
 
-	content, _ := json.Marshal(bp)
-
+	// reference
+	ref := C.GoString(refC)
 	var refBytes []byte
 	if len(ref) == 130 {
 		refBytes, _ = hex.DecodeString(ref)
@@ -50,12 +44,16 @@ func signMsg(privKeyHexC, messageC, refC *C.char) *C.char {
 		refBytes, _ = base64.StdEncoding.DecodeString(ref)
 	}
 
-	m := msg.New(content, refBytes)
-	sm := msg.SignedMsg{Message: *m}
-	sm.Sign(did)
-	smBytes, _ := json.Marshal(sm)
+	// quantum
+	message := C.GoString(messageC)
+	content, _ := core.NewContent(core.QCFmtStringTEXT, []byte(message))
+	q, _ := core.NewQuantum(core.QuantumTypeInfo, []*core.QContent{content}, refBytes)
 
-	return C.CString(string(smBytes))
+	// add signature
+	q.Sign(did)
+	qBytes, _ := json.Marshal(q)
+
+	return C.CString(string(qBytes))
 }
 
 //export getAddress
@@ -102,41 +100,17 @@ func unlockKeystore(fileJSONC, passwordC *C.char) *C.char {
 }
 
 //export ecrecover
-func ecrecover(smC *C.char) *C.char {
-	smBytes := []byte(C.GoString(smC))
-	sm := new(msg.SignedMsg)
-	if err := json.Unmarshal(smBytes, &sm); err != nil {
+func ecrecover(qC *C.char) *C.char {
+	qBytes := []byte(C.GoString(qC))
+	q := new(core.Quantum)
+	if err := json.Unmarshal(qBytes, &q); err != nil {
 		return C.CString("")
 	}
-	author, err := sm.Ecrecover()
+	author, err := q.Ecrecover()
 	if err != nil {
 		return C.CString("")
 	}
 	return C.CString(author.Hex())
-}
-
-//export getParent
-func getParent(bornAddrC, sigC *C.char) *C.char {
-	bornAddr := C.GoString(bornAddrC)
-	sig := C.GoString(sigC)
-	born := common.HexToAddress(bornAddr)
-	hash := crypto.Keccak256(born.Bytes())
-
-	var sigBytes []byte
-	if len(sig) == 130 {
-		sigBytes, _ = hex.DecodeString(sig)
-	} else {
-		sigBytes, _ = base64.StdEncoding.DecodeString(sig)
-	}
-
-	pubkey, err := crypto.Ecrecover(hash, sigBytes)
-	if err != nil {
-		return C.CString("")
-	}
-
-	signer := common.Address{}
-	copy(signer[:], crypto.Keccak256(pubkey[1:])[12:])
-	return C.CString(signer.Hex())
 }
 
 func main() {}

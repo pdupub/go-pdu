@@ -14,28 +14,12 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package params
+package core
 
 import (
-	"fmt"
+	"testing"
 )
 
-const (
-	// VersionMajor is Major version component of the current release
-	VersionMajor = 0
-	// VersionMinor is Minor version component of the current release
-	VersionMinor = 3
-	// VersionPatch is Patch version component of the current release
-	VersionPatch = 0
-	// VersionMeta is Version metadata to append to the version string
-	VersionMeta = "unstable"
-)
-
-// Version holds the textual version string.
-var Version = func() string {
-	v := fmt.Sprintf("%d.%d.%d", VersionMajor, VersionMinor, VersionPatch)
-	if VersionMeta != "" {
-		v += "-" + VersionMeta
-	}
-	return v
-}()
+func TestNewUniverse(t *testing.T) {
+	t.Log("new universe")
+}
