@@ -33,10 +33,17 @@ import (
 	"google.golang.org/api/option"
 )
 
-var testKeyJSON = "./firebase-adminsdk.json"
+var testKeyJSON = "test-firebase-adminsdk.json"
 var testProjectID = "tweetsample-201fd"
 
 var clearBeforeTest = true
+
+const (
+	collectionQuantum    = "quantum"
+	collectionUniverse   = "universe"
+	collectionCommunity  = "community"
+	collectionIndividual = "individual"
+)
 
 func testCreateEndQuantum(t *testing.T, ctx context.Context, client *firestore.Client, did *identity.DID,
 	refs ...core.Sig) (*core.Quantum, *firestore.DocumentRef) {

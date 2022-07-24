@@ -20,12 +20,16 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"os/signal"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/pdupub/go-pdu/identity"
+	"github.com/pdupub/go-pdu/node"
 	"github.com/pdupub/go-pdu/params"
 )
 
@@ -75,14 +79,32 @@ func TestCmd() *cobra.Command {
 
 // StartCmd start run the node
 func StartCmd() *cobra.Command {
+	var firebaseKeyPath string
+	var firebaseProjectID string
+
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start run node",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
-			fmt.Println("todo ...")
+
+			c := make(chan os.Signal)
+			signal.Notify(c, os.Interrupt, os.Kill)
+			interval, err := strconv.ParseInt(args[0], 10, 64)
+			if err != nil {
+				return err
+			}
+			if serv, err := node.New(interval, firebaseKeyPath, firebaseProjectID); err != nil {
+				return err
+			} else {
+				serv.Run(c)
+			}
+
 			return nil
 		},
 	}
+	cmd.Flags().StringVar(&firebaseKeyPath, "fbKeyPath", "./udb/fb/test-firebase-adminsdk.json", "path of firebase json key")
+	cmd.Flags().StringVar(&firebaseProjectID, "fbProjectID", "tweetsample-201fd", "project ID")
 
 	return cmd
 }
