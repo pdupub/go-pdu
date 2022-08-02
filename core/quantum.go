@@ -40,8 +40,11 @@ var (
 type Sig []byte
 
 const (
+	// 0 <= QuantumType < 32, quantum can be both public and private
+	// =============================================================
+
 	// QuantumTypeInfo specifies quantum which user just want to share information.
-	QuantumTypeInfo = 1
+	QuantumTypeInfo = 0
 
 	// QuantumTypeProfile specifies the quantum to update user's (signer's) profile.
 	// contents = [key1(QCFmtStringTEXT), value1, key2, value2 ...]
@@ -49,7 +52,11 @@ const (
 	// contents = [key1, newValue ...]
 	// if user want to delete key1, send new QuantumTypeProfile quantum with
 	// contents = [key1, newValue which content with empty data]
-	QuantumTypeProfile = 2
+	QuantumTypeProfile = 1
+
+	// QuantumType >= 32, quantum must be public. if quantum use as private, the function
+	// of the quantum will be ignore.
+	// =============================================================
 
 	// QuantumTypeCommunity specifies the quantum of rule to build new community
 	// contents[0] is the display information of current community
@@ -61,7 +68,7 @@ const (
 	// contents[3] ~ contents[15] is the initial users in this community
 	// {fmt:QCFmtBytesAddress/QCFmtStringAddressHex, data:0x1232...}
 	// signer of this community is also the initial user in this community
-	QuantumTypeCommunity = 3
+	QuantumTypeCommunity = 32
 
 	// QuantumTypeInvitation specifies the quantum of invitation
 	// contents[0] is the signature of target community rule quantum
@@ -74,12 +81,12 @@ const (
 	// accepted by any community is decided by user in that community feel about u, not opposite.
 	// User belong to community, quantum belong to user. (On trandation forum, posts usually belong to
 	// one topic and have lots of tag, is just the function easy to implemnt not base struct here)
-	QuantumTypeInvitation = 4
+	QuantumTypeInvitation = 33
 
 	// QuantumTypeEnd specifies the quantum of ending life cycle
 	// When receive this quantum, no more quantum from same address should be received or broadcast.
 	// The decision of end from any identity should be respected, no matter for security reason or just want to leave.
-	QuantumTypeEnd = 5
+	QuantumTypeEnd = 34
 )
 
 var (

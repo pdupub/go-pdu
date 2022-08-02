@@ -84,11 +84,12 @@ func Data2FBCommunity(d map[string]interface{}) (*FBCommunity, error) {
 func FBQuantum2Quantum(uid string, fbq *FBQuantum) (*core.Quantum, error) {
 	q := core.Quantum{}
 	q.Contents = fbq.Contents
-	if fbq.Type > 0 {
+	if fbq.Type < processedOffset {
 		q.Type = fbq.Type
 	} else {
-		q.Type = -fbq.Type
+		q.Type = fbq.Type - processedOffset
 	}
+
 	q.Signature = core.Hex2Sig(uid)
 	for _, ref := range fbq.FBRef {
 		q.References = append(q.References, core.Hex2Sig(ref.SigHex))

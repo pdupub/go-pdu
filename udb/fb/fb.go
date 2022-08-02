@@ -86,6 +86,7 @@ type FBUniverse struct {
 
 const (
 	universeStatusDocID = "status"
+	processedOffset     = 128
 )
 
 func NewFBUniverse(ctx context.Context, keyFilename string, projectID string) (*FBUniverse, error) {
@@ -158,7 +159,7 @@ func (fbu *FBUniverse) ProcessQuantum(skip, limit int) (accept []core.Sig, wait 
 	addressExistMap := make(map[string]bool)              // address:struct{} 	// address exist
 
 	// load all undeal quantums
-	iter := fbu.quantumC.Where("type", ">", 0).Offset(skip).Limit(limit).Documents(fbu.ctx)
+	iter := fbu.quantumC.Where("type", "<", processedOffset).Offset(skip).Limit(limit).Documents(fbu.ctx)
 	for docSnapshot, err := iter.Next(); err != iterator.Done; docSnapshot, err = iter.Next() {
 
 		if docSnapshot == nil {
@@ -387,7 +388,7 @@ func (fbu *FBUniverse) ProcessQuantum(skip, limit int) (accept []core.Sig, wait 
 
 			}
 			// reset quantum type, so this quantum has been deal
-			qDocRef.Set(fbu.ctx, map[string]int64{"type": int64(-quantum.Type)}, firestore.Merge([]string{"type"}))
+			qDocRef.Set(fbu.ctx, map[string]int64{"type": int64(quantum.Type + processedOffset)}, firestore.Merge([]string{"type"}))
 		}
 	}
 
