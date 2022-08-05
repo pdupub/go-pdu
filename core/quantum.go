@@ -40,10 +40,8 @@ var (
 type Sig []byte
 
 const (
-	// 0 <= QuantumType < 32, quantum can be both public and private
-	// =============================================================
-
-	// QuantumTypeInfo specifies quantum which user just want to share information.
+	// QuantumTypeInfo specifies quantum which user just want to share information, such as
+	// post articles, reply to others or chat message with others (encrypted by receiver's public key)
 	QuantumTypeInfo = 0
 
 	// QuantumTypeProfile specifies the quantum to update user's (signer's) profile.
@@ -53,10 +51,6 @@ const (
 	// if user want to delete key1, send new QuantumTypeProfile quantum with
 	// contents = [key1, newValue which content with empty data]
 	QuantumTypeProfile = 1
-
-	// QuantumType >= 32, quantum must be public. if quantum use as private, the function
-	// of the quantum will be ignore.
-	// =============================================================
 
 	// QuantumTypeCommunity specifies the quantum of rule to build new community
 	// contents[0] is the display information of current community
@@ -68,7 +62,7 @@ const (
 	// contents[3] ~ contents[15] is the initial users in this community
 	// {fmt:QCFmtBytesAddress/QCFmtStringAddressHex, data:0x1232...}
 	// signer of this community is also the initial user in this community
-	QuantumTypeCommunity = 32
+	QuantumTypeCommunity = 2
 
 	// QuantumTypeInvitation specifies the quantum of invitation
 	// contents[0] is the signature of target community rule quantum
@@ -81,16 +75,17 @@ const (
 	// accepted by any community is decided by user in that community feel about u, not opposite.
 	// User belong to community, quantum belong to user. (On trandation forum, posts usually belong to
 	// one topic and have lots of tag, is just the function easy to implemnt not base struct here)
-	QuantumTypeInvitation = 33
+	QuantumTypeInvitation = 3
 
 	// QuantumTypeEnd specifies the quantum of ending life cycle
 	// When receive this quantum, no more quantum from same address should be received or broadcast.
 	// The decision of end from any identity should be respected, no matter for security reason or just want to leave.
-	QuantumTypeEnd = 34
+	QuantumTypeEnd = 4
 )
 
 var (
 	FirstQuantumReference = Hex2Sig("0x00")
+	SameQuantumReference  = Hex2Sig("0x01")
 )
 
 // UnsignedQuantum defines the single message from user without signature,
@@ -99,13 +94,17 @@ type UnsignedQuantum struct {
 	// Contents contain all data in this quantum
 	Contents []*QContent `json:"cs,omitempty"`
 
-	// References must from the exist signature.
+	// References must from the exist signature or 0x00
 	// References[0] is the last signature by user-self, 0x00 if this quantum is the first quantum by user
-	// References[1] ~ References[n] is optional, recommend to use new & valid quantum
+	// References[1] is the last signature of public or important quantum by user-self, which quantum user
+	// want other user to view most. (refs[1] usually contains article and forward, but not comments, like or chat)
+	// if References[1] same with References[0], References[1] can be SameQuantumReference(0x01)
+	// References[2] ~ References[n] is optional, recommend to use new & valid quantum
 	// If two quantums by same user with same References[0], these two quantums will cause conflict, and
 	// this user maybe block by others. The reason to do that punishment is user should act like individual,
 	// all proactive event from one user should be sequence should be total order (全序关系). References[1~n]
 	// do not need follow this restriction, because all other references show the partial order (偏序关系).
+	// all the quantums which be reference as References[1] should be total order too.
 	References []Sig `json:"refs"`
 
 	// Type specifies the type of this quantum
