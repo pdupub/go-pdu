@@ -34,7 +34,7 @@ import (
 )
 
 var testKeyJSON = "test-firebase-adminsdk.json"
-var testProjectID = "tweetsample-201fd"
+var testProjectID = "pdupub-a2bdd"
 
 var clearBeforeTest = true
 
