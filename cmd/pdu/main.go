@@ -104,7 +104,7 @@ func StartCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&firebaseKeyPath, "fbKeyPath", "./udb/fb/test-firebase-adminsdk.json", "path of firebase json key")
-	cmd.Flags().StringVar(&firebaseProjectID, "fbProjectID", "tweetsample-201fd", "project ID")
+	cmd.Flags().StringVar(&firebaseProjectID, "fbProjectID", "pdupub-a2bdd", "project ID")
 
 	return cmd
 }
