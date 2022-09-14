@@ -98,7 +98,22 @@ func testCreateInfoQuantum(t *testing.T, ctx context.Context, client *firestore.
 	return testUploadQuantum(t, ctx, client, q)
 }
 
-func testClearQuantum(t *testing.T, ctx context.Context, client *firestore.Client) {
+func testClearQuantum(t *testing.T) {
+
+	ctx := context.Background()
+	opt := option.WithCredentialsFile(testKeyJSON)
+	config := &firebase.Config{ProjectID: testProjectID}
+	app, err := firebase.NewApp(ctx, config, opt)
+	if err != nil {
+		t.Error(err)
+	}
+
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+	defer client.Close()
+
 	testCollection := client.Collection(collectionQuantum)
 	docRefs, err := testCollection.DocumentRefs(ctx).GetAll()
 	if err != nil {
@@ -194,7 +209,7 @@ func testCreateQuantums(t *testing.T) {
 	defer client.Close()
 
 	if clearBeforeTest {
-		testClearQuantum(t, ctx, client)
+		testClearQuantum(t)
 	}
 
 	did1, _ := identity.New()
@@ -370,8 +385,9 @@ func testTemp(t *testing.T) {
 }
 
 func TestMain(t *testing.T) {
-	testCreateQuantums(t)
-	testDealQuantums(t)
-	testGetQuantums(t)
+	testClearQuantum(t)
+	// testCreateQuantums(t)
+	// testDealQuantums(t)
+	// testGetQuantums(t)
 	// testTemp(t)
 }
