@@ -384,10 +384,74 @@ func testTemp(t *testing.T) {
 	}
 }
 
+func testProcessOriginQuantum(t *testing.T) {
+	did1, _ := identity.New()
+	did1.UnlockWallet("../../"+params.TestKeystore(0), params.TestPassword)
+	did2, _ := identity.New()
+	did2.UnlockWallet("../../"+params.TestKeystore(1), params.TestPassword)
+	did3, _ := identity.New()
+	did3.UnlockWallet("../../"+params.TestKeystore(2), params.TestPassword)
+	did4, _ := identity.New()
+	did4.UnlockWallet("../../"+params.TestKeystore(3), params.TestPassword)
+	t.Log("users")
+	t.Log(did1.GetAddress().Hex())
+	t.Log(did2.GetAddress().Hex())
+	t.Log(did3.GetAddress().Hex())
+	t.Log(did4.GetAddress().Hex())
+	t.Log("======================")
+
+	ctx := context.Background()
+	opt := option.WithCredentialsFile(testKeyJSON)
+	config := &firebase.Config{ProjectID: testProjectID}
+	app, err := firebase.NewApp(ctx, config, opt)
+	if err != nil {
+		t.Error(err)
+	}
+
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+	defer client.Close()
+
+	testCollection := client.Collection(collectionQuantum)
+	docRefs, err := testCollection.DocumentRefs(ctx).GetAll()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for _, docRef := range docRefs {
+		t.Log(docRef.ID)
+		snap, err := docRef.Get(ctx)
+		if err != nil {
+			t.Error(err)
+			continue
+		}
+		if v, ok := snap.Data()["originQuantum"]; ok {
+			value := v.([]byte)
+			var q core.Quantum
+			if err := json.Unmarshal(value, &q); err != nil {
+				t.Error(err)
+			} else {
+				t.Log("origin quantums", core.Sig2Hex(q.Signature))
+				addr, err := q.Ecrecover()
+				if err != nil {
+					t.Error(err)
+				} else {
+					t.Log("address", addr.Hex())
+				}
+			}
+
+		}
+	}
+}
+
 func TestMain(t *testing.T) {
-	testClearQuantum(t)
+	// testClearQuantum(t)
 	// testCreateQuantums(t)
 	// testDealQuantums(t)
 	// testGetQuantums(t)
 	// testTemp(t)
+
+	testProcessOriginQuantum(t)
 }
