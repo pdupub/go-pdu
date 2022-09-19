@@ -55,7 +55,7 @@ func (n *Node) Run(c <-chan os.Signal) {
 			runCnt++
 			if !busy {
 				busy = true
-				n.univ.ProcessQuantum(0, 10)
+				n.univ.ProcessQuantums(10, 0)
 				busy = false
 			}
 		}

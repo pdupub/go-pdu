@@ -26,18 +26,18 @@ import (
 // universe may same or not with other's, usually one universe only contains part of whole
 // exist quantums, which is not self-conflict.
 type Universe interface {
-	// ReceiveQuantum will proccess quantums, verify the signature of each quantum. reject the quantums
+	// ReceiveQuantums will proccess quantums, verify the signature of each quantum. reject the quantums
 	// from address in blacklist or conflict with quantums already exist. Both accept and wait quantums
 	// will be saved. wait quantums usually cause by ref[0] is missing, so can not be broadcast and implement.
-	ReceiveQuantum(originQuantums []*Quantum) (accept []Sig, wait []Sig, reject []Sig, err error)
+	ReceiveQuantums(originQuantums []*Quantum) (accept []Sig, wait []Sig, reject []Sig, err error)
 
 	// ProcessSingleQuantum verify the signature, decide whether to accept or not, process the quantum by QType
 	// return err if quantum not accept. casuse of verif-fail, signer in blacklist, conflict or any reason.
 	ProcessSingleQuantum(sig Sig) error
 
-	// ProcessQuantum have same function of ReceiveQuantum, but process quantums already in universe, which is
-	// quantums from return "wait" of ReceiveQuantum.
-	ProcessQuantum(skip, limit int) (accept []Sig, wait []Sig, reject []Sig, err error)
+	// ProcessQuantums have same function of ReceiveQuantums, but process quantums already in universe, which is
+	// quantums from return "wait" of ReceiveQuantums.
+	ProcessQuantums(limit, skip int) (accept []Sig, wait []Sig, reject []Sig, err error)
 
 	// JudgeIndividual update the attitude towards Individual and how to process quantums from this signer.
 	JudgeIndividual(address identity.Address, level int, judgment string, evidence ...[]Sig) error
@@ -45,11 +45,11 @@ type Universe interface {
 	// JudgeCommunity update the attitude towards Community, decide if filter the individual in this community or not
 	JudgeCommunity(sig Sig, level int, statement string) error
 
-	// QueryQuantum query quantums from whole accepted quantums if address is nil, not filter by type if qType is 0
-	QueryQuantum(address identity.Address, qType int, skip int, limit int, desc bool) ([]*Quantum, error)
+	// QueryQuantums query quantums from whole accepted quantums if address is nil, not filter by type if qType is 0
+	QueryQuantums(address identity.Address, qType int, skip int, limit int, desc bool) ([]*Quantum, error)
 
-	// QueryIndividual query Individual from whole universe if community sig is nil.
-	QueryIndividual(sig Sig, skip int, limit int, desc bool) ([]*Individual, error)
+	// QueryIndividuals query Individual from whole universe if community sig is nil.
+	QueryIndividuals(sig Sig, skip int, limit int, desc bool) ([]*Individual, error)
 
 	// GetCommunity return community by signature of community create signature.
 	GetCommunity(sig Sig) (*Community, error)

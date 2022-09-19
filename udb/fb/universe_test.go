@@ -30,13 +30,12 @@ import (
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/identity"
 	"github.com/pdupub/go-pdu/params"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
 var testKeyJSON = "test-firebase-adminsdk.json"
 var testProjectID = "pdupub-a2bdd"
-
-var clearBeforeTest = true
 
 const (
 	collectionQuantum    = "quantum"
@@ -152,11 +151,37 @@ func testClearQuantum(t *testing.T) {
 }
 
 func testUploadQuantum(t *testing.T, ctx context.Context, client *firestore.Client, q *core.Quantum) (*core.Quantum, *firestore.DocumentRef) {
+	testCollection := client.Collection(collectionQuantum)
+
+	docID := core.Sig2Hex(q.Signature)
+
+	docRef := testCollection.Doc(docID)
+
+	dMap := make(map[string]interface{})
+
+	qBytes, err := json.Marshal(q)
+	if err != nil {
+		t.Error(err)
+	}
+
+	dMap["recv"] = qBytes
+
+	_, err = docRef.Set(ctx, dMap)
+	if err != nil {
+		t.Error(err)
+	}
+
+	return q, docRef
+}
+
+func testUploadQuantumBack(t *testing.T, ctx context.Context, client *firestore.Client, q *core.Quantum) (*core.Quantum, *firestore.DocumentRef) {
 
 	testCollection := client.Collection(collectionQuantum)
 
-	docID, fbq := Quantum2FBQuantum(q)
+	fbq, _ := NewFBQuantum(q)
 	dMap, _ := FBStruct2Data(fbq)
+
+	docID := fbq.SigHex
 
 	// add document
 	docRef := testCollection.Doc(docID)
@@ -179,7 +204,7 @@ func testUploadQuantum(t *testing.T, ctx context.Context, client *firestore.Clie
 		t.Error(err)
 	}
 
-	qRes, err := FBQuantum2Quantum(docRef.ID, fbqRes)
+	qRes, err := fbqRes.GetOriginQuantum()
 	if err != nil {
 		t.Error(err)
 	}
@@ -207,10 +232,6 @@ func testCreateQuantums(t *testing.T) {
 		t.Error(err)
 	}
 	defer client.Close()
-
-	if clearBeforeTest {
-		testClearQuantum(t)
-	}
 
 	did1, _ := identity.New()
 	did1.UnlockWallet("../../"+params.TestKeystore(0), params.TestPassword)
@@ -289,7 +310,7 @@ func testDealQuantums(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if _, _, _, err := fbu.ProcessQuantum(0, 100); err != nil {
+	if _, _, _, err := fbu.ProcessQuantums(100, 0); err != nil {
 		t.Error(err)
 	}
 	if err := fbu.Close(); err != nil {
@@ -311,7 +332,7 @@ func testGetQuantums(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if qs, err := fbu.QueryQuantum(identity.Address{}, 0, 0, 100, false); err != nil {
+	if qs, err := fbu.QueryQuantums(identity.Address{}, 0, 0, 100, false); err != nil {
 		t.Error(err)
 	} else {
 		var sigs []string
@@ -363,7 +384,7 @@ func testTemp(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	// quantums, err := fbu.QueryQuantum(identity.Address{}, 0, 0, 3, false)
+	// quantums, err := fbu.QueryQuantums(identity.Address{}, 0, 0, 3, false)
 	// if err != nil {
 	// 	t.Error(err)
 	// }
@@ -375,7 +396,7 @@ func testTemp(t *testing.T) {
 	// community := fbu.GetCommunity(comSig)
 	// t.Log(community)
 
-	individuals, err := fbu.QueryIndividual(comSig, 1, 4, false)
+	individuals, err := fbu.QueryIndividuals(comSig, 1, 4, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -384,22 +405,46 @@ func testTemp(t *testing.T) {
 	}
 }
 
-func testProcessOriginQuantum(t *testing.T) {
-	did1, _ := identity.New()
-	did1.UnlockWallet("../../"+params.TestKeystore(0), params.TestPassword)
-	did2, _ := identity.New()
-	did2.UnlockWallet("../../"+params.TestKeystore(1), params.TestPassword)
-	did3, _ := identity.New()
-	did3.UnlockWallet("../../"+params.TestKeystore(2), params.TestPassword)
-	did4, _ := identity.New()
-	did4.UnlockWallet("../../"+params.TestKeystore(3), params.TestPassword)
-	t.Log("users")
-	t.Log(did1.GetAddress().Hex())
-	t.Log(did2.GetAddress().Hex())
-	t.Log(did3.GetAddress().Hex())
-	t.Log(did4.GetAddress().Hex())
-	t.Log("======================")
+func testCheckQuantum(t *testing.T) {
 
+	ctx := context.Background()
+	opt := option.WithCredentialsFile(testKeyJSON)
+	config := &firebase.Config{ProjectID: testProjectID}
+	app, err := firebase.NewApp(ctx, config, opt)
+	if err != nil {
+		t.Error(err)
+	}
+
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+	defer client.Close()
+
+	testCollection := client.Collection(collectionQuantum)
+
+	// checkKey := "recv"
+	checkKey := "origin"
+	iter := testCollection.Where(checkKey, "!=", []byte{}).Documents(ctx)
+	for docSnapshot, err := iter.Next(); err != iterator.Done; docSnapshot, err = iter.Next() {
+		if qBytes, ok := docSnapshot.Data()[checkKey]; ok {
+			t.Log(docSnapshot.Ref.ID)
+			// t.Log(qBytes)
+			q := core.Quantum{}
+			json.Unmarshal(qBytes.([]byte), &q)
+			addr, err := q.Ecrecover()
+			if err != nil {
+				t.Error(err)
+			}
+			t.Log("Address", addr.Hex())
+			for _, ref := range q.References {
+				t.Log("Ref", core.Sig2Hex(ref))
+			}
+		}
+	}
+}
+
+func testProcessOriginQuantum(t *testing.T) {
 	ctx := context.Background()
 	opt := option.WithCredentialsFile(testKeyJSON)
 	config := &firebase.Config{ProjectID: testProjectID}
@@ -444,14 +489,42 @@ func testProcessOriginQuantum(t *testing.T) {
 
 		}
 	}
+	t.Log("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+	iter := testCollection.Where("originQuantum", "!=", "").Documents(ctx)
+	for snap, err := iter.Next(); err != iterator.Done; snap, err = iter.Next() {
+		if snap != nil {
+			if _, ok := snap.Data()["originQuantum"]; ok {
+				t.Log(snap.Ref.ID)
+			}
+		}
+	}
+}
+
+func testShowPrivateKey(t *testing.T) {
+	did1, _ := identity.New()
+	did1.UnlockWallet("../../"+params.TestKeystore(0), params.TestPassword)
+	did2, _ := identity.New()
+	did2.UnlockWallet("../../"+params.TestKeystore(1), params.TestPassword)
+	did3, _ := identity.New()
+	did3.UnlockWallet("../../"+params.TestKeystore(2), params.TestPassword)
+	did4, _ := identity.New()
+	did4.UnlockWallet("../../"+params.TestKeystore(3), params.TestPassword)
+
+	t.Log("address / publickKey / privateKey / err")
+	t.Log(did1.Inspect(true))
+	t.Log(did2.Inspect(true))
+	t.Log(did3.Inspect(true))
+	t.Log(did4.Inspect(true))
+	t.Log("======================")
 }
 
 func TestMain(t *testing.T) {
 	// testClearQuantum(t)
 	// testCreateQuantums(t)
 	// testDealQuantums(t)
+	testCheckQuantum(t)
 	// testGetQuantums(t)
 	// testTemp(t)
-
-	testProcessOriginQuantum(t)
+	// testShowPrivateKey(t)
+	// testProcessOriginQuantum(t)
 }
