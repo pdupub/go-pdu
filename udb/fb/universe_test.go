@@ -472,7 +472,7 @@ func testProcessOriginQuantum(t *testing.T) {
 			t.Error(err)
 			continue
 		}
-		if v, ok := snap.Data()["originQuantum"]; ok {
+		if v, ok := snap.Data()["origin"]; ok {
 			value := v.([]byte)
 			var q core.Quantum
 			if err := json.Unmarshal(value, &q); err != nil {
@@ -490,10 +490,10 @@ func testProcessOriginQuantum(t *testing.T) {
 		}
 	}
 	t.Log("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-	iter := testCollection.Where("originQuantum", "!=", "").Documents(ctx)
+	iter := testCollection.Where("origin", "!=", "").Documents(ctx)
 	for snap, err := iter.Next(); err != iterator.Done; snap, err = iter.Next() {
 		if snap != nil {
-			if _, ok := snap.Data()["originQuantum"]; ok {
+			if _, ok := snap.Data()["origin"]; ok {
 				t.Log(snap.Ref.ID)
 			}
 		}
@@ -501,28 +501,25 @@ func testProcessOriginQuantum(t *testing.T) {
 }
 
 func testShowPrivateKey(t *testing.T) {
-	did1, _ := identity.New()
-	did1.UnlockWallet("../../"+params.TestKeystore(0), params.TestPassword)
-	did2, _ := identity.New()
-	did2.UnlockWallet("../../"+params.TestKeystore(1), params.TestPassword)
-	did3, _ := identity.New()
-	did3.UnlockWallet("../../"+params.TestKeystore(2), params.TestPassword)
-	did4, _ := identity.New()
-	did4.UnlockWallet("../../"+params.TestKeystore(3), params.TestPassword)
-
-	t.Log("address / publickKey / privateKey / err")
-	t.Log(did1.Inspect(true))
-	t.Log(did2.Inspect(true))
-	t.Log(did3.Inspect(true))
-	t.Log(did4.Inspect(true))
+	t.Log("address / privateKey ")
 	t.Log("======================")
+
+	for i := 0; i < 4; i++ {
+		did, _ := identity.New()
+		did.UnlockWallet("../../"+params.TestKeystore(i), params.TestPassword)
+		addr, _, priv, _ := did.Inspect(true)
+		t.Log("address\t", addr)
+		// t.Log("pubKey\t", pub)
+		t.Log("privKey\t", priv)
+		t.Log("======================")
+	}
 }
 
 func TestMain(t *testing.T) {
 	// testClearQuantum(t)
 	// testCreateQuantums(t)
-	// testDealQuantums(t)
-	testCheckQuantum(t)
+	testDealQuantums(t)
+	// testCheckQuantum(t)
 	// testGetQuantums(t)
 	// testTemp(t)
 	// testShowPrivateKey(t)

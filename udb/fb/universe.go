@@ -144,48 +144,47 @@ func (fbu *FBUniverse) loadUnprocessedQuantums(limit, skip int) ([]*core.Quantum
 	return receivedQuantums, nil
 }
 
-func (fbu *FBUniverse) formatQuantums(quantums []*core.Quantum) (signatureQuantumMap map[string]*core.Quantum, signatureAddressMap map[string]string, referenceSignatureMap map[string]string, addressStatusMap map[string]int) {
+func (fbu *FBUniverse) formatQuantums(quantums []*core.Quantum) (signatureQuantumMap map[string]*core.Quantum, referenceSignatureMap map[string]string, addressStatusMap map[string]int) {
 	signatureQuantumMap = make(map[string]*core.Quantum) // sig:quantum
-	signatureAddressMap = make(map[string]string)        // sig:address
 	referenceSignatureMap = make(map[string]string)      // first_ref_sig:sig
-	addressStatusMap = make(map[string]int)              // address:accept or not
 
 	// fill data struct
 	for _, qRes := range quantums {
 		sigHex := core.Sig2Hex(qRes.Signature)
 		selfRef := core.Sig2Hex(qRes.References[0])
+		signatureQuantumMap[sigHex] = qRes
+		if selfRef != firstRef {
+			referenceSignatureMap[selfRef] = sigHex
+		}
+	}
+
+	addressStatusMap = make(map[string]int) // address:core.Attitude...
+	for _, qRes := range quantums {
 		// ecrecover the author address
 		addr, err := qRes.Ecrecover()
 		if err != nil {
 			continue
 		}
-
-		signatureQuantumMap[sigHex] = qRes
-		signatureAddressMap[sigHex] = addr.Hex()
-
-		if selfRef != firstRef {
-			referenceSignatureMap[selfRef] = sigHex
-		}
-
 		// update individual attitude
 		if _, ok := addressStatusMap[addr.Hex()]; !ok {
-			addressStatusMap[addr.Hex()] = 0
-			iDocRef := fbu.individualC.Doc(addr.Hex())
-			snapshot, err := iDocRef.Get(fbu.ctx)
-			if err == nil {
-				attitude, err := snapshot.DataAt("attitude")
-				if err == nil {
-					at := attitude.(map[string]interface{})
-					if int(at["level"].(float64)) < core.AttitudeIgnoreContent {
-						addressStatusMap[addr.Hex()] = -1
-					} else {
-						addressStatusMap[addr.Hex()] = 1
-					}
-				}
-			}
+			addressStatusMap[addr.Hex()] = fbu.getStatusLevelByAddressHex(addr.Hex())
 		}
 	}
 	return
+}
+
+func (fbu *FBUniverse) getStatusLevelByAddressHex(addrHex string) int {
+	statusLevel := core.AttitudeAccept // default accept
+	iDocRef := fbu.individualC.Doc(addrHex)
+	snapshot, err := iDocRef.Get(fbu.ctx)
+	if err == nil && snapshot.Exists() {
+		attitude, err := snapshot.DataAt("attitude")
+		if err == nil {
+			at := attitude.(map[string]interface{})
+			statusLevel = int(at["level"].(float64))
+		}
+	}
+	return statusLevel
 }
 
 func (fbu *FBUniverse) ProcessQuantums(limit, skip int) (accept []core.Sig, wait []core.Sig, reject []core.Sig, err error) {
@@ -196,22 +195,19 @@ func (fbu *FBUniverse) ProcessQuantums(limit, skip int) (accept []core.Sig, wait
 	}
 
 	// format quantums before process
-	signatureQuantumMap, signatureAddressMap, referenceSignatureMap, addressStatusMap := fbu.formatQuantums(unprocessedQuantums)
-
-	// set address for quantums
-	for sigHex := range signatureQuantumMap {
-		// update quantums with address
-		qDocRef := fbu.quantumC.Doc(sigHex)
-		// update address info for quantum
-		dMap, _ := FBStruct2Data(&FBQuantum{AddrHex: signatureAddressMap[sigHex]})
-		qDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"address"}))
-	}
+	signatureQuantumMap, referenceSignatureMap, addressStatusMap := fbu.formatQuantums(unprocessedQuantums)
 
 	// process first quantums
 	for sigHex, quantum := range signatureQuantumMap {
 		// check individual
 		qDocRef := fbu.quantumC.Doc(sigHex)
-		iDocRef := fbu.individualC.Doc(signatureAddressMap[sigHex])
+
+		addr, _ := quantum.Ecrecover()
+		// update address info for quantum
+		dMap, _ := FBStruct2Data(&FBQuantum{AddrHex: addr.Hex()})
+		qDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"address"}))
+
+		iDocRef := fbu.individualC.Doc(addr.Hex())
 		iDocSnapshot, _ := iDocRef.Get(fbu.ctx)
 		if !iDocSnapshot.Exists() && core.Sig2Hex(quantum.References[0]) == core.Sig2Hex(core.FirstQuantumReference) {
 			// checked first quantums, can be accepted.
@@ -225,7 +221,7 @@ func (fbu *FBUniverse) ProcessQuantums(limit, skip int) (accept []core.Sig, wait
 			qDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"seq"}, []string{"sseq"}))
 
 			// add new individual
-			newIndividual := &FBIndividual{LastSigHex: sigHex, LastSelfSeq: int64(1), Attitude: &core.Attitude{Level: core.AttitudeAccept}}
+			newIndividual := &FBIndividual{AddrHex: addr.Hex(), LastSigHex: sigHex, LastSelfSeq: int64(1), Attitude: &core.Attitude{Level: core.AttitudeAccept}}
 			dMap, _ = FBStruct2Data(newIndividual)
 			iDocRef.Set(fbu.ctx, dMap)
 
@@ -280,128 +276,133 @@ func (fbu *FBUniverse) ProcessQuantums(limit, skip int) (accept []core.Sig, wait
 		sigHex := core.Sig2Hex(sig)
 		qDocRef := fbu.quantumC.Doc(sigHex)
 		if quantum, ok := signatureQuantumMap[sigHex]; ok {
-			addrHex := signatureAddressMap[core.Sig2Hex(quantum.Signature)]
-
-			// resave into db as readable data
-			if readableCS, err := CS2Readable(quantum.Contents); err == nil {
-				readableRecord := make(map[string]interface{})
-				readableRecord["rcs"] = readableCS
-				qDocRef.Set(fbu.ctx, readableRecord, firestore.Merge([]string{"rcs"}))
-			}
-			switch quantum.Type {
-			case core.QuantumTypeProfile:
-				profileMap := make(map[string]*core.QContent)
-				var mergeKeys []firestore.FieldPath
-				for i := 0; i < len(quantum.Contents); i += 2 {
-					k := string(quantum.Contents[i].Data)
-					mergeKeys = append(mergeKeys, []string{"profile", k})
-					profileMap[k] = quantum.Contents[i+1]
-				}
-
-				iDocRef := fbu.individualC.Doc(addrHex)
-				dMap, _ := FBStruct2Data(&FBIndividual{Profile: profileMap})
-				iDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
-			case core.QuantumTypeCommunity:
-				minCosignCnt, err := strconv.Atoi(string(quantum.Contents[1].Data))
-				if err != nil {
-					minCosignCnt = 1
-				}
-				maxInviteCnt, err := strconv.Atoi(string(quantum.Contents[2].Data))
-				if err != nil {
-					maxInviteCnt = 0
-				}
-
-				initMembers := []string{}
-				members := map[string]bool{addrHex: true}
-				inviteCnt := map[string]int{addrHex: minCosignCnt}
-				for i := 3; i < len(quantum.Contents) && i < 16; i++ {
-					memberHex := string(quantum.Contents[i].Data)
-					initMembers = append(initMembers, memberHex)
-					members[memberHex] = true
-					inviteCnt[memberHex] = minCosignCnt
-				}
-
-				dMap, _ := FBStruct2Data(&FBCommunity{
-					Note:           quantum.Contents[0],
-					CreatorAddrHex: addrHex,
-					MinCosignCnt:   minCosignCnt,
-					MaxInviteCnt:   maxInviteCnt,
-					InitMembersHex: initMembers,
-					Members:        members,
-					InviteCnt:      inviteCnt,
-				})
-				cDocRef := fbu.communityC.Doc(sigHex)
-				cDocRef.Set(fbu.ctx, dMap)
-
-			case core.QuantumTypeInvitation:
-				communtiyHex := core.Sig2Hex(quantum.Contents[0].Data)
-				targets := make(map[string]struct{})
-				for i := 1; i < len(quantum.Contents); i++ {
-					targets[string(quantum.Contents[i].Data)] = struct{}{}
-				}
-
-				cDocRef := fbu.communityC.Doc(communtiyHex)
-				if snapshot, err := cDocRef.Get(fbu.ctx); err == nil {
-					dMap := snapshot.Data()
-
-					if members, ok := dMap["members"]; ok {
-						if _, ok := members.(map[string]interface{})[addrHex]; ok {
-							inviteCnt := dMap["inviteCnt"].(map[string]interface{})
-
-							// TODO : count if out of max sign limit
-							var mergeKeys []firestore.FieldPath
-
-							newCommunity := &FBCommunity{Members: make(map[string]bool), InviteCnt: make(map[string]int)}
-							for target := range targets {
-								if cnt, ok := inviteCnt[target]; ok {
-									newCommunity.InviteCnt[target] = cnt.(int) + 1
-								} else {
-									newCommunity.InviteCnt[target] = 1
-								}
-								mergeKeys = append(mergeKeys, []string{"inviteCnt", target})
-								if newCommunity.InviteCnt[target] >= int(dMap["minCosignCnt"].(float64)) {
-									newCommunity.Members[addrHex] = true
-									mergeKeys = append(mergeKeys, []string{"members", target})
-								}
-							}
-							dMap, _ := FBStruct2Data(newCommunity)
-							cDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
-						}
-					}
-				}
-			case core.QuantumTypeEnd:
-				iDocRef := fbu.individualC.Doc(addrHex)
-				dMap, _ := FBStruct2Data(&FBIndividual{Attitude: &core.Attitude{Level: core.AttitudeReject}})
-				iDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"attitude", "level"}))
-			default:
-				// core.QuantumTypeInfo or unknown
-
-			}
-			// reset copy the bytes from recv to origin, and clear recv
-			docSnapshot, _ := qDocRef.Get(fbu.ctx)
-			if recv, ok := docSnapshot.Data()["recv"]; ok {
-				var refs []*FBSig
-				for _, ref := range quantum.References {
-					refs = append(refs, &FBSig{SigHex: core.Sig2Hex(ref)})
-				}
-				dMap := map[string]interface{}{"recv": []byte{}, "origin": recv, "type": quantum.Type, "refs": refs}
-				mergeKeys := []firestore.FieldPath{[]string{"recv"}, []string{"origin"}, []string{"type"}, []string{"refs"}}
-				qDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
-			}
+			fbu.executeQuantumFunc(quantum, qDocRef)
 		}
 	}
 
 	for _, k := range accept {
-		delete(signatureAddressMap, core.Sig2Hex(k))
+		delete(signatureQuantumMap, core.Sig2Hex(k))
 	}
 	for _, k := range reject {
-		delete(signatureAddressMap, core.Sig2Hex(k))
+		delete(signatureQuantumMap, core.Sig2Hex(k))
 	}
-	for k, _ := range signatureAddressMap {
+	for k := range signatureQuantumMap {
 		wait = append(wait, core.Hex2Sig(k))
 	}
 
 	return
+}
+
+func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firestore.DocumentRef) {
+	qid, _ := quantum.Ecrecover()
+	addrHex := qid.Hex()
+	// resave into db as readable data
+	if readableCS, err := CS2Readable(quantum.Contents); err == nil {
+		readableRecord := make(map[string]interface{})
+		readableRecord["rcs"] = readableCS
+		qDocRef.Set(fbu.ctx, readableRecord, firestore.Merge([]string{"rcs"}))
+	}
+	switch quantum.Type {
+	case core.QuantumTypeProfile:
+		profileMap := make(map[string]*core.QContent)
+		var mergeKeys []firestore.FieldPath
+		for i := 0; i < len(quantum.Contents); i += 2 {
+			k := string(quantum.Contents[i].Data)
+			mergeKeys = append(mergeKeys, []string{"profile", k})
+			profileMap[k] = quantum.Contents[i+1]
+		}
+
+		iDocRef := fbu.individualC.Doc(addrHex)
+		dMap, _ := FBStruct2Data(&FBIndividual{Profile: profileMap})
+		iDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
+	case core.QuantumTypeCommunity:
+		minCosignCnt, err := strconv.Atoi(string(quantum.Contents[1].Data))
+		if err != nil {
+			minCosignCnt = 1
+		}
+		maxInviteCnt, err := strconv.Atoi(string(quantum.Contents[2].Data))
+		if err != nil {
+			maxInviteCnt = 0
+		}
+
+		initMembers := []string{}
+		members := map[string]bool{addrHex: true}
+		inviteCnt := map[string]int{addrHex: minCosignCnt}
+		for i := 3; i < len(quantum.Contents) && i < 16; i++ {
+			memberHex := string(quantum.Contents[i].Data)
+			initMembers = append(initMembers, memberHex)
+			members[memberHex] = true
+			inviteCnt[memberHex] = minCosignCnt
+		}
+
+		dMap, _ := FBStruct2Data(&FBCommunity{
+			Note:           quantum.Contents[0],
+			CreatorAddrHex: addrHex,
+			MinCosignCnt:   minCosignCnt,
+			MaxInviteCnt:   maxInviteCnt,
+			InitMembersHex: initMembers,
+			Members:        members,
+			InviteCnt:      inviteCnt,
+		})
+
+		cDocRef := fbu.communityC.Doc(core.Sig2Hex(quantum.Signature))
+		cDocRef.Set(fbu.ctx, dMap)
+
+	case core.QuantumTypeInvitation:
+		communtiyHex := core.Sig2Hex(quantum.Contents[0].Data)
+		targets := make(map[string]struct{})
+		for i := 1; i < len(quantum.Contents); i++ {
+			targets[string(quantum.Contents[i].Data)] = struct{}{}
+		}
+
+		cDocRef := fbu.communityC.Doc(communtiyHex)
+		if snapshot, err := cDocRef.Get(fbu.ctx); err == nil {
+			dMap := snapshot.Data()
+
+			if members, ok := dMap["members"]; ok {
+				if _, ok := members.(map[string]interface{})[addrHex]; ok {
+					inviteCnt := dMap["inviteCnt"].(map[string]interface{})
+
+					// TODO : count if out of max sign limit
+					var mergeKeys []firestore.FieldPath
+
+					newCommunity := &FBCommunity{Members: make(map[string]bool), InviteCnt: make(map[string]int)}
+					for target := range targets {
+						if cnt, ok := inviteCnt[target]; ok {
+							newCommunity.InviteCnt[target] = cnt.(int) + 1
+						} else {
+							newCommunity.InviteCnt[target] = 1
+						}
+						mergeKeys = append(mergeKeys, []string{"inviteCnt", target})
+						if newCommunity.InviteCnt[target] >= int(dMap["minCosignCnt"].(float64)) {
+							newCommunity.Members[addrHex] = true
+							mergeKeys = append(mergeKeys, []string{"members", target})
+						}
+					}
+					dMap, _ := FBStruct2Data(newCommunity)
+					cDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
+				}
+			}
+		}
+	case core.QuantumTypeEnd:
+		iDocRef := fbu.individualC.Doc(addrHex)
+		dMap, _ := FBStruct2Data(&FBIndividual{Attitude: &core.Attitude{Level: core.AttitudeReject}})
+		iDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"attitude", "level"}))
+	default:
+		// core.QuantumTypeInfo or unknown
+
+	}
+	// reset copy the bytes from recv to origin, and clear recv
+	docSnapshot, _ := qDocRef.Get(fbu.ctx)
+	if recv, ok := docSnapshot.Data()["recv"]; ok {
+		var refs []*FBSig
+		for _, ref := range quantum.References {
+			refs = append(refs, &FBSig{SigHex: core.Sig2Hex(ref)})
+		}
+		dMap := map[string]interface{}{"recv": []byte{}, "origin": recv, "type": quantum.Type, "refs": refs}
+		mergeKeys := []firestore.FieldPath{[]string{"recv"}, []string{"origin"}, []string{"type"}, []string{"refs"}}
+		qDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
+	}
 }
 
 func (fbu *FBUniverse) QueryQuantums(address identity.Address, qType int, skip int, limit int, desc bool) ([]*core.Quantum, error) {

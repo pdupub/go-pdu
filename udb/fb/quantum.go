@@ -83,12 +83,7 @@ func Data2FBQuantum(d map[string]interface{}) (*FBQuantum, error) {
 }
 
 func (fbq *FBQuantum) GetOriginQuantum() (*core.Quantum, error) {
-	q := core.Quantum{}
-	q.Contents = fbq.Contents
-	q.Type = fbq.Type
-	q.Signature = core.Hex2Sig(fbq.SigHex)
-	for _, ref := range fbq.FBRef {
-		q.References = append(q.References, core.Hex2Sig(ref.SigHex))
-	}
-	return &q, nil
+	resQuantum := core.Quantum{}
+	err := json.Unmarshal(fbq.Origin, &resQuantum)
+	return &resQuantum, err
 }
