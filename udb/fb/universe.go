@@ -31,7 +31,11 @@ import (
 )
 
 var (
-	errDocumentLoadDataFail = errors.New("document load data fail")
+	errDocumentLoadDataFail   = errors.New("document load data fail")
+	errReceivedQuantumMissing = errors.New("received quantum missing")
+	errUnmarshalQuantumFail   = errors.New("unmarshal quantum fail")
+	errQuantumIsReject        = errors.New("quantum is reject")
+	errQuantumIsWaiting       = errors.New("quantum is waiting")
 )
 
 var (
@@ -123,6 +127,27 @@ func (fbu *FBUniverse) increaseUniverseSequence() error {
 	return nil
 }
 
+func (fbu *FBUniverse) loadUnprocessedQuantum(sig core.Sig) (*core.Quantum, error) {
+	docSnapshot, err := fbu.quantumC.Doc(core.Sig2Hex(sig)).Get(fbu.ctx)
+	if err != nil {
+		return nil, err
+	}
+	if docSnapshot == nil {
+		return nil, errDocumentLoadDataFail
+	}
+
+	qRes := &core.Quantum{}
+	if qBytes, ok := docSnapshot.Data()["recv"]; !ok || qBytes == nil {
+		return nil, errReceivedQuantumMissing
+	} else {
+		if err := json.Unmarshal(qBytes.([]byte), qRes); err != nil {
+			docSnapshot.Ref.Delete(fbu.ctx)
+			return nil, errUnmarshalQuantumFail
+		}
+	}
+	return qRes, nil
+}
+
 func (fbu *FBUniverse) loadUnprocessedQuantums(limit, skip int) ([]*core.Quantum, error) {
 	var receivedQuantums []*core.Quantum
 	iter := fbu.quantumC.Where("recv", "!=", []byte{}).Offset(skip).Limit(limit).Documents(fbu.ctx)
@@ -133,20 +158,24 @@ func (fbu *FBUniverse) loadUnprocessedQuantums(limit, skip int) ([]*core.Quantum
 
 		if qBytes, ok := docSnapshot.Data()["recv"]; ok {
 			qRes := &core.Quantum{}
-			err := json.Unmarshal(qBytes.([]byte), qRes)
-			if err != nil {
-				// TODO: err should be handle here, del current document or add sign
-				return nil, err
+			if err := json.Unmarshal(qBytes.([]byte), qRes); err != nil {
+				// delete current quantums, (or set recv to "")
+				docSnapshot.Ref.Delete(fbu.ctx)
+			} else {
+				receivedQuantums = append(receivedQuantums, qRes)
 			}
-			receivedQuantums = append(receivedQuantums, qRes)
 		}
 	}
 	return receivedQuantums, nil
 }
 
 func (fbu *FBUniverse) formatQuantums(quantums []*core.Quantum) (signatureQuantumMap map[string]*core.Quantum, referenceSignatureMap map[string]string, addressStatusMap map[string]int) {
+	// signatureQuantumMap is used for find quantum by signature
 	signatureQuantumMap = make(map[string]*core.Quantum) // sig:quantum
-	referenceSignatureMap = make(map[string]string)      // first_ref_sig:sig
+	// referenceSignatureMap is used for from individual last find next quantum by same individual
+	referenceSignatureMap = make(map[string]string) // first_ref_sig:sig
+	// addressStatusMap is used for get attitude for each of quantum signer
+	addressStatusMap = make(map[string]int) // address:core.Attitude...
 
 	// fill data struct
 	for _, qRes := range quantums {
@@ -158,7 +187,6 @@ func (fbu *FBUniverse) formatQuantums(quantums []*core.Quantum) (signatureQuantu
 		}
 	}
 
-	addressStatusMap = make(map[string]int) // address:core.Attitude...
 	for _, qRes := range quantums {
 		// ecrecover the author address
 		addr, err := qRes.Ecrecover()
@@ -193,7 +221,10 @@ func (fbu *FBUniverse) ProcessQuantums(limit, skip int) (accept []core.Sig, wait
 	if err != nil || len(unprocessedQuantums) == 0 {
 		return
 	}
+	return fbu.proccessQuantums(unprocessedQuantums)
+}
 
+func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (accept []core.Sig, wait []core.Sig, reject []core.Sig, err error) {
 	// format quantums before process
 	signatureQuantumMap, referenceSignatureMap, addressStatusMap := fbu.formatQuantums(unprocessedQuantums)
 
@@ -415,9 +446,7 @@ func (fbu *FBUniverse) QueryQuantums(address identity.Address, qType int, skip i
 		quantumQuery = quantumQuery.Where("address", "==", address.Hex())
 	}
 
-	if qType != 0 {
-		quantumQuery = quantumQuery.Where("type", "==", -(qType))
-	}
+	quantumQuery = quantumQuery.Where("type", "==", qType)
 
 	iter := quantumQuery.Offset(skip).Limit(limit).Documents(fbu.ctx)
 
@@ -460,6 +489,21 @@ func (fbu *FBUniverse) ReceiveQuantums(quantums []*core.Quantum) (accept []core.
 func (fbu *FBUniverse) ProcessSingleQuantum(sig core.Sig) error {
 	// TODO: check if exist
 	// TODO: check if unprocessed
+	quantum, err := fbu.loadUnprocessedQuantum(sig)
+	if err != nil {
+		return err
+	}
+
+	// accept []core.Sig, wait []core.Sig, reject []core.Sig, err error
+	_, wait, reject, err := fbu.proccessQuantums([]*core.Quantum{quantum})
+	if err != nil {
+		return err
+	} else if len(reject) > 0 {
+		return errQuantumIsReject
+	} else if len(wait) > 0 {
+		return errQuantumIsWaiting
+	}
+
 	return nil
 }
 
