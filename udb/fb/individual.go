@@ -24,11 +24,12 @@ import (
 )
 
 type FBIndividual struct {
-	AddrHex     string                    `json:"address"`
-	LastSigHex  string                    `json:"last"` // last sig of quantum
-	LastSelfSeq int64                     `json:"lseq"` // last self sequance
-	Profile     map[string]*core.QContent `json:"profile,omitempty"`
-	Attitude    *core.Attitude            `json:"attitude"`
+	AddrHex         string                    `json:"address"`
+	LastSigHex      string                    `json:"last"` // last sig of quantum
+	LastSelfSeq     int64                     `json:"lseq"` // last self sequance
+	Profile         map[string]*core.QContent `json:"profile,omitempty"`
+	ReadableProfile map[string]*FBContent     `json:"rp,omitempty"`
+	Attitude        *core.Attitude            `json:"attitude"`
 }
 
 func FBIndividual2Individual(uid string, fbi *FBIndividual) (*core.Individual, error) {

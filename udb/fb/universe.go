@@ -336,15 +336,20 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 	switch quantum.Type {
 	case core.QuantumTypeProfile:
 		profileMap := make(map[string]*core.QContent)
+		readableProfileMap := make(map[string]interface{})
 		var mergeKeys []firestore.FieldPath
 		for i := 0; i < len(quantum.Contents); i += 2 {
 			k := string(quantum.Contents[i].Data)
 			mergeKeys = append(mergeKeys, []string{"profile", k})
+			mergeKeys = append(mergeKeys, []string{"rp", k})
+
 			profileMap[k] = quantum.Contents[i+1]
+			readableProfileMap[k], _ = Content2Readable(quantum.Contents[i+1])
 		}
 
 		iDocRef := fbu.individualC.Doc(addrHex)
 		dMap, _ := FBStruct2Data(&FBIndividual{Profile: profileMap})
+		dMap["rp"] = readableProfileMap
 		iDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
 	case core.QuantumTypeCommunity:
 		minCosignCnt, err := strconv.Atoi(string(quantum.Contents[1].Data))
