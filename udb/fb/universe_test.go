@@ -376,7 +376,28 @@ func testGetQuantums(t *testing.T) {
 }
 
 func testTemp(t *testing.T) {
-	t.Log("temp test")
+	t.Log("tmp test")
+	ctx := context.Background()
+	var err error
+	fbu, err := NewFBUniverse(ctx, testKeyJSON, testProjectID)
+	if err != nil {
+		t.Error(err)
+	}
+	snapshots, err := fbu.individualC.Where("rp.email.data", "==", "Hi").Documents(fbu.ctx).GetAll()
+	if err != nil {
+		t.Error(err)
+	}
+	for _, snap := range snapshots {
+		fbi, err := Data2FBIndividual(snap.Data())
+		if err != nil {
+			t.Error(err)
+		}
+		t.Log(fbi.AddrHex)
+	}
+}
+
+func testCommunityInfo(t *testing.T) {
+	t.Log("community test")
 	ctx := context.Background()
 	var fbu core.Universe
 	var err error
@@ -391,9 +412,12 @@ func testTemp(t *testing.T) {
 	// for _, q := range quantums {
 	// 	t.Log(q)
 	// }
-
-	comSig := core.Hex2Sig("0xe2f00788cd5a4ba91c6c0a1e6e0944da1631a236ed7df74b83521dba9397dcd44f4c46792f0235099cc7352e33d82be29da1b08f23e25276a7095100862e2ac601")
-	// community := fbu.GetCommunity(comSig)
+	comSig := core.Hex2Sig("0x4ac617c2ead08dd4ae046c048200e74c64d7b93f22f12c78d3f85b539afb94982157837dae9e4720193f64b480509a7815cda6ca356025555c1df631d995a62e01")
+	// comSig := core.Hex2Sig("0xe2f00788cd5a4ba91c6c0a1e6e0944da1631a236ed7df74b83521dba9397dcd44f4c46792f0235099cc7352e33d82be29da1b08f23e25276a7095100862e2ac601")
+	// community, err := fbu.GetCommunity(comSig)
+	// if err != nil {
+	// 	t.Error(err)
+	// }
 	// t.Log(community)
 
 	individuals, err := fbu.QueryIndividuals(comSig, 1, 4, false)
@@ -518,10 +542,11 @@ func testShowPrivateKey(t *testing.T) {
 func TestMain(t *testing.T) {
 	// testClearQuantum(t)
 	// testCreateQuantums(t)
-	testDealQuantums(t)
+	// testDealQuantums(t)
 	// testCheckQuantum(t)
 	// testGetQuantums(t)
-	// testTemp(t)
+	// testCommunityInfo(t)
+	testTemp(t)
 	// testShowPrivateKey(t)
 	// testProcessOriginQuantum(t)
 }

@@ -373,6 +373,7 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 
 		dMap, _ := FBStruct2Data(&FBCommunity{
 			Note:           quantum.Contents[0],
+			DefineSigHex:   core.Sig2Hex(quantum.Signature),
 			CreatorAddrHex: addrHex,
 			MinCosignCnt:   minCosignCnt,
 			MaxInviteCnt:   maxInviteCnt,
@@ -527,20 +528,18 @@ func (fbu *FBUniverse) QueryIndividuals(sig core.Sig, skip int, limit int, desc 
 	docRef := fbu.communityC.Doc(docID)
 	docSnapshot, err := docRef.Get(fbu.ctx)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
-
 	fbCommunity, err := Data2FBCommunity(docSnapshot.Data())
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	index := 0
 	count := 0
 	individuals := []*core.Individual{}
 	for addrHex := range fbCommunity.Members {
 		if skip <= index {
-			ind, err := fbu.GetIndividual(identity.HexToAddress(addrHex))
-			if err != nil {
+			if ind, err := fbu.GetIndividual(identity.HexToAddress(addrHex)); err == nil {
 				individuals = append(individuals, ind)
 				count += 1
 				if count >= limit {
