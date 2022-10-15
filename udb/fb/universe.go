@@ -47,7 +47,8 @@ type FBSig struct {
 }
 
 type UniverseStatus struct {
-	Sequence int64 `json:"universeSequence,omitempty"`
+	Sequence int64  `json:"lastSequence,omitempty"`
+	SigHex   string `json:"lastSigHex,omitempty"`
 }
 
 type FBUniverse struct {
@@ -102,27 +103,28 @@ func (fbu *FBUniverse) loadUniverse() error {
 		return err
 	}
 	dMap := docSnapshot.Data()
-	if sequence, ok := dMap["universeSequence"]; ok {
+	if sequence, ok := dMap["lastSequence"]; ok {
 		fbu.status.Sequence = sequence.(int64)
 	}
 	return nil
 }
 
-func (fbu *FBUniverse) increaseUniverseSequence() error {
+func (fbu *FBUniverse) increaseUniverseSequence(newSigHex string) error {
 	docRef := fbu.universeC.Doc(universeStatusDocID)
 	docSnapshot, err := docRef.Get(fbu.ctx)
 	if err != nil {
 		return err
 	}
 	dMap := docSnapshot.Data()
-	if sequence, ok := dMap["universeSequence"]; ok {
+	if sequence, ok := dMap["lastSequence"]; ok {
 		fbu.status.Sequence = sequence.(int64)
 		fbu.status.Sequence += 1
 	} else {
 		fbu.status.Sequence = 1
 	}
-	dMap["universeSequence"] = fbu.status.Sequence
-	docRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"universeSequence"}))
+	dMap["lastSequence"] = fbu.status.Sequence
+	dMap["lastSigHex"] = newSigHex
+	docRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"lastSequence"}, []string{"lastSigHex"}))
 
 	return nil
 }
@@ -242,7 +244,7 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 		iDocSnapshot, _ := iDocRef.Get(fbu.ctx)
 		if !iDocSnapshot.Exists() && core.Sig2Hex(quantum.References[0]) == core.Sig2Hex(core.FirstQuantumReference) {
 			// checked first quantums, can be accepted.
-			if err := fbu.increaseUniverseSequence(); err != nil {
+			if err := fbu.increaseUniverseSequence(sigHex); err != nil {
 				// reject
 				reject = append(reject, core.Hex2Sig(sigHex))
 				continue
@@ -276,7 +278,7 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 					if _, ok := signatureQuantumMap[sigHex]; ok {
 
 						// checked first quantums, can be accepted.
-						if err := fbu.increaseUniverseSequence(); err != nil {
+						if err := fbu.increaseUniverseSequence(sigHex); err != nil {
 							reject = append(reject, core.Hex2Sig(sigHex))
 							continue
 						}

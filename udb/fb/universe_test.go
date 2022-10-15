@@ -145,9 +145,10 @@ func testClearQuantum(t *testing.T) {
 
 	configCollection := client.Collection("universe")
 	configDocRef := configCollection.Doc("status")
-	configMap := make(map[string]int64)
-	configMap["universeSequence"] = 0
-	configDocRef.Set(ctx, configMap, firestore.Merge([]string{"universeSequence"}))
+	configMap := make(map[string]interface{})
+	configMap["lastSequence"] = 0
+	configMap["lastSigHex"] = ""
+	configDocRef.Set(ctx, configMap, firestore.Merge([]string{"lastSequence"}, []string{"lastSigHex"}))
 }
 
 func testUploadQuantum(t *testing.T, ctx context.Context, client *firestore.Client, q *core.Quantum) (*core.Quantum, *firestore.DocumentRef) {
@@ -540,13 +541,13 @@ func testShowPrivateKey(t *testing.T) {
 }
 
 func TestMain(t *testing.T) {
-	// testClearQuantum(t)
-	// testCreateQuantums(t)
-	// testDealQuantums(t)
+	testClearQuantum(t)
+	testCreateQuantums(t)
+	testDealQuantums(t)
 	// testCheckQuantum(t)
 	// testGetQuantums(t)
 	// testCommunityInfo(t)
-	testTemp(t)
+	// testTemp(t)
 	// testShowPrivateKey(t)
 	// testProcessOriginQuantum(t)
 }
