@@ -25,16 +25,17 @@ import (
 )
 
 type FBQuantum struct {
-	Received   []byte           `json:"recv,omitempty"`
-	Origin     []byte           `json:"origin,omitempty"`
-	Contents   []*core.QContent `json:"cs,omitempty"`
-	Type       int              `json:"type"`
-	FBRef      []*FBSig         `json:"refs"`
-	Sequence   int64            `json:"seq,omitempty"`
-	SelfSeq    int64            `json:"sseq,omitempty"`
-	AddrHex    string           `json:"address,omitempty"`
-	SigHex     string           `json:"sig,omitempty"`
-	ReadableCS []*FBContent     `json:"rcs,omitempty"`
+	Received        []byte           `json:"recv,omitempty"`
+	Origin          []byte           `json:"origin,omitempty"`
+	Contents        []*core.QContent `json:"cs,omitempty"`
+	Type            int              `json:"type"`
+	FBRef           []*FBSig         `json:"refs"`
+	Sequence        int64            `json:"seq,omitempty"`
+	SelfSeq         int64            `json:"sseq,omitempty"`
+	AddrHex         string           `json:"address,omitempty"`
+	SigHex          string           `json:"sig,omitempty"`
+	ReadableCS      []*FBContent     `json:"rcs,omitempty"`
+	CreateTimestamp int64            `json:"createTime"`
 }
 
 func NewFBQuantumFromSnap(docSnapshot *firestore.DocumentSnapshot) (*FBQuantum, error) {

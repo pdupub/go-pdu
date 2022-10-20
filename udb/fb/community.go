@@ -24,14 +24,16 @@ import (
 )
 
 type FBCommunity struct {
-	Note           *core.QContent  `json:"note"`
-	DefineSigHex   string          `json:"define"`
-	CreatorAddrHex string          `json:"creator"`
-	MinCosignCnt   int             `json:"minCosignCnt"`
-	MaxInviteCnt   int             `json:"maxInviteCnt"`
-	InitMembersHex []string        `json:"initMembers,omitempty"`
-	Members        map[string]bool `json:"members,omitempty"`
-	InviteCnt      map[string]int  `json:"inviteCnt,omitempty"`
+	Note            *core.QContent  `json:"note"`
+	DefineSigHex    string          `json:"define"`
+	CreatorAddrHex  string          `json:"creator"`
+	MinCosignCnt    int             `json:"minCosignCnt"`
+	MaxInviteCnt    int             `json:"maxInviteCnt"`
+	InitMembersHex  []string        `json:"initMembers"`
+	Members         map[string]bool `json:"members"`
+	InviteCnt       map[string]int  `json:"inviteCnt"`
+	CreateTimestamp int64           `json:"createTime"`
+	UpdateTimestamp int64           `json:"updateTime"`
 }
 
 func FBCommunity2Community(uid string, fbc *FBCommunity) (*core.Community, error) {

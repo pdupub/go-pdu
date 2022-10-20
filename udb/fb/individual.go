@@ -30,6 +30,8 @@ type FBIndividual struct {
 	Profile         map[string]*core.QContent `json:"profile,omitempty"`
 	ReadableProfile map[string]*FBContent     `json:"rp,omitempty"`
 	Attitude        *core.Attitude            `json:"attitude"`
+	CreateTimestamp int64                     `json:"createTime"`
+	UpdateTimestamp int64                     `json:"updateTime"`
 }
 
 func FBIndividual2Individual(uid string, fbi *FBIndividual) (*core.Individual, error) {

@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"strconv"
 	"testing"
+	"time"
 
 	"context"
 
@@ -148,7 +149,8 @@ func testClearQuantum(t *testing.T) {
 	configMap := make(map[string]interface{})
 	configMap["lastSequence"] = 0
 	configMap["lastSigHex"] = ""
-	configDocRef.Set(ctx, configMap, firestore.Merge([]string{"lastSequence"}, []string{"lastSigHex"}))
+	configMap["updateTime"] = time.Now().UnixMilli()
+	configDocRef.Set(ctx, configMap, firestore.Merge([]string{"lastSequence"}, []string{"lastSigHex"}, []string{"updateTime"}))
 }
 
 func testUploadQuantum(t *testing.T, ctx context.Context, client *firestore.Client, q *core.Quantum) (*core.Quantum, *firestore.DocumentRef) {
@@ -541,8 +543,8 @@ func testShowPrivateKey(t *testing.T) {
 }
 
 func TestMain(t *testing.T) {
-	testClearQuantum(t)
-	testCreateQuantums(t)
+	// testClearQuantum(t)
+	// testCreateQuantums(t)
 	testDealQuantums(t)
 	// testCheckQuantum(t)
 	// testGetQuantums(t)

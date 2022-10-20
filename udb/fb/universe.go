@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strconv"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
@@ -47,8 +48,9 @@ type FBSig struct {
 }
 
 type UniverseStatus struct {
-	Sequence int64  `json:"lastSequence,omitempty"`
-	SigHex   string `json:"lastSigHex,omitempty"`
+	Sequence        int64  `json:"lastSequence,omitempty"`
+	SigHex          string `json:"lastSigHex,omitempty"`
+	UpdateTimestamp int64  `json:"updateTime"`
 }
 
 type FBUniverse struct {
@@ -124,7 +126,8 @@ func (fbu *FBUniverse) increaseUniverseSequence(newSigHex string) error {
 	}
 	dMap["lastSequence"] = fbu.status.Sequence
 	dMap["lastSigHex"] = newSigHex
-	docRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"lastSequence"}, []string{"lastSigHex"}))
+	dMap["updateTime"] = time.Now().UnixMilli()
+	docRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"lastSequence"}, []string{"lastSigHex"}, []string{"updateTime"}))
 
 	return nil
 }
@@ -238,7 +241,9 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 		addr, _ := quantum.Ecrecover()
 		// update address info for quantum
 		dMap, _ := FBStruct2Data(&FBQuantum{AddrHex: addr.Hex()})
-		qDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"address"}))
+		dMap["createTime"] = time.Now().UnixMilli()
+		// quantum created when verfy signature & got user address, not receive quantum
+		qDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"address"}, []string{"createTime"}))
 
 		iDocRef := fbu.individualC.Doc(addr.Hex())
 		iDocSnapshot, _ := iDocRef.Get(fbu.ctx)
@@ -256,6 +261,8 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 			// add new individual
 			newIndividual := &FBIndividual{AddrHex: addr.Hex(), LastSigHex: sigHex, LastSelfSeq: int64(1), Attitude: &core.Attitude{Level: core.AttitudeAccept}}
 			dMap, _ = FBStruct2Data(newIndividual)
+			dMap["createTime"] = time.Now().UnixMilli()
+			dMap["updateTime"] = time.Now().UnixMilli()
 			iDocRef.Set(fbu.ctx, dMap)
 
 			accept = append(accept, core.Hex2Sig(sigHex))
@@ -293,6 +300,8 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 
 						// add new individual
 						dMap, _ = FBStruct2Data(individual)
+						dMap["createTime"] = time.Now().UnixMilli()
+						dMap["updateTime"] = time.Now().UnixMilli()
 						iDocRef.Set(fbu.ctx, dMap)
 
 						accept = append(accept, core.Hex2Sig(sigHex))
@@ -352,6 +361,8 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 		iDocRef := fbu.individualC.Doc(addrHex)
 		dMap, _ := FBStruct2Data(&FBIndividual{Profile: profileMap})
 		dMap["rp"] = readableProfileMap
+		dMap["updateTime"] = time.Now().UnixMilli()
+		mergeKeys = append(mergeKeys, []string{"updateTime"})
 		iDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
 	case core.QuantumTypeCommunity:
 		minCosignCnt, err := strconv.Atoi(string(quantum.Contents[1].Data))
@@ -384,6 +395,8 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 			InviteCnt:      inviteCnt,
 		})
 
+		dMap["createTime"] = time.Now().UnixMilli()
+		dMap["updateTime"] = time.Now().UnixMilli()
 		cDocRef := fbu.communityC.Doc(core.Sig2Hex(quantum.Signature))
 		cDocRef.Set(fbu.ctx, dMap)
 
@@ -419,6 +432,8 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 						}
 					}
 					dMap, _ := FBStruct2Data(newCommunity)
+					dMap["updateTime"] = time.Now().UnixMilli()
+					mergeKeys = append(mergeKeys, []string{"updateTime"})
 					cDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
 				}
 			}
@@ -426,7 +441,8 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 	case core.QuantumTypeEnd:
 		iDocRef := fbu.individualC.Doc(addrHex)
 		dMap, _ := FBStruct2Data(&FBIndividual{Attitude: &core.Attitude{Level: core.AttitudeReject}})
-		iDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"attitude", "level"}))
+		dMap["updateTime"] = time.Now().UnixMilli()
+		iDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"attitude", "level"}, []string{"updateTime"}))
 	default:
 		// core.QuantumTypeInfo or unknown
 
