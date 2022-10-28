@@ -89,7 +89,9 @@ func NewFBUniverse(ctx context.Context, keyFilename string, projectID string) (*
 	fbu.universeC = fbu.client.Collection("universe")
 
 	// init config
-	fbu.loadUniverse()
+	if err = fbu.loadUniverse(); err != nil {
+		return nil, err
+	}
 
 	return fbu, nil
 }
@@ -401,10 +403,18 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 		cDocRef.Set(fbu.ctx, dMap)
 
 	case core.QuantumTypeInvitation:
-		communtiyHex := core.Sig2Hex(quantum.Contents[0].Data)
+		communtiyHex := core.Sig2Hex(quantum.Contents[0].Data)          // if QCFmtBytesSignature = 33
+		if quantum.Contents[0].Format == core.QCFmtStringSignatureHex { // QCFmtStringSignatureHex = 7
+			communtiyHex = string(quantum.Contents[0].Data)
+		}
+
 		targets := make(map[string]struct{})
 		for i := 1; i < len(quantum.Contents); i++ {
-			targets[string(quantum.Contents[i].Data)] = struct{}{}
+			if quantum.Contents[i].Format == core.QCFmtStringAddressHex {
+				targets[string(quantum.Contents[i].Data)] = struct{}{}
+			} else if quantum.Contents[i].Format == core.QCFmtBytesAddress {
+				targets[identity.BytesToAddress(quantum.Contents[i].Data).Hex()] = struct{}{}
+			}
 		}
 
 		cDocRef := fbu.communityC.Doc(communtiyHex)
@@ -417,17 +427,16 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 
 					// TODO : count if out of max sign limit
 					var mergeKeys []firestore.FieldPath
-
 					newCommunity := &FBCommunity{Members: make(map[string]bool), InviteCnt: make(map[string]int)}
 					for target := range targets {
 						if cnt, ok := inviteCnt[target]; ok {
-							newCommunity.InviteCnt[target] = cnt.(int) + 1
+							newCommunity.InviteCnt[target] = int(cnt.(float64)) + 1
 						} else {
 							newCommunity.InviteCnt[target] = 1
 						}
 						mergeKeys = append(mergeKeys, []string{"inviteCnt", target})
 						if newCommunity.InviteCnt[target] >= int(dMap["minCosignCnt"].(float64)) {
-							newCommunity.Members[addrHex] = true
+							newCommunity.Members[target] = true
 							mergeKeys = append(mergeKeys, []string{"members", target})
 						}
 					}

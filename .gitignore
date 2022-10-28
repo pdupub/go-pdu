@@ -2,7 +2,7 @@
 udb/fb/test-firebase-adminsdk.json
 
 # idea
-.vscode/
+# .vscode/
 .idea/
 
 # XCode

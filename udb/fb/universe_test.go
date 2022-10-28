@@ -304,7 +304,50 @@ func testCreateQuantums(t *testing.T) {
 	q9, _ := testCreateProfileQuantum(t, ctx, client, did2, profile22, ref2[len(ref2)-1], ref3[len(ref3)-1], q8.Signature)
 	ref2 = append(ref2, q9.Signature)
 
-	t.Log(len(ref1), len(ref2), len(ref3))
+	t.Log("did1 last sig: ", core.Sig2Hex(ref1[len(ref1)-1]))
+	t.Log("did2 last sig: ", core.Sig2Hex(ref2[len(ref2)-1]))
+	t.Log("did3 last sig: ", core.Sig2Hex(ref3[len(ref3)-1]))
+
+	t.Log("community sig: ", core.Sig2Hex(q6.Signature))
+
+}
+
+func testManualInviteQuantums(t *testing.T) {
+	ctx := context.Background()
+	opt := option.WithCredentialsFile(testKeyJSON)
+	config := &firebase.Config{ProjectID: testProjectID}
+	app, err := firebase.NewApp(ctx, config, opt)
+	if err != nil {
+		t.Error(err)
+	}
+
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		t.Error(err)
+	}
+	defer client.Close()
+
+	did1, _ := identity.New()
+	did1.UnlockWallet("../../"+params.TestKeystore(0), params.TestPassword)
+	did2, _ := identity.New()
+	did2.UnlockWallet("../../"+params.TestKeystore(1), params.TestPassword)
+	did3, _ := identity.New()
+	did3.UnlockWallet("../../"+params.TestKeystore(2), params.TestPassword)
+	did4, _ := identity.New()
+	did4.UnlockWallet("../../"+params.TestKeystore(3), params.TestPassword)
+
+	// did1, did2, did3 exist in communtiy
+	extraInviteAddrHexList := []string{"0x00008Bd373Ac9f168f087E976d0068732fbD6835"}
+	communityDefineSig := core.Hex2Sig("0x4ac617c2ead08dd4ae046c048200e74c64d7b93f22f12c78d3f85b539afb94982157837dae9e4720193f64b480509a7815cda6ca356025555c1df631d995a62e01")
+	did1SelfRef := core.Hex2Sig("0x5c9110f071ee589a918f26b988dba3b990300e372392ceb83e36515d8beeef4a7bf5838123dc0b1f0717ed8b68e7be270538a954f5b17529bae44c412714d0f000")
+	did3SelfRef := core.Hex2Sig("0xadd9248fdeeb795bf0b6758418f28570075547019324eac7fb0d4e686709106a158a0929956bac853f1e70bf1de28e03c929e46514c6d0a85927fb6ec8d8948000")
+
+	q1, _ := testCreateInviteQuantum(t, ctx, client, did1, communityDefineSig, extraInviteAddrHexList, did1SelfRef, did3SelfRef)
+	q2, _ := testCreateInviteQuantum(t, ctx, client, did3, communityDefineSig, extraInviteAddrHexList, did3SelfRef, did1SelfRef)
+
+	t.Log("did1 last sig: ", core.Sig2Hex(q1.Signature))
+	t.Log("did3 last sig: ", core.Sig2Hex(q2.Signature))
+
 }
 
 func testDealQuantums(t *testing.T) {
@@ -312,6 +355,7 @@ func testDealQuantums(t *testing.T) {
 	fbu, err := NewFBUniverse(ctx, testKeyJSON, testProjectID)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	if _, _, _, err := fbu.ProcessQuantums(100, 0); err != nil {
 		t.Error(err)
@@ -545,6 +589,7 @@ func testShowPrivateKey(t *testing.T) {
 func TestMain(t *testing.T) {
 	// testClearQuantum(t)
 	// testCreateQuantums(t)
+	// testManualInviteQuantums(t)
 	testDealQuantums(t)
 	// testCheckQuantum(t)
 	// testGetQuantums(t)
