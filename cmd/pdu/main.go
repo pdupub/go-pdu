@@ -47,7 +47,7 @@ func main() {
 	rootCmd := &cobra.Command{
 		Use:   "pdu",
 		Short: "PDU command line interface (" + params.Version + ")",
-		Long: `Parallel Digital Universe
+		Long: `ParaDigi Universe
 	A decentralized social networking service
 	Website: https://pdu.pub`,
 	}

@@ -1,4 +1,4 @@
-# [Parallel Digital Universe](https://pdu.pub) &nbsp; [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=A%20decentralized%20identity-based%20social%20network&url=https://pdu.pub&via=PDUPUB&hashtags=P2P,SocialNetwork,decentralized,identity,Blockchain)
+# [ParaDigi Universe](https://pdu.pub) &nbsp; [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=A%20decentralized%20identity-based%20social%20network&url=https://pdu.pub&via=PDUPUB&hashtags=P2P,SocialNetwork,decentralized,identity,Blockchain)
 
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/pdupub/go-pdu)
 [![GoReport](https://goreportcard.com/badge/github.com/pdupub/go-pdu)](https://goreportcard.com/report/github.com/pdupub/go-pdu)
@@ -10,6 +10,8 @@
 
 Golang implementation of PDU.
 
+PDU的Go语言版本，以Firebase作为数据存储。
+
 
 - [What is PDU?](#pdu)
 - [Usage](#usage)
@@ -20,6 +22,7 @@ Golang implementation of PDU.
 
 PDU is a decentralized social networking service, please read the WhitePaper on [https://pdu.pub](https://pdu.pub/docs/zh/WhitePaperV2.html) for more details.
 
+PDU是基于点对点的方式构建社交网络服务，详见[PDU白皮书(v2)](https://pdu.pub/docs/zh/WhitePaperV2.html)。
 
 ## Usage
 
@@ -51,11 +54,6 @@ Use "pdu [command] --help" for more information about a command.
 
 To copy the repository:
 
-```
-go get github.com/pdupub/go-pdu
-
-```
-OR 
 ```
 get clone https://github.com/pdupub/go-pdu.git
 
