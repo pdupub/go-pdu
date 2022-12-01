@@ -20,7 +20,7 @@ PDU的Go语言版本，以Firebase作为数据存储。
 
 ## PDU
 
-PDU is a decentralized social networking service, please read the WhitePaper on [https://pdu.pub](https://pdu.pub/docs/zh/WhitePaperV2.html) for more details.
+PDU is a decentralized social networking service, please read the WhitePaper on [https://pdu.pub](https://pdu-pub.translate.goog/docs/zh/WhitePaperV2.html?_x_tr_sl=zh-CN&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=wapp) for more details.
 
 PDU是基于点对点的方式构建社交网络服务，详见[PDU白皮书(v2)](https://pdu.pub/docs/zh/WhitePaperV2.html)。
 
