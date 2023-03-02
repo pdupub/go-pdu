@@ -10,7 +10,7 @@ matrix:
     - os: linux
       dist: xenial
       sudo: required
-      go: 1.12.x
+      go: 1.18.x
       script:
         - make install
         - GO111MODULE=on
@@ -19,14 +19,14 @@ matrix:
     - os: linux
       dist: xenial
       sudo: required
-      go: 1.13.x
+      go: 1.19.x
       script:
         - make install
         - GO111MODULE=on
         - go test ./core
 
     - os: osx
-      go: 1.13.x
+      go: 1.19.x
       script:
         - make install
         - GO111MODULE=on
