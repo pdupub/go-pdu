@@ -53,6 +53,7 @@ func main() {
 	}
 
 	rootCmd.AddCommand(TestCmd())
+	rootCmd.AddCommand(VersionCmd())
 	rootCmd.AddCommand(StartCmd())
 	rootCmd.AddCommand(SendMsgCmd())
 	rootCmd.AddCommand(CreateKeystoreCmd())
@@ -71,6 +72,19 @@ func TestCmd() *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			fmt.Println("testing")
 
+			return nil
+		},
+	}
+	return cmd
+}
+
+// VersionCmd display current verson of PDU
+func VersionCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "version",
+		Short: "Version",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Println("ParaDigi Universe Version", params.Version)
 			return nil
 		},
 	}
