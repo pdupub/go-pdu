@@ -17,29 +17,14 @@
 package main
 
 import (
-	"errors"
-	"fmt"
-	"io/ioutil"
-	"os"
-	"os/signal"
-	"strconv"
-	"strings"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/pdupub/go-pdu/identity"
-	"github.com/pdupub/go-pdu/node"
 	"github.com/pdupub/go-pdu/params"
 )
 
 var (
-	passwordPath string
-	projectPath  string
-	saltPath     string
-	references   string
-	message      string
-	keyIndex     int
+	projectPath string
 )
 
 func main() {
@@ -52,146 +37,12 @@ func main() {
 	Website: https://pdu.pub`,
 	}
 
-	rootCmd.AddCommand(TestCmd())
-	rootCmd.AddCommand(VersionCmd())
-	rootCmd.AddCommand(StartCmd())
-	rootCmd.AddCommand(SendMsgCmd())
-	rootCmd.AddCommand(CreateKeystoreCmd())
+	rootCmd.AddCommand(RunCmd())
+	rootCmd.AddCommand(MsgCmd())
+	rootCmd.AddCommand(KeyCmd())
 	rootCmd.PersistentFlags().StringVar(&projectPath, "projectPath", "./", "project root path")
-
+	rootCmd.Version = params.Version
 	if err := rootCmd.Execute(); err != nil {
 		return
 	}
-}
-
-// TestCmd run some test functions, just for developers
-func TestCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "test",
-		Short: "Test some methods",
-		RunE: func(_ *cobra.Command, args []string) error {
-			fmt.Println("testing")
-
-			return nil
-		},
-	}
-	return cmd
-}
-
-// VersionCmd display current verson of PDU
-func VersionCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "version",
-		Short: "Version",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("ParaDigi Universe Version", params.Version)
-			return nil
-		},
-	}
-	return cmd
-}
-
-// StartCmd start run the node
-func StartCmd() *cobra.Command {
-	var firebaseKeyPath string
-	var firebaseProjectID string
-
-	cmd := &cobra.Command{
-		Use:   "start",
-		Short: "Start run node",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, args []string) error {
-
-			c := make(chan os.Signal)
-			signal.Notify(c, os.Interrupt, os.Kill)
-			interval, err := strconv.ParseInt(args[0], 10, 64)
-			if err != nil {
-				return err
-			}
-			if serv, err := node.New(interval, firebaseKeyPath, firebaseProjectID); err != nil {
-				return err
-			} else {
-				serv.Run(c)
-			}
-
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&firebaseKeyPath, "fbKeyPath", "./udb/fb/test-firebase-adminsdk.json", "path of firebase json key")
-	cmd.Flags().StringVar(&firebaseProjectID, "fbProjectID", "pdupub-a2bdd", "project ID")
-
-	return cmd
-}
-
-// SendMsgCmd is send msg to node
-func SendMsgCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "send",
-		Short: "Send sampel msg to node",
-		Args:  cobra.RangeArgs(0, 1),
-		RunE: func(_ *cobra.Command, args []string) (err error) {
-			if keyIndex < 0 || keyIndex > 99 {
-				return errors.New("index out of range")
-			}
-			testKeyfile := projectPath + params.TestKeystore(keyIndex)
-
-			did, _ := identity.New()
-			if err := did.UnlockWallet(testKeyfile, params.TestPassword); err != nil {
-				return err
-			}
-
-			fmt.Println("msg author\t", did.GetKey().Address.Hex())
-
-			// TODO: write msg to firebase firestore as client
-
-			return nil
-		},
-	}
-	cmd.Flags().IntVar(&keyIndex, "key", 0, "index of key used")
-	cmd.Flags().StringVar(&message, "msg", "Hello World!", "content of msg send")
-	cmd.Flags().StringVar(&references, "refs", "", "references split by comma")
-	return cmd
-}
-
-func CreateKeystoreCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "ck [keystore_path]",
-		Short: "Create keystores",
-		Long:  "Create keystores by same pass & salt",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, args []string) error {
-			pass, salt, err := getPassAndSalt()
-			if err != nil {
-				return err
-			}
-			dids, err := identity.CreateKeystoreArrayAndSaveLocal(args[0], pass, salt, 3)
-			if err != nil {
-				return err
-			}
-			for _, did := range dids {
-				fmt.Println(did.GetKey().Address.Hex())
-			}
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&passwordPath, "pass", "", "path of password file")
-	cmd.Flags().StringVar(&saltPath, "salt", "", "path of salt file")
-	return cmd
-}
-
-func getPassAndSalt() (pass []byte, salt []byte, err error) {
-
-	pass, err = ioutil.ReadFile(passwordPath)
-	pass = []byte(strings.Replace(string(pass), "\n", "", -1))
-	if err != nil {
-		return
-	}
-
-	salt, err = ioutil.ReadFile(saltPath)
-	salt = []byte(strings.Replace(string(salt), "\n", "", -1))
-	if err != nil {
-		return
-	}
-
-	return
 }
