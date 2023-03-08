@@ -24,6 +24,8 @@ import (
 	"strings"
 
 	"github.com/pdupub/go-pdu/core"
+	"github.com/pdupub/go-pdu/identity"
+	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
 )
 
@@ -165,18 +167,28 @@ func addRefs(quantum *core.Quantum) (*core.Quantum, error) {
 
 func signQuantum(quantum *core.Quantum) (*core.Quantum, error) {
 
-	// if keyIndex < 0 || keyIndex > 99 {
-	// 	return errors.New("index out of range")
-	// }
-	// testKeyfile := projectPath + params.TestKeystore(keyIndex)
+	for {
+		keyIndex, err := strconv.Atoi(question("please select the index from test key group (0~99)", false))
+		if err != nil {
+			continue
+		}
+		if keyIndex < 0 || keyIndex > 99 {
+			continue
+		}
+		testKeyfile := projectPath + params.TestKeystore(keyIndex)
+		did, _ := identity.New()
 
-	// did, _ := identity.New()
-	// if err := did.UnlockWallet(testKeyfile, params.TestPassword); err != nil {
-	// 	return err
-	// }
+		if err := did.UnlockWallet(testKeyfile, params.TestPassword); err != nil {
+			return nil, err
+		}
+		fmt.Println("msg author is\t", did.GetKey().Address.Hex())
 
-	// fmt.Println("msg author\t", did.GetKey().Address.Hex())
-	return nil, nil
+		if err = quantum.Sign(did); err != nil {
+			return nil, err
+		}
+		break
+	}
+	return quantum, nil
 }
 
 func upload2FireBase(quantum *core.Quantum) error {
