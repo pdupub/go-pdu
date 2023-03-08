@@ -79,7 +79,67 @@ func MsgCmd() *cobra.Command {
 }
 
 func initQuantum() (*core.Quantum, error) {
+	_, qType := multiChoice("please select the type of message", "Information", "Profile", "Community Define", "Invitation", "End Account")
 
+	switch qType {
+	case core.QuantumTypeInfo:
+		var qcs []*core.QContent
+		text := question("please input the text content", true)
+		qcs = append(qcs, core.CreateTextContent(text))
+		imgUrl := question("please input the resource url (return if not)", false)
+		if len(imgUrl) != 0 {
+			qc, _ := core.NewContent(core.QCFmtStringURL, []byte(imgUrl))
+			qcs = append(qcs, qc)
+		}
+		return core.CreateInfoQuantum(qcs, core.FirstQuantumReference)
+	case core.QuantumTypeProfile:
+		profiles := make(map[string]interface{})
+		for i := 0; i < 6; i++ {
+			k := question("please input the attribute name", false)
+			if len(k) == 0 {
+				break
+			}
+			v := question("please input the attribute value", false)
+			if len(v) == 0 {
+				break
+			}
+			profiles[k] = v
+		}
+		return core.CreateProfileQuantum(profiles, core.FirstQuantumReference)
+	case core.QuantumTypeCommunity:
+		note := question("note of community", true)
+		minCosignCnt, err := strconv.Atoi(question("minimum count of cosign", false))
+		if err != nil {
+			return nil, err
+		}
+		maxInviteCnt, err := strconv.Atoi(question("maximum count of Invite", false))
+		if err != nil {
+			return nil, err
+		}
+		var initAddrsHex []string
+		for i := 0; i < 7; i++ {
+			addr := question("please input initialized address (return if not)", false)
+			if len(addr) == 0 {
+				break
+			}
+			initAddrsHex = append(initAddrsHex, addr)
+		}
+		return core.CreateCommunityQuantum(note, minCosignCnt, maxInviteCnt, initAddrsHex, core.FirstQuantumReference)
+	case core.QuantumTypeInvitation:
+		communityHex := question("please input the target community hex address", false)
+
+		var addrsHex []string
+		for i := 0; i < 7; i++ {
+			addr := question("please input address to be invited (return if not)", false)
+			if len(addr) == 0 {
+				break
+			}
+			addrsHex = append(addrsHex, addr)
+		}
+		return core.CreateInvitationQuantum(core.Hex2Sig(communityHex), addrsHex, core.FirstQuantumReference)
+	case core.QuantumTypeEnd:
+		return core.CreateEndQuantum(core.FirstQuantumReference)
+	}
 	return nil, nil
 }
 
@@ -111,15 +171,19 @@ func upload2FireBase(quantum *core.Quantum) error {
 func display(quantum *core.Quantum) {
 	fmt.Println("")
 	fmt.Println("-------------------------------")
+	fmt.Println()
 	// display information here
 
+	fmt.Print(quantum)
+
+	fmt.Println()
 	fmt.Println("-------------------------------")
 	fmt.Println("")
 }
 
 func boolChoice(tip string) bool {
 	for {
-		answer := strings.ToLower(question(tip, false))
+		answer := strings.ToLower(question(tip+" (y/n) ", false))
 		if answer == "yes" || answer == "y" {
 			return true
 		} else if answer == "no" || answer == "n" {
@@ -128,9 +192,9 @@ func boolChoice(tip string) bool {
 	}
 }
 
-func multiChoice(tip string, targets ...string) string {
+func multiChoice(tip string, targets ...string) (string, int) {
 	if len(targets) == 0 {
-		return ""
+		return "", -1
 	}
 	newTip := tip + " :"
 	for i := 1; i < len(targets)+1; i++ {
@@ -141,7 +205,7 @@ func multiChoice(tip string, targets ...string) string {
 		answer := question(newTip, false)
 		intVar, err := strconv.Atoi(answer)
 		if err == nil && 0 < intVar && intVar <= len(targets) {
-			return targets[intVar-1]
+			return targets[intVar-1], intVar - 1
 		}
 	}
 }
