@@ -20,7 +20,14 @@ import (
 	"fmt"
 )
 
-// for test
+// test for udb/firebase
+
+const (
+	TestFirebaseAdminSDKPath = "udb/db/test-firebase-adminsdk.json"
+	TestFirebaseProjectID    = "pdupub-a2bdd"
+)
+
+// test for identity
 const (
 	TestPassword = "1"
 )

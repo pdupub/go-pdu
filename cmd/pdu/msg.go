@@ -18,16 +18,19 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 
+	firebase "firebase.google.com/go"
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/identity"
 	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
+	"google.golang.org/api/option"
 )
 
 var (
@@ -193,6 +196,36 @@ func signQuantum(quantum *core.Quantum) (*core.Quantum, error) {
 }
 
 func upload2FireBase(quantum *core.Quantum) error {
+	ctx := context.Background()
+	opt := option.WithCredentialsFile(projectPath + params.TestFirebaseAdminSDKPath)
+	config := &firebase.Config{ProjectID: params.TestFirebaseProjectID}
+	app, err := firebase.NewApp(ctx, config, opt)
+	if err != nil {
+		return err
+	}
+
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	collection := client.Collection("quantum")
+
+	docID := core.Sig2Hex(quantum.Signature)
+	docRef := collection.Doc(docID)
+
+	dMap := make(map[string]interface{})
+	qBytes, err := json.Marshal(quantum)
+	if err != nil {
+		return err
+	}
+
+	dMap["recv"] = qBytes
+	if _, err = docRef.Set(ctx, dMap); err != nil {
+		return err
+	}
+
 	return nil
 }
 
