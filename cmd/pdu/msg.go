@@ -18,6 +18,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -201,7 +202,14 @@ func display(quantum *core.Quantum) {
 	fmt.Println()
 	// display information here
 
-	fmt.Print(quantum)
+	fmt.Println("sig \t", core.Sig2Hex(quantum.Signature))
+
+	qBytes, err := json.Marshal(quantum)
+	if err != nil {
+		fmt.Println("display error ", err)
+	} else {
+		fmt.Println(string(qBytes))
+	}
 
 	fmt.Println()
 	fmt.Println("-------------------------------")
