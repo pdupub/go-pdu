@@ -144,8 +144,23 @@ func initQuantum() (*core.Quantum, error) {
 }
 
 func addRefs(quantum *core.Quantum) (*core.Quantum, error) {
+	var refs []core.Sig
+	selfRef := question("please input the self-reference(return if not)", false)
+	if len(selfRef) != 0 {
+		refs = append(refs, core.Hex2Sig(selfRef))
+	} else {
+		refs = append(refs, core.FirstQuantumReference)
+	}
+	for {
+		ref := question("please input reference (return if not)", false)
+		if len(ref) == 0 {
+			break
+		}
+		refs = append(refs, core.Hex2Sig(ref))
+	}
 
-	return nil, nil
+	quantum.References = refs
+	return quantum, nil
 }
 
 func signQuantum(quantum *core.Quantum) (*core.Quantum, error) {
