@@ -40,6 +40,7 @@ func main() {
 	rootCmd.AddCommand(RunCmd())
 	rootCmd.AddCommand(MsgCmd())
 	rootCmd.AddCommand(KeyCmd())
+
 	rootCmd.PersistentFlags().StringVar(&projectPath, "projectPath", "./", "project root path")
 	rootCmd.Version = params.Version
 	if err := rootCmd.Execute(); err != nil {
