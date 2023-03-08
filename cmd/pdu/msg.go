@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pdupub/go-pdu/core"
 	"github.com/spf13/cobra"
 )
 
@@ -39,22 +40,35 @@ func MsgCmd() *cobra.Command {
 		Short: "Operations on message",
 		Args:  cobra.RangeArgs(0, 1),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
-			// if keyIndex < 0 || keyIndex > 99 {
-			// 	return errors.New("index out of range")
-			// }
-			// testKeyfile := projectPath + params.TestKeystore(keyIndex)
 
-			// did, _ := identity.New()
-			// if err := did.UnlockWallet(testKeyfile, params.TestPassword); err != nil {
-			// 	return err
-			// }
-
-			// fmt.Println("msg author\t", did.GetKey().Address.Hex())
-
-			question("Please input multiple lines\t", true)
-			question("Please input single lien\t", false)
-			multiChoice("Please select from", "AA", "b", "asdlfk")
-
+			// step 1: select the type of quantum and fill contents.
+			q, err := initQuantum()
+			if err != nil {
+				return err
+			}
+			nextStep := boolChoice("continue to add references?")
+			// step 2: add the references list
+			if nextStep {
+				if q, err = addRefs(q); err != nil {
+					return err
+				}
+				nextStep = boolChoice("sign the quantum now?")
+			}
+			// step 3: unlock the private key and sign.
+			if nextStep {
+				if q, err = signQuantum(q); err != nil {
+					return err
+				}
+				nextStep = boolChoice("upload to Firebase?")
+			}
+			// stpe 4: upload to firebase.
+			if nextStep {
+				if err = upload2FireBase(q); err != nil {
+					return err
+				}
+			}
+			// display the information no matter which step got.
+			display(q)
 			return nil
 		},
 	}
@@ -62,6 +76,56 @@ func MsgCmd() *cobra.Command {
 	cmd.Flags().StringVar(&message, "msg", "Hello World!", "content of msg send")
 	cmd.Flags().StringVar(&references, "refs", "", "references split by comma")
 	return cmd
+}
+
+func initQuantum() (*core.Quantum, error) {
+
+	return nil, nil
+}
+
+func addRefs(quantum *core.Quantum) (*core.Quantum, error) {
+
+	return nil, nil
+}
+
+func signQuantum(quantum *core.Quantum) (*core.Quantum, error) {
+
+	// if keyIndex < 0 || keyIndex > 99 {
+	// 	return errors.New("index out of range")
+	// }
+	// testKeyfile := projectPath + params.TestKeystore(keyIndex)
+
+	// did, _ := identity.New()
+	// if err := did.UnlockWallet(testKeyfile, params.TestPassword); err != nil {
+	// 	return err
+	// }
+
+	// fmt.Println("msg author\t", did.GetKey().Address.Hex())
+	return nil, nil
+}
+
+func upload2FireBase(quantum *core.Quantum) error {
+	return nil
+}
+
+func display(quantum *core.Quantum) {
+	fmt.Println("")
+	fmt.Println("-------------------------------")
+	// display information here
+
+	fmt.Println("-------------------------------")
+	fmt.Println("")
+}
+
+func boolChoice(tip string) bool {
+	for {
+		answer := strings.ToLower(question(tip, false))
+		if answer == "yes" || answer == "y" {
+			return true
+		} else if answer == "no" || answer == "n" {
+			return false
+		}
+	}
 }
 
 func multiChoice(tip string, targets ...string) string {
