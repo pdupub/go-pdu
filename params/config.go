@@ -23,7 +23,7 @@ import (
 // test for udb/firebase
 
 const (
-	TestFirebaseAdminSDKPath = "udb/db/test-firebase-adminsdk.json"
+	TestFirebaseAdminSDKPath = "udb/fb/test-firebase-adminsdk.json"
 	TestFirebaseProjectID    = "pdupub-a2bdd"
 )
 
