@@ -48,32 +48,43 @@ func MsgCmd() *cobra.Command {
 		Args:  cobra.RangeArgs(0, 1),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
 			var currentDID *identity.DID
-			// step 1: select the type of quantum and fill contents.
+			// step 0: select the type of quantum and fill contents.
 			q, err := initQuantum()
 			if err != nil {
 				return err
 			}
-			nextStep := boolChoice("continue to add references?")
+			nextStep := boolChoice("unlock the wallet?")
+
+			// step 1: unlock the test wallet
+			if nextStep {
+				if currentDID, err = unlockTestWallet(); err != nil {
+					return err
+				}
+				nextStep = boolChoice("continue to add references?")
+			}
+
 			// step 2: add the references list
 			if nextStep {
-				if q, err = addRefs(q); err != nil {
+				if q, err = addRefs(q, currentDID); err != nil {
 					return err
 				}
 				nextStep = boolChoice("sign the quantum now?")
 			}
-			// step 3: unlock the private key and sign.
+
+			// step 3: sign quantum.
 			if nextStep {
-				if q, currentDID, err = signQuantum(q); err != nil {
+				if err = q.Sign(currentDID); err != nil {
 					return err
 				}
 				nextStep = boolChoice("upload to Firebase?")
 			}
+
 			// stpe 4: upload to firebase.
 			if nextStep {
 				if json, err := upload2FireBase(q); err != nil {
 					return err
 				} else {
-					// save to local
+					// save to local if success
 					record := make(map[string]interface{})
 					record["sig"] = core.Sig2Hex(q.Signature)
 					record["json"] = json
@@ -156,16 +167,35 @@ func initQuantum() (*core.Quantum, error) {
 	return nil, nil
 }
 
-func addRefs(quantum *core.Quantum) (*core.Quantum, error) {
+func addRefs(quantum *core.Quantum, did *identity.DID) (*core.Quantum, error) {
 	var refs []core.Sig
-	selfRef := question("please input the self-reference(return if not)", false)
+	selfRef := ""
+	records, err := loadRecords(did.GetAddress().Hex(), 5)
+	if err == nil && len(records) > 0 {
+		selfRef = records[0]["sig"].(string)
+	}
+
+	if len(selfRef) == 0 {
+		selfRef = question("please input the self-reference(return if not)", false)
+	} else {
+		fmt.Println("self reference is ", selfRef[:16]+"..."+selfRef[110:])
+	}
+
 	if len(selfRef) != 0 {
 		refs = append(refs, core.Hex2Sig(selfRef))
 	} else {
 		refs = append(refs, core.FirstQuantumReference)
 	}
+
+	if len(records) > 1 {
+		fmt.Println("some reference can be used:")
+		for i := len(records) - 1; i > 0; i-- {
+			fmt.Println("-\t", records[i]["sig"])
+		}
+	}
+
 	for {
-		ref := question("please input reference (return if not)", false)
+		ref := question("please input other references (return if not)", false)
 		if len(ref) == 0 {
 			break
 		}
@@ -176,7 +206,7 @@ func addRefs(quantum *core.Quantum) (*core.Quantum, error) {
 	return quantum, nil
 }
 
-func signQuantum(quantum *core.Quantum) (*core.Quantum, *identity.DID, error) {
+func unlockTestWallet() (*identity.DID, error) {
 
 	for {
 		keyIndex, err := strconv.Atoi(question("please select the index from test key group (0~99)", false))
@@ -190,14 +220,11 @@ func signQuantum(quantum *core.Quantum) (*core.Quantum, *identity.DID, error) {
 		did, _ := identity.New()
 
 		if err := did.UnlockWallet(testKeyfile, params.TestPassword); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		fmt.Println("msg author is\t", did.GetKey().Address.Hex())
 
-		if err = quantum.Sign(did); err != nil {
-			return nil, nil, err
-		}
-		return quantum, did, nil
+		return did, nil
 	}
 }
 
