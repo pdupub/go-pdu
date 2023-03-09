@@ -47,7 +47,7 @@ func MsgCmd() *cobra.Command {
 		Short: "Operations on message",
 		Args:  cobra.RangeArgs(0, 1),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
-
+			var currentDID *identity.DID
 			// step 1: select the type of quantum and fill contents.
 			q, err := initQuantum()
 			if err != nil {
@@ -63,15 +63,21 @@ func MsgCmd() *cobra.Command {
 			}
 			// step 3: unlock the private key and sign.
 			if nextStep {
-				if q, err = signQuantum(q); err != nil {
+				if q, currentDID, err = signQuantum(q); err != nil {
 					return err
 				}
 				nextStep = boolChoice("upload to Firebase?")
 			}
 			// stpe 4: upload to firebase.
 			if nextStep {
-				if err = upload2FireBase(q); err != nil {
+				if json, err := upload2FireBase(q); err != nil {
 					return err
+				} else {
+					// save to local
+					record := make(map[string]interface{})
+					record["sig"] = core.Sig2Hex(q.Signature)
+					record["json"] = json
+					addRecord(currentDID.GetAddress().Hex(), record)
 				}
 			}
 			// display the information no matter which step got.
@@ -170,7 +176,7 @@ func addRefs(quantum *core.Quantum) (*core.Quantum, error) {
 	return quantum, nil
 }
 
-func signQuantum(quantum *core.Quantum) (*core.Quantum, error) {
+func signQuantum(quantum *core.Quantum) (*core.Quantum, *identity.DID, error) {
 
 	for {
 		keyIndex, err := strconv.Atoi(question("please select the index from test key group (0~99)", false))
@@ -184,30 +190,29 @@ func signQuantum(quantum *core.Quantum) (*core.Quantum, error) {
 		did, _ := identity.New()
 
 		if err := did.UnlockWallet(testKeyfile, params.TestPassword); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		fmt.Println("msg author is\t", did.GetKey().Address.Hex())
 
 		if err = quantum.Sign(did); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		break
+		return quantum, did, nil
 	}
-	return quantum, nil
 }
 
-func upload2FireBase(quantum *core.Quantum) error {
+func upload2FireBase(quantum *core.Quantum) ([]byte, error) {
 	ctx := context.Background()
 	opt := option.WithCredentialsFile(projectPath + params.TestFirebaseAdminSDKPath)
 	config := &firebase.Config{ProjectID: params.TestFirebaseProjectID}
 	app, err := firebase.NewApp(ctx, config, opt)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	client, err := app.Firestore(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer client.Close()
 
@@ -219,15 +224,15 @@ func upload2FireBase(quantum *core.Quantum) error {
 	dMap := make(map[string]interface{})
 	qBytes, err := json.Marshal(quantum)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	dMap["recv"] = qBytes
 	if _, err = docRef.Set(ctx, dMap); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return qBytes, nil
 }
 
 func display(quantum *core.Quantum) {
