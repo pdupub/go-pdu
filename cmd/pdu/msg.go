@@ -319,7 +319,7 @@ func initRecords(addrHex string) (int, error) {
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			viper.Set("sseq", 0) // sequence for address-self
-			viper.WriteConfig()
+			viper.SafeWriteConfig()
 			return 0, nil
 		} else {
 			return 0, err
@@ -357,8 +357,6 @@ func addRecord(addrHex string, record map[string]interface{}) error {
 	}
 
 	viper.Set(strconv.Itoa(sseq+1), record)
-	viper.SafeWriteConfig()
-
 	viper.Set("sseq", sseq+1)
 	viper.WriteConfig()
 
