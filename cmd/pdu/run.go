@@ -24,6 +24,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/pdupub/go-pdu/node"
+	"github.com/pdupub/go-pdu/params"
 )
 
 // RunCmd start to run the node daemon
@@ -52,8 +53,8 @@ func RunCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&firebaseKeyPath, "fbKeyPath", "./udb/fb/test-firebase-adminsdk.json", "path of firebase json key")
-	cmd.Flags().StringVar(&firebaseProjectID, "fbProjectID", "pdupub-a2bdd", "project ID")
+	cmd.Flags().StringVar(&firebaseKeyPath, "fbKeyPath", params.TestFirebaseAdminSDKPath, "path of firebase json key")
+	cmd.Flags().StringVar(&firebaseProjectID, "fbProjectID", params.TestFirebaseProjectID, "project ID")
 
 	return cmd
 }

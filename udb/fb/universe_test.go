@@ -35,8 +35,8 @@ import (
 	"google.golang.org/api/option"
 )
 
-var testKeyJSON = "test-firebase-adminsdk.json"
-var testProjectID = "pdupub-a2bdd"
+var testKeyJSON = "../../" + params.TestFirebaseAdminSDKPath
+var testProjectID = params.TestFirebaseProjectID
 
 const (
 	collectionQuantum    = "quantum"
