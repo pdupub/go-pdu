@@ -17,18 +17,23 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"github.com/pdupub/go-pdu/params"
 )
 
 var (
 	projectPath string
+	configPath  string
 )
 
 func main() {
-	viper.New()
+	if err := initConfig(); err != nil {
+		return
+	}
 	rootCmd := &cobra.Command{
 		Use:   "pdu",
 		Short: "PDU command line interface (" + params.Version + ")",
@@ -46,4 +51,19 @@ func main() {
 	if err := rootCmd.Execute(); err != nil {
 		return
 	}
+}
+
+func initConfig() error {
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
+
+	configPath = home + "/.pdu/"
+	_, err = os.Stat(configPath)
+	if err != nil && !os.IsExist(err) {
+		if err := os.Mkdir(configPath, os.ModePerm); err != nil { // perm 0666
+			fmt.Println("create config fail", err)
+			return err
+		}
+	}
+	return nil
 }

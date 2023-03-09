@@ -30,6 +30,7 @@ import (
 	"github.com/pdupub/go-pdu/identity"
 	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"google.golang.org/api/option"
 )
 
@@ -301,4 +302,60 @@ func question(tip string, isMultiple bool) string {
 	}
 
 	return strings.TrimSuffix(inputText, "\n")
+}
+
+func initRecords(addrHex string) (int, error) {
+
+	viper.New()
+	viper.SetConfigName("record_" + addrHex) // name of config file (without extension)
+	viper.SetConfigType("json")              // REQUIRED if the config file does not have the extension in the name
+	viper.AddConfigPath(configPath)          // call multiple times to add many search paths
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			viper.Set("sseq", 0) // sequence for address-self
+			viper.WriteConfig()
+			return 0, nil
+		} else {
+			return 0, err
+		}
+	}
+
+	return viper.GetInt("sseq"), nil
+}
+
+func loadRecords(addrHex string, limit int) ([]map[string]interface{}, error) {
+
+	var records []map[string]interface{}
+	sseq, err := initRecords(addrHex)
+	if err != nil {
+		return records, err
+	}
+	if sseq == 0 {
+		return records, nil
+	}
+
+	for i := sseq; i > 0 && i > sseq-limit; i-- {
+		record := viper.GetStringMap(strconv.Itoa(i))
+		if record == nil {
+			break
+		}
+		records = append(records, record)
+	}
+	return records, nil
+}
+
+func addRecord(addrHex string, record map[string]interface{}) error {
+	sseq, err := initRecords(addrHex)
+	if err != nil {
+		return err
+	}
+
+	viper.Set(strconv.Itoa(sseq+1), record)
+	viper.SafeWriteConfig()
+
+	viper.Set("sseq", sseq+1)
+	viper.WriteConfig()
+
+	return nil
 }
