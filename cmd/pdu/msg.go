@@ -17,13 +17,10 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strconv"
-	"strings"
 
 	firebase "firebase.google.com/go"
 	"github.com/pdupub/go-pdu/core"
@@ -32,12 +29,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/api/option"
-)
-
-var (
-	references string
-	message    string
-	keyIndex   int
 )
 
 // MsgCmd is used to create, add references, sign and upload Message
@@ -80,6 +71,8 @@ func MsgCmd() *cobra.Command {
 			}
 
 			// stpe 4: upload to firebase.
+			// In the reproduction environment, this step should
+			// be performed on the mobile phone
 			if nextStep {
 				if json, err := upload2FireBase(q); err != nil {
 					return err
@@ -96,9 +89,6 @@ func MsgCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().IntVar(&keyIndex, "key", 0, "index of key used")
-	cmd.Flags().StringVar(&message, "msg", "Hello World!", "content of msg send")
-	cmd.Flags().StringVar(&references, "refs", "", "references split by comma")
 	return cmd
 }
 
@@ -230,8 +220,8 @@ func unlockTestWallet() (*identity.DID, error) {
 
 func upload2FireBase(quantum *core.Quantum) ([]byte, error) {
 	ctx := context.Background()
-	opt := option.WithCredentialsFile(projectPath + params.TestFirebaseAdminSDKPath)
-	config := &firebase.Config{ProjectID: params.TestFirebaseProjectID}
+	opt := option.WithCredentialsFile(projectPath + firebaseKeyPath)
+	config := &firebase.Config{ProjectID: firebaseProjectID}
 	app, err := firebase.NewApp(ctx, config, opt)
 	if err != nil {
 		return nil, err
@@ -280,60 +270,6 @@ func display(quantum *core.Quantum) {
 	fmt.Println()
 	fmt.Println("-------------------------------")
 	fmt.Println("")
-}
-
-func boolChoice(tip string) bool {
-	for {
-		answer := strings.ToLower(question(tip+" (y/n) ", false))
-		if answer == "yes" || answer == "y" {
-			return true
-		} else if answer == "no" || answer == "n" {
-			return false
-		}
-	}
-}
-
-func multiChoice(tip string, targets ...string) (string, int) {
-	if len(targets) == 0 {
-		return "", -1
-	}
-	newTip := tip + " :"
-	for i := 1; i < len(targets)+1; i++ {
-		newTip += " " + strconv.Itoa(i) + ")" + targets[i-1]
-	}
-	newTip += "\t"
-	for {
-		answer := question(newTip, false)
-		intVar, err := strconv.Atoi(answer)
-		if err == nil && 0 < intVar && intVar <= len(targets) {
-			return targets[intVar-1], intVar - 1
-		}
-	}
-}
-
-func question(tip string, isMultiple bool) string {
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Println(tip)
-	inputText := ""
-	for {
-		scanner.Scan()
-		text := scanner.Text()
-		if len(text) != 0 {
-			inputText += text
-			inputText += "\n"
-		} else {
-			break
-		}
-		if !isMultiple {
-			break
-		}
-	}
-	// handle error
-	if scanner.Err() != nil {
-		fmt.Println("Error: ", scanner.Err())
-	}
-
-	return strings.TrimSuffix(inputText, "\n")
 }
 
 func initRecords(addrHex string) (int, error) {

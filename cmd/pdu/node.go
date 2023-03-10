@@ -17,9 +17,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"time"
 
+	"cloud.google.com/go/firestore"
+	firebase "firebase.google.com/go"
 	"github.com/spf13/cobra"
+	"google.golang.org/api/option"
 
 	"github.com/pdupub/go-pdu/params"
 )
@@ -33,16 +38,36 @@ func NodeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "node",
 		Short: "Perform some actions on the node",
-		Args:  cobra.NoArgs,
-		RunE: func(_ *cobra.Command, args []string) error {
-			fmt.Println("actions missing!")
-			return nil
-		},
 	}
 	cmd.Flags().StringVar(&firebaseKeyPath, "fbKeyPath", params.TestFirebaseAdminSDKPath, "path of firebase json key")
 	cmd.Flags().StringVar(&firebaseProjectID, "fbProjectID", params.TestFirebaseProjectID, "project ID")
 
 	cmd.AddCommand(NodeTestCmd())
+	cmd.AddCommand(TruncateCmd())
+	return cmd
+}
+
+// TruncateCmd will clear up all data on firebase collections
+func TruncateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "truncate",
+		Short: "Clear up all data on firebase collections",
+		Args:  cobra.NoArgs,
+		RunE: func(_ *cobra.Command, args []string) error {
+			confirm := boolChoice("ARE YOU SURE YOU WANT TO DELETE ALL DATA ON Firebase!!!")
+			if confirm {
+				delStr := question("Please type input \"Delete\"", false)
+				if delStr == "Delete" {
+					fmt.Println("start to delete data")
+					truncate()
+					fmt.Println("deleting finished!")
+				}
+			}
+
+			return nil
+		},
+	}
+
 	return cmd
 }
 
@@ -61,4 +86,55 @@ func NodeTestCmd() *cobra.Command {
 	}
 
 	return cmd
+}
+
+func truncate() error {
+	ctx := context.Background()
+	opt := option.WithCredentialsFile(projectPath + firebaseKeyPath)
+	config := &firebase.Config{ProjectID: firebaseProjectID}
+	app, err := firebase.NewApp(ctx, config, opt)
+	if err != nil {
+		return err
+	}
+
+	client, err := app.Firestore(ctx)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	if err := truncateTable(client, ctx, "communtiy"); err != nil {
+		return err
+	}
+	if err := truncateTable(client, ctx, "individual"); err != nil {
+		return err
+	}
+	if err := truncateTable(client, ctx, "quantum"); err != nil {
+		return err
+	}
+
+	// initialize data in universe
+	configCollection := client.Collection("universe")
+	configDocRef := configCollection.Doc("status")
+	configMap := make(map[string]interface{})
+	configMap["lastSequence"] = 0
+	configMap["lastSigHex"] = ""
+	configMap["updateTime"] = time.Now().UnixMilli()
+	configDocRef.Set(ctx, configMap, firestore.Merge([]string{"lastSequence"}, []string{"lastSigHex"}, []string{"updateTime"}))
+
+	return nil
+}
+
+func truncateTable(client *firestore.Client, ctx context.Context, collectionName string) error {
+	currentCol := client.Collection(collectionName)
+	docRefs, err := currentCol.DocumentRefs(ctx).GetAll()
+	if err != nil {
+		return err
+	}
+	for _, docRef := range docRefs {
+		docRef.Delete(ctx) // ignore err here
+	}
+	fmt.Println("collection", collectionName, "have been truncated")
+
+	return nil
 }

@@ -28,6 +28,9 @@ import (
 var (
 	projectPath string
 	configPath  string
+
+	firebaseKeyPath   string
+	firebaseProjectID string
 )
 
 func main() {
@@ -48,6 +51,9 @@ func main() {
 	rootCmd.AddCommand(NodeCmd())
 
 	rootCmd.PersistentFlags().StringVar(&projectPath, "projectPath", "./", "project root path")
+	rootCmd.PersistentFlags().StringVar(&firebaseKeyPath, "fbKeyPath", params.TestFirebaseAdminSDKPath, "path of firebase json key")
+	rootCmd.PersistentFlags().StringVar(&firebaseProjectID, "fbProjectID", params.TestFirebaseProjectID, "project ID")
+
 	rootCmd.Version = params.Version
 	if err := rootCmd.Execute(); err != nil {
 		return
