@@ -45,6 +45,7 @@ func main() {
 	rootCmd.AddCommand(RunCmd())
 	rootCmd.AddCommand(MsgCmd())
 	rootCmd.AddCommand(KeyCmd())
+	rootCmd.AddCommand(NodeCmd())
 
 	rootCmd.PersistentFlags().StringVar(&projectPath, "projectPath", "./", "project root path")
 	rootCmd.Version = params.Version
