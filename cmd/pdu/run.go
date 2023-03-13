@@ -19,7 +19,6 @@ package main
 import (
 	"os"
 	"os/signal"
-	"strconv"
 
 	"github.com/spf13/cobra"
 
@@ -28,19 +27,16 @@ import (
 
 // RunCmd start to run the node daemon
 func RunCmd() *cobra.Command {
+	var interval int64
 
 	cmd := &cobra.Command{
 		Use:   "run [loop interval]",
 		Short: "Start to run node daemon",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
 
 			c := make(chan os.Signal)
 			signal.Notify(c, os.Interrupt, os.Kill)
-			interval, err := strconv.ParseInt(args[0], 10, 64)
-			if err != nil {
-				return err
-			}
 			if serv, err := node.New(interval, firebaseKeyPath, firebaseProjectID); err != nil {
 				return err
 			} else {
@@ -51,5 +47,6 @@ func RunCmd() *cobra.Command {
 		},
 	}
 
+	cmd.PersistentFlags().Int64Var(&interval, "interval", 5, "time interval between consecutive processing on node")
 	return cmd
 }
