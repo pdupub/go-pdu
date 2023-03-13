@@ -37,6 +37,7 @@ var (
 	errUnmarshalQuantumFail   = errors.New("unmarshal quantum fail")
 	errQuantumIsReject        = errors.New("quantum is reject")
 	errQuantumIsWaiting       = errors.New("quantum is waiting")
+	errIndividualLevelUnknown = errors.New("individual level is unknown")
 )
 
 var (
@@ -249,6 +250,7 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 
 		iDocRef := fbu.individualC.Doc(addr.Hex())
 		iDocSnapshot, _ := iDocRef.Get(fbu.ctx)
+		// TODO: filter unkown source quantums
 		if !iDocSnapshot.Exists() && core.Sig2Hex(quantum.References[0]) == core.Sig2Hex(core.FirstQuantumReference) {
 			// checked first quantums, can be accepted.
 			if err := fbu.increaseUniverseSequence(sigHex); err != nil {
@@ -542,6 +544,19 @@ func (fbu *FBUniverse) ProcessSingleQuantum(sig core.Sig) error {
 
 func (fbu *FBUniverse) JudgeIndividual(address identity.Address, level int, judgment string, evidence ...[]core.Sig) error {
 	// defult status should be accept & broadcast
+	// judge can be done even the individual not exist, use like blacklist.
+	iDocRef := fbu.individualC.Doc(address.Hex())
+
+	// check the level
+	if level > core.AttitudeBroadcast || level < core.AttitudeRejectOnRef {
+		return errIndividualLevelUnknown
+	}
+
+	// ignore judgment & evidence
+	dMap, _ := FBStruct2Data(&FBIndividual{Attitude: &core.Attitude{Level: level}})
+	dMap["updateTime"] = time.Now().UnixMilli()
+	iDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"attitude", "level"}, []string{"updateTime"}))
+
 	return nil
 }
 

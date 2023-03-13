@@ -26,7 +26,9 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/api/option"
 
+	"github.com/pdupub/go-pdu/identity"
 	"github.com/pdupub/go-pdu/params"
+	"github.com/pdupub/go-pdu/udb/fb"
 )
 
 // NodeCmd manually perform some actions on the node,
@@ -44,6 +46,43 @@ func NodeCmd() *cobra.Command {
 
 	cmd.AddCommand(NodeTestCmd())
 	cmd.AddCommand(TruncateCmd())
+	cmd.AddCommand(JudgeCmd())
+	return cmd
+}
+
+// JudgeCmd used to judge Individual and Community on your own node.
+func JudgeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "judge",
+		Short: "Judge Individual & Community on your own node",
+		Args:  cobra.NoArgs,
+		RunE: func(_ *cobra.Command, args []string) error {
+
+			ctx := context.Background()
+			fbu, err := fb.NewFBUniverse(ctx, firebaseKeyPath, firebaseProjectID)
+			if err != nil {
+				return err
+			}
+
+			_, target := multiChoice("please select the target", "Individual", "Community")
+			if target == 0 {
+				addrHex := question("please provide the address which you want to reset the level", false)
+				// TODO: addrHex should check
+
+				_, level := multiChoice("please select the new status of this address", "reject on refs", "reject", "ignore content", "accept", "broadcast")
+				if level < 2 {
+					level -= 2
+				} else {
+					level -= 1
+				}
+
+				if err = fbu.JudgeIndividual(identity.HexToAddress(addrHex), level, ""); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	}
 	return cmd
 }
 
