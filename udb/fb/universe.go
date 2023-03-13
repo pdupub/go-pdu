@@ -177,7 +177,7 @@ func (fbu *FBUniverse) loadUnprocessedQuantums(limit, skip int) ([]*core.Quantum
 	return receivedQuantums, nil
 }
 
-func (fbu *FBUniverse) formatQuantums(quantums []*core.Quantum) (signatureQuantumMap map[string]*core.Quantum, referenceSignatureMap map[string]string, addressStatusMap map[string]int) {
+func (fbu *FBUniverse) preprocessQuantums(quantums []*core.Quantum) (signatureQuantumMap map[string]*core.Quantum, referenceSignatureMap map[string]string, addressStatusMap map[string]int) {
 	// signatureQuantumMap is used for find quantum by signature
 	signatureQuantumMap = make(map[string]*core.Quantum) // sig:quantum
 	// referenceSignatureMap is used for from individual last find next quantum by same individual
@@ -233,8 +233,8 @@ func (fbu *FBUniverse) ProcessQuantums(limit, skip int) (accept []core.Sig, wait
 }
 
 func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (accept []core.Sig, wait []core.Sig, reject []core.Sig, err error) {
-	// format quantums before process
-	signatureQuantumMap, referenceSignatureMap, addressStatusMap := fbu.formatQuantums(unprocessedQuantums)
+	// format quantums
+	signatureQuantumMap, referenceSignatureMap, addressStatusMap := fbu.preprocessQuantums(unprocessedQuantums)
 
 	// process first quantums
 	for sigHex, quantum := range signatureQuantumMap {
