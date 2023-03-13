@@ -197,19 +197,25 @@ func addRefs(quantum *core.Quantum, did *identity.DID) (*core.Quantum, error) {
 }
 
 func unlockTestWallet() (*identity.DID, error) {
-
+	var keyfilePath, password string
 	for {
-		keyIndex, err := strconv.Atoi(question("please select the index from test key group (0~99)", false))
-		if err != nil {
-			continue
+		useTestKey := boolChoice("do you want to use test keys?")
+		if useTestKey {
+			keyIndex, err := strconv.Atoi(question("please select the index from test key group (0~99)", false))
+			if err != nil {
+				continue
+			}
+			if keyIndex < 0 || keyIndex > 99 {
+				continue
+			}
+			keyfilePath = projectPath + params.TestKeystore(keyIndex)
+			password = params.TestPassword
+		} else {
+			keyfilePath = question("please input full path of your keystore", false)
+			password = question("please input the password for your keystore", false)
 		}
-		if keyIndex < 0 || keyIndex > 99 {
-			continue
-		}
-		testKeyfile := projectPath + params.TestKeystore(keyIndex)
 		did, _ := identity.New()
-
-		if err := did.UnlockWallet(testKeyfile, params.TestPassword); err != nil {
+		if err := did.UnlockWallet(keyfilePath, password); err != nil {
 			return nil, err
 		}
 		fmt.Println("msg author is\t", did.GetKey().Address.Hex())
