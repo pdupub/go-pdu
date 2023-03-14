@@ -573,6 +573,48 @@ func (fbu *FBUniverse) ProcessSingleQuantum(sig core.Sig) error {
 	return nil
 }
 
+// HideProcessedQuantum is not belong to interface of PDU Universe. In PDU system, each quantum is
+// public and can not be completely removed from system, this function is just for convenience.
+func (fbu *FBUniverse) HideProcessedQuantum(sig core.Sig) error {
+	pDocRef := fbu.quantumC.Doc(core.Sig2Hex(sig))
+
+	snapshot, err := pDocRef.Get(fbu.ctx)
+	if err != nil {
+		return err
+	}
+	if !snapshot.Exists() {
+		return errDocumentLoadDataFail
+	}
+	origin, err := snapshot.DataAt("origin")
+
+	if _, err := pDocRef.Update(fbu.ctx, []firestore.Update{
+		{
+			Path:  "rcs",
+			Value: firestore.Delete,
+		},
+		{
+			Path:  "refs",
+			Value: firestore.Delete,
+		},
+		{
+			Path:  "type",
+			Value: firestore.Delete,
+		},
+		{
+			Path:  "origin",
+			Value: firestore.Delete,
+		},
+		{
+			Path:  "manualIgnore",
+			Value: origin,
+		},
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (fbu *FBUniverse) JudgeIndividual(address identity.Address, level int, judgment string, evidence ...[]core.Sig) error {
 	// defult status should be accept & broadcast
 	// judge can be done even the individual not exist, use like blacklist.

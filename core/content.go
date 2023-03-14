@@ -91,6 +91,4 @@ func (c *QContent) GetData() (interface{}, error) {
 	default:
 		return c.Data, nil
 	}
-
-	return nil, errContentParseFail
 }

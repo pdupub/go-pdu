@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/api/option"
 
+	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/identity"
 	"github.com/pdupub/go-pdu/params"
 	"github.com/pdupub/go-pdu/udb/fb"
@@ -47,6 +48,31 @@ func NodeCmd() *cobra.Command {
 	cmd.AddCommand(NodeTestCmd())
 	cmd.AddCommand(TruncateCmd())
 	cmd.AddCommand(JudgeCmd())
+	cmd.AddCommand(HideProcessedQuantumCmd())
+	return cmd
+}
+
+func HideProcessedQuantumCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "hide",
+		Short: "Hide processed Quantum in node",
+		Args:  cobra.NoArgs,
+		RunE: func(_ *cobra.Command, args []string) error {
+
+			ctx := context.Background()
+			fbu, err := fb.NewFBUniverse(ctx, firebaseKeyPath, firebaseProjectID)
+			if err != nil {
+				return err
+			}
+
+			sigHex := question("please provide the signature which you want to hide", false)
+			if err = fbu.HideProcessedQuantum(core.Hex2Sig(sigHex)); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
 	return cmd
 }
 
