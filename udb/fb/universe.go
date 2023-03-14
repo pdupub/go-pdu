@@ -177,7 +177,7 @@ func (fbu *FBUniverse) loadUnprocessedQuantums(limit, skip int) ([]*core.Quantum
 	return receivedQuantums, nil
 }
 
-func (fbu *FBUniverse) preprocessQuantums(quantums []*core.Quantum) (signatureQuantumMap map[string]*core.Quantum, referenceSignatureMap map[string]string, addressStatusMap map[string]int, reject []core.Sig) {
+func (fbu *FBUniverse) preprocessQuantums(quantums []*core.Quantum) (signatureQuantumMap map[string]*core.Quantum, referenceSignatureMap map[string]string, addressStatusMap map[string]int) {
 	// signatureQuantumMap is used for find quantum by signature
 	signatureQuantumMap = make(map[string]*core.Quantum) // sig:quantum
 	// referenceSignatureMap is used for from individual last find next quantum by same individual
@@ -190,17 +190,11 @@ func (fbu *FBUniverse) preprocessQuantums(quantums []*core.Quantum) (signatureQu
 		// ecrecover the author address
 		addr, err := qRes.Ecrecover()
 		if err != nil {
-			reject = append(reject, qRes.Signature)
 			continue
 		}
 		// update individual attitude
 		if _, ok := addressStatusMap[addr.Hex()]; !ok {
 			addressStatusMap[addr.Hex()] = fbu.getStatusLevelByAddressHex(addr.Hex())
-		}
-
-		if addressStatusMap[addr.Hex()] <= core.AttitudeIgnoreContent {
-			reject = append(reject, qRes.Signature)
-			continue
 		}
 
 		sigHex := core.Sig2Hex(qRes.Signature)
@@ -238,7 +232,7 @@ func (fbu *FBUniverse) ProcessQuantums(limit, skip int) (accept []core.Sig, wait
 
 func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (accept []core.Sig, wait []core.Sig, reject []core.Sig, err error) {
 	// format quantums
-	signatureQuantumMap, referenceSignatureMap, addressStatusMap, reject := fbu.preprocessQuantums(unprocessedQuantums)
+	signatureQuantumMap, referenceSignatureMap, addressStatusMap := fbu.preprocessQuantums(unprocessedQuantums)
 
 	// process first quantums
 	for sigHex, quantum := range signatureQuantumMap {
@@ -249,6 +243,20 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 		// update address info for quantum
 		dMap, _ := FBStruct2Data(&FBQuantum{AddrHex: addr.Hex()})
 		dMap["createTime"] = time.Now().UnixMilli()
+
+		// deal by individual status
+		if addressStatusMap[addr.Hex()] < core.AttitudeIgnoreContent {
+			// clear recv
+			recvMoveTo := "trash"
+			docSnapshot, _ := qDocRef.Get(fbu.ctx)
+			if recv, ok := docSnapshot.Data()["recv"]; ok {
+				dMap := map[string]interface{}{"recv": []byte{}, recvMoveTo: recv}
+				mergeKeys := []firestore.FieldPath{[]string{"recv"}, []string{recvMoveTo}}
+				qDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
+			}
+			reject = append(reject, quantum.Signature)
+			continue
+		}
 		// quantum created when verfy signature & got user address, not receive quantum
 		qDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"address"}, []string{"createTime"}))
 
@@ -279,7 +287,7 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 
 	// process quantums
 	for addrHex := range addressStatusMap {
-		if addressStatusMap[addrHex] <= core.AttitudeIgnoreContent {
+		if addressStatusMap[addrHex] < core.AttitudeIgnoreContent {
 			continue
 		}
 
@@ -318,7 +326,20 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 						dMap["updateTime"] = time.Now().UnixMilli()
 						iDocRef.Set(fbu.ctx, dMap)
 
-						accept = append(accept, core.Hex2Sig(sigHex))
+						if addressStatusMap[addrHex] == core.AttitudeIgnoreContent {
+							// clear recv
+							recvMoveTo := "ignore"
+							docSnapshot, _ := qDocRef.Get(fbu.ctx)
+							if recv, ok := docSnapshot.Data()["recv"]; ok {
+								dMap := map[string]interface{}{"recv": []byte{}, recvMoveTo: recv}
+								mergeKeys := []firestore.FieldPath{[]string{"recv"}, []string{recvMoveTo}}
+								qDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
+							}
+							// not realy reject, just not executeQuantum in next step
+							reject = append(reject, core.Hex2Sig(sigHex))
+						} else if addressStatusMap[addrHex] > core.AttitudeIgnoreContent {
+							accept = append(accept, core.Hex2Sig(sigHex))
+						}
 
 					}
 				} else {
