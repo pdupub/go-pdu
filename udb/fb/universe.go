@@ -253,10 +253,10 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 		// TODO: filter unkown source quantums
 		if !iDocSnapshot.Exists() && core.Sig2Hex(quantum.References[0]) == core.Sig2Hex(core.FirstQuantumReference) {
 			// checked first quantums, can be accepted.
-			if err := fbu.increaseUniverseSequence(sigHex); err != nil {
-				// reject
-				reject = append(reject, core.Hex2Sig(sigHex))
-				continue
+			if err = fbu.increaseUniverseSequence(sigHex); err != nil {
+				// reject = append(reject, core.Hex2Sig(sigHex))
+				// continue
+				return
 			}
 			// add sequence to quantum
 			dMap, _ := FBStruct2Data(&FBQuantum{Sequence: fbu.status.Sequence, SelfSeq: int64(1)})
@@ -278,7 +278,8 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 		iDocRef := fbu.individualC.Doc(addrHex)
 		iDocSnapshot, _ := iDocRef.Get(fbu.ctx)
 		if iDocSnapshot.Exists() {
-			individual, err := Data2FBIndividual(iDocSnapshot.Data())
+			var individual *FBIndividual
+			individual, err = Data2FBIndividual(iDocSnapshot.Data())
 			if err != nil {
 				continue
 			}
@@ -289,9 +290,10 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 					if _, ok := signatureQuantumMap[sigHex]; ok {
 
 						// checked first quantums, can be accepted.
-						if err := fbu.increaseUniverseSequence(sigHex); err != nil {
-							reject = append(reject, core.Hex2Sig(sigHex))
-							continue
+						if err = fbu.increaseUniverseSequence(sigHex); err != nil {
+							// reject = append(reject, core.Hex2Sig(sigHex))
+							// continue
+							return
 						}
 
 						individual.LastSigHex = sigHex
