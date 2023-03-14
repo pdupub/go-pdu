@@ -177,7 +177,7 @@ func (fbu *FBUniverse) loadUnprocessedQuantums(limit, skip int) ([]*core.Quantum
 	return receivedQuantums, nil
 }
 
-func (fbu *FBUniverse) preprocessQuantums(quantums []*core.Quantum) (signatureQuantumMap map[string]*core.Quantum, referenceSignatureMap map[string]string, addressStatusMap map[string]int) {
+func (fbu *FBUniverse) preprocessQuantums(quantums []*core.Quantum) (signatureQuantumMap map[string]*core.Quantum, referenceSignatureMap map[string]string, addressStatusMap map[string]int, reject []core.Sig) {
 	// signatureQuantumMap is used for find quantum by signature
 	signatureQuantumMap = make(map[string]*core.Quantum) // sig:quantum
 	// referenceSignatureMap is used for from individual last find next quantum by same individual
@@ -187,23 +187,27 @@ func (fbu *FBUniverse) preprocessQuantums(quantums []*core.Quantum) (signatureQu
 
 	// fill data struct
 	for _, qRes := range quantums {
-		sigHex := core.Sig2Hex(qRes.Signature)
-		selfRef := core.Sig2Hex(qRes.References[0])
-		signatureQuantumMap[sigHex] = qRes
-		if selfRef != firstRef {
-			referenceSignatureMap[selfRef] = sigHex
-		}
-	}
-
-	for _, qRes := range quantums {
 		// ecrecover the author address
 		addr, err := qRes.Ecrecover()
 		if err != nil {
+			reject = append(reject, qRes.Signature)
 			continue
 		}
 		// update individual attitude
 		if _, ok := addressStatusMap[addr.Hex()]; !ok {
 			addressStatusMap[addr.Hex()] = fbu.getStatusLevelByAddressHex(addr.Hex())
+		}
+
+		if addressStatusMap[addr.Hex()] <= core.AttitudeIgnoreContent {
+			reject = append(reject, qRes.Signature)
+			continue
+		}
+
+		sigHex := core.Sig2Hex(qRes.Signature)
+		selfRef := core.Sig2Hex(qRes.References[0])
+		signatureQuantumMap[sigHex] = qRes
+		if selfRef != firstRef {
+			referenceSignatureMap[selfRef] = sigHex
 		}
 	}
 	return
@@ -234,7 +238,7 @@ func (fbu *FBUniverse) ProcessQuantums(limit, skip int) (accept []core.Sig, wait
 
 func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (accept []core.Sig, wait []core.Sig, reject []core.Sig, err error) {
 	// format quantums
-	signatureQuantumMap, referenceSignatureMap, addressStatusMap := fbu.preprocessQuantums(unprocessedQuantums)
+	signatureQuantumMap, referenceSignatureMap, addressStatusMap, reject := fbu.preprocessQuantums(unprocessedQuantums)
 
 	// process first quantums
 	for sigHex, quantum := range signatureQuantumMap {
@@ -275,6 +279,10 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 
 	// process quantums
 	for addrHex := range addressStatusMap {
+		if addressStatusMap[addrHex] <= core.AttitudeIgnoreContent {
+			continue
+		}
+
 		iDocRef := fbu.individualC.Doc(addrHex)
 		iDocSnapshot, _ := iDocRef.Get(fbu.ctx)
 		if iDocSnapshot.Exists() {
