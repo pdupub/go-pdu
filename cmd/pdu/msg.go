@@ -36,7 +36,7 @@ import (
 func MsgCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "msg",
-		Short: "Operations on message",
+		Short: "Create and Broadcast Message (For test your own node)",
 		Args:  cobra.RangeArgs(0, 1),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
 			var currentDID *identity.DID

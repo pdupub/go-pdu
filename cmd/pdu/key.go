@@ -36,7 +36,7 @@ var (
 func KeyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "key [keystore_path]",
-		Short: "Operations on keystores",
+		Short: "Create keystores (For test)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			pass, salt, err := getPassAndSalt()

@@ -616,6 +616,7 @@ func (fbu *FBUniverse) HideProcessedQuantum(sig core.Sig) error {
 }
 
 // GetQuantums is not belong to interface of core/universe
+// this function can be used to backup data by node owner or download data from node by user
 func (fbu *FBUniverse) GetQuantums(limit int, skip int, desc bool) ([]*core.Quantum, error) {
 	var qs []*core.Quantum
 	quantumQuery := fbu.quantumC.Query.Where("seq", ">", 0)

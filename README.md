@@ -27,26 +27,58 @@ PDU是基于点对点的方式构建社交网络服务，系统中所有信息�
 ## Usage
 
 ```
-Parallel Digital Universe
-	A decentralized social networking service
-	Website: https://pdu.pub
+Run node daemon
 
 Usage:
-  pdu [command]
-
-Available Commands:
-  ck          Create keystores
-  completion  Generate the autocompletion script for the specified shell
-  help        Help about any command
-  send        Send sampel msg to node
-  start       Start run node
-  test        Test some methods
+  pdu run [loop interval] [flags]
 
 Flags:
-  -h, --help                 help for pdu
+  -h, --help           help for run
+      --interval int   time interval between consecutive processing on node (default 5)
+
+Global Flags:
+      --fbKeyPath string     path of firebase json key (default "udb/fb/test-firebase-adminsdk.json")
+      --fbProjectID string   project ID (default "pdupub-a2bdd")
+      --projectPath string   project root path (default "./")
+```
+
+```
+Operations on node
+
+Usage:
+  pdu node [command]
+
+Available Commands:
+  backup      Backup processed quantums to local
+  exe         Do process quantum once on node
+  hide        Hide processed Quantum in node
+  judge       Judge Individual & Community on your own node
+  truncate    Clear up all data on firebase collections
+
+Flags:
+  -h, --help   help for node
+
+Global Flags:
+      --fbKeyPath string     path of firebase json key (default "udb/fb/test-firebase-adminsdk.json")
+      --fbProjectID string   project ID (default "pdupub-a2bdd")
       --projectPath string   project root path (default "./")
 
-Use "pdu [command] --help" for more information about a command.
+Use "pdu node [command] --help" for more information about a command.
+```
+
+```
+Create and Broadcast Message (For test your own node)
+
+Usage:
+  pdu msg [flags]
+
+Flags:
+  -h, --help   help for msg
+
+Global Flags:
+      --fbKeyPath string     path of firebase json key (default "udb/fb/test-firebase-adminsdk.json")
+      --fbProjectID string   project ID (default "pdupub-a2bdd")
+      --projectPath string   project root path (default "./")
 ```
 
 

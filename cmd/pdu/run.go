@@ -31,7 +31,7 @@ func RunCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "run [loop interval]",
-		Short: "Start to run node daemon",
+		Short: "Run node daemon",
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
 

@@ -42,7 +42,7 @@ func NodeCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "node",
-		Short: "Perform some actions on the node",
+		Short: "Operations on node",
 	}
 	cmd.Flags().StringVar(&firebaseKeyPath, "fbKeyPath", params.TestFirebaseAdminSDKPath, "path of firebase json key")
 	cmd.Flags().StringVar(&firebaseProjectID, "fbProjectID", params.TestFirebaseProjectID, "project ID")
