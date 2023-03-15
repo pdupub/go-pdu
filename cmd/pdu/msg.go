@@ -26,6 +26,7 @@ import (
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/identity"
 	"github.com/pdupub/go-pdu/params"
+	"github.com/pdupub/go-pdu/udb/fb"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/api/option"
@@ -160,8 +161,51 @@ func initQuantum() (*core.Quantum, error) {
 func addRefs(quantum *core.Quantum, did *identity.DID) (*core.Quantum, error) {
 	var refs []core.Sig
 	selfRef := ""
+
+	fbu, err := fb.NewFBUniverse(context.Background(), firebaseKeyPath, firebaseProjectID)
+	if err != nil {
+		fmt.Println(err)
+		ignoreRemoteErr := boolChoice("ignore the error above ?")
+		if !ignoreRemoteErr {
+			return nil, err
+		}
+	} else {
+		currentIndividual, err := fbu.GetIndividual(did.GetAddress())
+		if err != nil {
+			fmt.Println(err)
+			ignoreRemoteErr := boolChoice("ignore the error above ?")
+			if !ignoreRemoteErr {
+				return nil, err
+			}
+		}
+		selfRef = core.Sig2Hex(currentIndividual.LastSig)
+	}
+
+	//
+	useLocalLastSig := false
 	records, err := loadRecords(did.GetAddress().Hex(), 5)
 	if err == nil && len(records) > 0 {
+		// remote individual record not avaliable
+		if len(selfRef) == 0 {
+			useLocalLastSig = true
+		}
+		// remote record is not latest
+		for i, record := range records {
+			if i > 0 && record["sig"].(string) == selfRef {
+				useLocalLastSig = true
+			}
+		}
+	}
+
+	if len(selfRef) > 0 && !useLocalLastSig {
+		// append remote one to local
+		record := make(map[string]interface{})
+		record["sig"] = selfRef
+		record["json"] = ""
+		addRecord(did.GetAddress().Hex(), record)
+	}
+
+	if useLocalLastSig {
 		selfRef = records[0]["sig"].(string)
 	}
 
