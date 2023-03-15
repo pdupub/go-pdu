@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -86,8 +87,12 @@ func BackupCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Println()
-			fmt.Println(string(res))
+			// fmt.Println()
+			// fmt.Println(string(res))
+
+			if err = os.WriteFile(fmt.Sprintf("./backup_%d", time.Now().UnixMilli()), res, 0644); err != nil {
+				return err
+			}
 			return nil
 		},
 	}
