@@ -615,6 +615,33 @@ func (fbu *FBUniverse) HideProcessedQuantum(sig core.Sig) error {
 	return nil
 }
 
+// GetQuantums is not belong to interface of core/universe
+func (fbu *FBUniverse) GetQuantums(limit int, skip int, desc bool) ([]*core.Quantum, error) {
+	var qs []*core.Quantum
+	quantumQuery := fbu.quantumC.Query.Where("seq", ">", 0)
+
+	fDirection := firestore.Desc
+	if !desc {
+		fDirection = firestore.Asc
+	}
+	iter := quantumQuery.Offset(skip).Limit(limit).OrderBy("seq", fDirection).Documents(fbu.ctx)
+
+	// load all undeal quantums
+	for docSnapshot, err := iter.Next(); err != iterator.Done; docSnapshot, err = iter.Next() {
+		qRes, err := NewFBQuantumFromSnap(docSnapshot)
+		if err != nil {
+			return nil, err
+		}
+		q, err := qRes.GetOriginQuantum()
+		if err != nil {
+			return nil, err
+		}
+		qs = append(qs, q)
+	}
+
+	return qs, nil
+}
+
 func (fbu *FBUniverse) JudgeIndividual(address identity.Address, level int, judgment string, evidence ...[]core.Sig) error {
 	// defult status should be accept & broadcast
 	// judge can be done even the individual not exist, use like blacklist.

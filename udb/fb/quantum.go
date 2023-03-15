@@ -36,6 +36,9 @@ type FBQuantum struct {
 	SigHex          string           `json:"sig,omitempty"`
 	ReadableCS      []*FBContent     `json:"rcs,omitempty"`
 	CreateTimestamp int64            `json:"createTime"`
+	Trash           []byte           `json:"trash,omitempty"`
+	Ignore          []byte           `json:"ignore,omitempty"`
+	ManualIgnore    []byte           `json:"manualIgnore,omitempty"`
 }
 
 func NewFBQuantumFromSnap(docSnapshot *firestore.DocumentSnapshot) (*FBQuantum, error) {
@@ -85,6 +88,12 @@ func Data2FBQuantum(d map[string]interface{}) (*FBQuantum, error) {
 
 func (fbq *FBQuantum) GetOriginQuantum() (*core.Quantum, error) {
 	resQuantum := core.Quantum{}
-	err := json.Unmarshal(fbq.Origin, &resQuantum)
+	data := fbq.Origin
+	if len(fbq.Ignore) != 0 {
+		data = fbq.Ignore
+	} else if len(fbq.ManualIgnore) != 0 {
+		data = fbq.ManualIgnore
+	}
+	err := json.Unmarshal(data, &resQuantum)
 	return &resQuantum, err
 }

@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -45,10 +46,52 @@ func NodeCmd() *cobra.Command {
 	cmd.Flags().StringVar(&firebaseKeyPath, "fbKeyPath", params.TestFirebaseAdminSDKPath, "path of firebase json key")
 	cmd.Flags().StringVar(&firebaseProjectID, "fbProjectID", params.TestFirebaseProjectID, "project ID")
 
-	cmd.AddCommand(NodeExecuteCmd())
+	cmd.AddCommand(BackupCmd())
+	cmd.AddCommand(ExecuteCmd())
 	cmd.AddCommand(TruncateCmd())
 	cmd.AddCommand(JudgeCmd())
 	cmd.AddCommand(HideProcessedQuantumCmd())
+	return cmd
+}
+
+// BackupCmd do process quantum once on node
+func BackupCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "backup",
+		Short: "Backup processed quantums to local",
+		Args:  cobra.NoArgs,
+		RunE: func(_ *cobra.Command, args []string) error {
+			ctx := context.Background()
+			fbu, err := fb.NewFBUniverse(ctx, firebaseKeyPath, firebaseProjectID)
+			if err != nil {
+				return err
+			}
+			limit := 10
+			skip := 0
+			var backup []*core.Quantum
+			for {
+				records, err := fbu.GetQuantums(limit, skip, true)
+				if err != nil {
+					return err
+				}
+				skip += len(records)
+				if len(records) == 0 {
+					break
+				}
+				fmt.Println("already download", skip, "quantums")
+				backup = append(backup, records...)
+			}
+
+			res, err := json.Marshal(backup)
+			if err != nil {
+				return err
+			}
+			fmt.Println()
+			fmt.Println(string(res))
+			return nil
+		},
+	}
+
 	return cmd
 }
 
@@ -136,8 +179,8 @@ func TruncateCmd() *cobra.Command {
 	return cmd
 }
 
-// NodeExecuteCmd do process quantum once on node
-func NodeExecuteCmd() *cobra.Command {
+// ExecuteCmd do process quantum once on node
+func ExecuteCmd() *cobra.Command {
 	var limit, skip int
 	cmd := &cobra.Command{
 		Use:   "exe",
