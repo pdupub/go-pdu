@@ -45,7 +45,7 @@ func NodeCmd() *cobra.Command {
 	cmd.Flags().StringVar(&firebaseKeyPath, "fbKeyPath", params.TestFirebaseAdminSDKPath, "path of firebase json key")
 	cmd.Flags().StringVar(&firebaseProjectID, "fbProjectID", params.TestFirebaseProjectID, "project ID")
 
-	cmd.AddCommand(NodeTestCmd())
+	cmd.AddCommand(NodeExecuteCmd())
 	cmd.AddCommand(TruncateCmd())
 	cmd.AddCommand(JudgeCmd())
 	cmd.AddCommand(HideProcessedQuantumCmd())
@@ -136,19 +136,25 @@ func TruncateCmd() *cobra.Command {
 	return cmd
 }
 
-// NodeTestCmd test connection by local firebase settings
-func NodeTestCmd() *cobra.Command {
+// NodeExecuteCmd do process quantum once on node
+func NodeExecuteCmd() *cobra.Command {
+	var limit, skip int
 	cmd := &cobra.Command{
-		Use:   "test",
-		Short: "Test connection by local firebase settings",
+		Use:   "exe",
+		Short: "Do process quantum once on node",
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
-
-			fmt.Println("test ...")
-
+			ctx := context.Background()
+			fbu, err := fb.NewFBUniverse(ctx, firebaseKeyPath, firebaseProjectID)
+			if err != nil {
+				return err
+			}
+			fbu.ProcessQuantums(limit, skip)
 			return nil
 		},
 	}
+	cmd.PersistentFlags().IntVar(&limit, "limit", 20, "process quantums number limit")
+	cmd.PersistentFlags().IntVar(&skip, "skip", 0, "process quantums need to skip")
 
 	return cmd
 }
