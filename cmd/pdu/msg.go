@@ -22,14 +22,12 @@ import (
 	"fmt"
 	"strconv"
 
-	firebase "firebase.google.com/go"
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/identity"
 	"github.com/pdupub/go-pdu/params"
 	"github.com/pdupub/go-pdu/udb/fb"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"google.golang.org/api/option"
 )
 
 // MsgCmd is used to create, add references, sign and upload Message
@@ -75,13 +73,22 @@ func MsgCmd() *cobra.Command {
 			// In the reproduction environment, this step should
 			// be performed on the mobile phone
 			if nextStep {
-				if json, err := upload2FireBase(q); err != nil {
+				ctx := context.Background()
+				fbu, err := fb.NewFBUniverse(ctx, firebaseKeyPath, firebaseProjectID)
+				if err != nil {
 					return err
-				} else {
-					// save to local if success
+				}
+
+				_, _, reject, err := fbu.ReceiveQuantums([]*core.Quantum{q})
+				if err != nil {
+					return err
+				}
+
+				if len(reject) == 0 {
+					jsonData, _ := json.Marshal(q)
 					record := make(map[string]interface{})
 					record["sig"] = core.Sig2Hex(q.Signature)
-					record["json"] = json
+					record["json"] = jsonData
 					addRecord(currentDID.GetAddress().Hex(), record)
 				}
 			}
@@ -177,8 +184,9 @@ func addRefs(quantum *core.Quantum, did *identity.DID) (*core.Quantum, error) {
 			if !ignoreRemoteErr {
 				return nil, err
 			}
+		} else {
+			selfRef = core.Sig2Hex(currentIndividual.LastSig)
 		}
-		selfRef = core.Sig2Hex(currentIndividual.LastSig)
 	}
 
 	//
@@ -266,40 +274,6 @@ func unlockTestWallet() (*identity.DID, error) {
 
 		return did, nil
 	}
-}
-
-func upload2FireBase(quantum *core.Quantum) ([]byte, error) {
-	ctx := context.Background()
-	opt := option.WithCredentialsFile(projectPath + firebaseKeyPath)
-	config := &firebase.Config{ProjectID: firebaseProjectID}
-	app, err := firebase.NewApp(ctx, config, opt)
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := app.Firestore(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer client.Close()
-
-	collection := client.Collection("quantum")
-
-	docID := core.Sig2Hex(quantum.Signature)
-	docRef := collection.Doc(docID)
-
-	dMap := make(map[string]interface{})
-	qBytes, err := json.Marshal(quantum)
-	if err != nil {
-		return nil, err
-	}
-
-	dMap["recv"] = qBytes
-	if _, err = docRef.Set(ctx, dMap); err != nil {
-		return nil, err
-	}
-
-	return qBytes, nil
 }
 
 func display(quantum *core.Quantum) {
