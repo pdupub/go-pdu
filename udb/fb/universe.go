@@ -540,6 +540,11 @@ func (fbu *FBUniverse) ReceiveQuantums(quantums []*core.Quantum) (accept []core.
 		} else {
 			sigHex := core.Sig2Hex(q.Signature)
 			docRef := fbu.quantumC.Doc(sigHex)
+			// check exist
+			if snapshot, _ := docRef.Get(fbu.ctx); snapshot.Exists() {
+				continue
+			}
+
 			dMap := make(map[string]interface{})
 			dMap["recv"] = qBytes
 			if _, err := docRef.Set(fbu.ctx, dMap); err != nil {

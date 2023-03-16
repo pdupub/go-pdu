@@ -49,9 +49,48 @@ func NodeCmd() *cobra.Command {
 
 	cmd.AddCommand(BackupCmd())
 	cmd.AddCommand(ExecuteCmd())
+	cmd.AddCommand(UploadCmd())
 	cmd.AddCommand(TruncateCmd())
 	cmd.AddCommand(JudgeCmd())
 	cmd.AddCommand(HideProcessedQuantumCmd())
+	return cmd
+}
+
+// UploadCmd
+func UploadCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "upload",
+		Short: "Upload quantums to remote node",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+
+			dataFilePath := args[0]
+			data, err := os.ReadFile(dataFilePath)
+			if err != nil {
+				return err
+			}
+
+			var qs []*core.Quantum
+			if err := json.Unmarshal(data, &qs); err != nil {
+				return err
+			}
+
+			ctx := context.Background()
+			fbu, err := fb.NewFBUniverse(ctx, firebaseKeyPath, firebaseProjectID)
+			if err != nil {
+				return err
+			}
+
+			accept, wait, reject, err := fbu.ReceiveQuantums(qs)
+			if err != nil {
+				return err
+			}
+			fmt.Println("upload finished! node accept:", len(accept), "\twait:", len(wait), "\treject:", len(reject))
+
+			return nil
+		},
+	}
+
 	return cmd
 }
 
