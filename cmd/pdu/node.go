@@ -126,12 +126,33 @@ func BackupCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			// fmt.Println()
-			// fmt.Println(string(res))
 
-			if err = os.WriteFile(fmt.Sprintf("./backup_%d", time.Now().UnixMilli()), res, 0644); err != nil {
+			timestamp := time.Now().UnixMilli()
+			if err = os.WriteFile(fmt.Sprintf("./backup_quantums_%d", timestamp), res, 0644); err != nil {
 				return err
 			}
+			fmt.Println("quantums backup finished!")
+
+			if inds, err := fbu.GetFBDataByTable("individual"); err != nil {
+				return err
+			} else {
+				if err = os.WriteFile(fmt.Sprintf("./backup_individuals_%d", timestamp), inds, 0644); err != nil {
+					return err
+				}
+				fmt.Println("individuals backup finished!")
+
+			}
+
+			if coms, err := fbu.GetFBDataByTable("community"); err != nil {
+				return err
+			} else {
+				if err = os.WriteFile(fmt.Sprintf("./backup_communties_%d", timestamp), coms, 0644); err != nil {
+					return err
+				}
+				fmt.Println("communities backup finished!")
+
+			}
+
 			return nil
 		},
 	}

@@ -620,6 +620,16 @@ func (fbu *FBUniverse) HideProcessedQuantum(sig core.Sig) error {
 	return nil
 }
 
+// GetFBDataByTable is not belong to interface of core/universe
+func (fbu *FBUniverse) GetFBDataByTable(collection string) ([]byte, error) {
+	var res []map[string]interface{}
+	iter := fbu.client.Collection(collection).Documents(fbu.ctx)
+	for docS, err := iter.Next(); err != iterator.Done; docS, err = iter.Next() {
+		res = append(res, docS.Data())
+	}
+	return json.Marshal(res)
+}
+
 // GetQuantums is not belong to interface of core/universe
 // this function can be used to backup data by node owner or download data from node by user
 func (fbu *FBUniverse) GetQuantums(limit int, skip int, desc bool) ([]*core.Quantum, error) {
