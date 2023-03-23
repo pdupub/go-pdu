@@ -291,7 +291,7 @@ func truncate() error {
 	}
 	defer client.Close()
 
-	if err := truncateTable(client, ctx, "communtiy"); err != nil {
+	if err := truncateTable(client, ctx, "community"); err != nil {
 		return err
 	}
 	if err := truncateTable(client, ctx, "individual"); err != nil {
