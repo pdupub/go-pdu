@@ -235,6 +235,15 @@ func TruncateCmd() *cobra.Command {
 					truncate()
 					fmt.Println("deleting finished!")
 				}
+
+				removeLocalData := boolChoice("delete local data in " + configPath)
+				if removeLocalData {
+					if err := os.RemoveAll(configPath); err != nil {
+						return err
+					} else {
+						fmt.Println(configPath + "have been deleted!")
+					}
+				}
 			}
 
 			return nil
