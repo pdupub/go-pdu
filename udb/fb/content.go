@@ -56,6 +56,8 @@ func Content2Readable(content *core.QContent) (map[string]interface{}, error) {
 	switch content.Format {
 	case core.QCFmtStringTEXT, core.QCFmtStringURL, core.QCFmtStringAddressHex, core.QCFmtStringSignatureHex:
 		cc["data"] = string(content.Data)
+	case core.QCFmtStringJSON:
+		cc["data"] = string(content.Data)
 	case core.QCFmtStringInt, core.QCFmtStringFloat:
 		dataFloat, err := strconv.ParseFloat(string(content.Data), 64)
 		if err != nil {
