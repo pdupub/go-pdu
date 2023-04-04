@@ -1,3 +1,16 @@
+# Setup test env
+
+## Steps
+
+1. Apply Firebase Service
+2. Setup Authentication (Anonymouse)
+3. Firestore Database and set rules
+4. Store and set rules
+5. download adminsdk.json from Project Settings
+6. change TestFirebaseProjectID to your app
+7. cd udb/fb and go test
+
+
 ## Rules of Firestore database
 ```
 rules_version = '2';

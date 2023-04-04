@@ -24,7 +24,7 @@ import (
 
 const (
 	TestFirebaseAdminSDKPath = "udb/fb/test-firebase-adminsdk.json"
-	TestFirebaseProjectID    = "pdupub-a2bdd"
+	TestFirebaseProjectID    = "pdu-dev-1" // "pdupub-a2bdd"
 )
 
 // test for identity
