@@ -65,8 +65,20 @@ type FBUniverse struct {
 	universeC   *firestore.CollectionRef
 }
 
+type PlatformConfig struct {
+	Platform string `json:"platform"`
+	Version  int    `json:"version"`
+	Action   string `json:"action"`
+	Params   string `json:"params,omitempty"`
+}
+
 const (
-	universeStatusDocID = "status"
+	universeStatusDocID   = "status"
+	platformIOS           = "ios"
+	platformVersion       = 1
+	platformActionPost    = "post"
+	platformActionReply   = "reply"
+	platformActionComment = "comment"
 )
 
 func NewFBUniverse(ctx context.Context, keyFilename string, projectID string) (*FBUniverse, error) {
@@ -370,6 +382,42 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 	return
 }
 
+func (fbu *FBUniverse) executeInfoPlatformCustom(quantum *core.Quantum, qDocRef *firestore.DocumentRef) {
+	if quantum.Type != core.QuantumTypeInfo {
+		return
+	}
+
+	if len(quantum.Contents) == 0 {
+		return
+	}
+
+	// platform config should be the last content of quantum
+	// and encode by string JSON
+	configContent := quantum.Contents[len(quantum.Contents)-1]
+	if configContent.Format != core.QCFmtStringJSON {
+		return
+	}
+
+	var config PlatformConfig
+	if err := json.Unmarshal(configContent.Data, &config); err != nil {
+		return
+	}
+
+	// only process ios:1: ...
+	if config.Platform != platformIOS || config.Version != platformVersion {
+		return
+	}
+
+	platformSetting := make(map[string]string)
+	platformSetting["action"] = config.Action
+	if config.Action == platformActionComment || config.Action == platformActionReply {
+		platformSetting["param"] = config.Params
+	}
+	data := make(map[string]interface{})
+	data[config.Platform] = platformSetting
+	qDocRef.Set(fbu.ctx, data, firestore.Merge([]string{config.Platform}))
+}
+
 func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firestore.DocumentRef) {
 	qid, _ := quantum.Ecrecover()
 	addrHex := qid.Hex()
@@ -380,6 +428,8 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 		qDocRef.Set(fbu.ctx, readableRecord, firestore.Merge([]string{"rcs"}))
 	}
 	switch quantum.Type {
+	case core.QuantumTypeInfo:
+		fbu.executeInfoPlatformCustom(quantum, qDocRef)
 	case core.QuantumTypeProfile:
 		profileMap := make(map[string]*core.QContent)
 		readableProfileMap := make(map[string]interface{})

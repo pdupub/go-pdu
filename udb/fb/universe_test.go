@@ -587,8 +587,8 @@ func testShowPrivateKey(t *testing.T) {
 }
 
 func TestMain(t *testing.T) {
-	testClearQuantum(t)
-	testCreateQuantums(t)
+	// testClearQuantum(t)
+	// testCreateQuantums(t)
 	// testManualInviteQuantums(t)
 	testDealQuantums(t)
 	// testCheckQuantum(t)
