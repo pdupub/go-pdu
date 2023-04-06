@@ -602,7 +602,8 @@ func (fbu *FBUniverse) ReceiveQuantums(quantums []*core.Quantum) (accept []core.
 			}
 		}
 	}
-	accept, wait, r, err := fbu.ProcessQuantums(len(quantums)-len(reject), 0)
+	limit := len(quantums) - len(reject) + 100 // 100 is random number
+	accept, wait, r, err := fbu.ProcessQuantums(limit, 0)
 	reject = append(reject, r...)
 	return
 }
