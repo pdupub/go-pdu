@@ -28,25 +28,36 @@ import (
 // RunCmd start to run the node daemon
 func RunCmd() *cobra.Command {
 	var interval int64
+	var echoMode bool
+	var port int64
 
 	cmd := &cobra.Command{
 		Use:   "run [loop interval]",
 		Short: "Run node daemon",
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
-
-			c := make(chan os.Signal)
-			signal.Notify(c, os.Interrupt, os.Kill)
-			if serv, err := node.New(interval, firebaseKeyPath, firebaseProjectID); err != nil {
-				return err
+			if echoMode {
+				if serv, err := node.New(interval, firebaseKeyPath, firebaseProjectID); err != nil {
+					return err
+				} else {
+					serv.RunEcho(port)
+				}
 			} else {
-				serv.Run(c)
+				c := make(chan os.Signal)
+				signal.Notify(c, os.Interrupt, os.Kill)
+				if serv, err := node.New(interval, firebaseKeyPath, firebaseProjectID); err != nil {
+					return err
+				} else {
+					serv.Run(c)
+				}
 			}
-
 			return nil
 		},
 	}
 
 	cmd.PersistentFlags().Int64Var(&interval, "interval", 5, "time interval between consecutive processing on node")
+	cmd.PersistentFlags().BoolVar(&echoMode, "echo", false, "only exe on received request")
+	cmd.PersistentFlags().Int64Var(&port, "port", 8123, "http server started on")
+
 	return cmd
 }

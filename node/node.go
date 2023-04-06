@@ -18,12 +18,18 @@ package node
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/udb/fb"
+
+	"github.com/labstack/echo/v4"
 )
 
 // Node
@@ -39,6 +45,34 @@ func New(interval int64, firebaseKeyPath, firebaseProjectID string) (*Node, erro
 		return nil, err
 	}
 	return &Node{interval: interval, univ: fbu}, nil
+}
+
+func (n *Node) RunEcho(port int64) {
+	e := echo.New()
+	e.HideBanner = true
+	e.POST("/rec", n.receiverHandler)
+	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", port)))
+}
+
+func (n *Node) receiverHandler(c echo.Context) error {
+	if c.Request().Header.Get("Content-Type") != echo.MIMEApplicationJSON {
+		return c.String(http.StatusBadRequest, "")
+	}
+
+	data, err := ioutil.ReadAll(c.Request().Body)
+	if err != nil {
+		return c.String(http.StatusBadRequest, err.Error())
+	}
+
+	var quantum core.Quantum
+	err = json.Unmarshal(data, &quantum)
+	if err != nil {
+		return c.String(http.StatusBadRequest, err.Error())
+	}
+	// c.Logger().Info(string(data))
+
+	n.univ.ReceiveQuantums([]*core.Quantum{&quantum})
+	return c.JSON(http.StatusOK, nil)
 }
 
 // Run
