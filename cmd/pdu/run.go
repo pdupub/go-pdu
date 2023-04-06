@@ -41,7 +41,8 @@ func RunCmd() *cobra.Command {
 					return err
 				} else {
 					// serv.RunEcho(port)
-					serv.RunGin(port)
+					// serv.RunGin(port)
+					serv.RunListenSample()
 				}
 			} else {
 				c := make(chan os.Signal)
