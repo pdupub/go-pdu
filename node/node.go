@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"time"
@@ -30,14 +29,7 @@ import (
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/udb/fb"
 
-	"github.com/gin-gonic/gin"
 	"github.com/labstack/echo/v4"
-)
-
-const (
-	CONN_HOST = "localhost"
-	CONN_PORT = "8123"
-	CONN_TYPE = "tcp"
 )
 
 // Node
@@ -53,53 +45,6 @@ func New(interval int64, firebaseKeyPath, firebaseProjectID string) (*Node, erro
 		return nil, err
 	}
 	return &Node{interval: interval, univ: fbu}, nil
-}
-
-func (n *Node) RunListenSample() {
-	// Listen for incoming connections.
-	l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
-	if err != nil {
-		fmt.Println("Error listening:", err.Error())
-		os.Exit(1)
-	}
-	// Close the listener when the application closes.
-	defer l.Close()
-	fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
-	for {
-		// Listen for an incoming connection.
-		conn, err := l.Accept()
-		if err != nil {
-			fmt.Println("Error accepting: ", err.Error())
-			os.Exit(1)
-		}
-		// Handle connections in a new goroutine.
-		go n.handleRequest(conn)
-	}
-}
-
-// Handles incoming requests.
-func (n *Node) handleRequest(conn net.Conn) {
-	// Make a buffer to hold incoming data.
-	buf := make([]byte, 1024)
-	// Read the incoming connection into the buffer.
-	_, err := conn.Read(buf)
-	if err != nil {
-		fmt.Println("Error reading:", err.Error())
-	}
-	// Send a response back to person contacting us.
-	conn.Write([]byte("Message received."))
-	// Close the connection when you're done with it.
-	conn.Close()
-}
-
-func (n *Node) RunGin(port int64) {
-	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
-	})
-	r.Run()
 }
 
 func (n *Node) RunEcho(port int64) {
