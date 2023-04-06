@@ -40,7 +40,8 @@ func RunCmd() *cobra.Command {
 				if serv, err := node.New(interval, firebaseKeyPath, firebaseProjectID); err != nil {
 					return err
 				} else {
-					serv.RunEcho(port)
+					// serv.RunEcho(port)
+					serv.RunGin(port)
 				}
 			} else {
 				c := make(chan os.Signal)

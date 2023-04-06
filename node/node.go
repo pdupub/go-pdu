@@ -29,6 +29,7 @@ import (
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/udb/fb"
 
+	"github.com/gin-gonic/gin"
 	"github.com/labstack/echo/v4"
 )
 
@@ -45,6 +46,16 @@ func New(interval int64, firebaseKeyPath, firebaseProjectID string) (*Node, erro
 		return nil, err
 	}
 	return &Node{interval: interval, univ: fbu}, nil
+}
+
+func (n *Node) RunGin(port int64) {
+	r := gin.Default()
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "pong",
+		})
+	})
+	r.Run()
 }
 
 func (n *Node) RunEcho(port int64) {
