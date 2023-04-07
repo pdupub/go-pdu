@@ -74,6 +74,7 @@ type PlatformConfig struct {
 
 const (
 	universeStatusDocID   = "status"
+	waitLoopLimit         = 5
 	platformIOS           = "ios"
 	platformVersion       = 1
 	platformActionPost    = "post"
@@ -377,6 +378,30 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 	}
 	for k := range signatureQuantumMap {
 		wait = append(wait, core.Hex2Sig(k))
+
+		qDocRef := fbu.quantumC.Doc(k)
+		recvMoveTo := "ignoreByWaitLoop"
+		docSnapshot, _ := qDocRef.Get(fbu.ctx)
+		if recv, ok := docSnapshot.Data()["recv"]; ok {
+			//
+			waitLoop := int64(0)
+			if w, ok := docSnapshot.Data()["waitLoop"]; !ok {
+				waitLoop = 1
+			} else {
+				waitLoop = w.(int64) + 1
+			}
+
+			if waitLoop < waitLoopLimit {
+				dMap := map[string]interface{}{"waitLoop": waitLoop}
+				mergeKeys := []firestore.FieldPath{[]string{"waitLoop"}}
+				qDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
+			} else {
+				dMap := map[string]interface{}{"recv": []byte{}, recvMoveTo: recv}
+				mergeKeys := []firestore.FieldPath{[]string{"recv"}, []string{recvMoveTo}}
+				qDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
+			}
+		}
+
 	}
 
 	return
