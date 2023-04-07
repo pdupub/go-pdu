@@ -11,7 +11,7 @@
 7. cd udb/fb and go test
 
 
-## Rules of Firestore database
+## Rules of Firestore Database
 ```
 rules_version = '2';
 service cloud.firestore {
@@ -28,6 +28,17 @@ service cloud.firestore {
   }
 }
 ```
+
+## Indexes of Firestore Database
+
+| Collection ID |	Fields indexed | Query scope | Status |
+|---------------|----------------|-------------|--------|
+| quantum |	address Ascending createTime Ascending __name__ Ascending	| Collection | Enabled	|
+| quantum	| address Ascending seq Ascending __name__ Ascending	| Collection | Enabled	|
+| quantum	| address Ascending createTime Descending __name__ Descending	| Collection | Enabled	|
+| quantum	| address Ascending seq Descending __name__ Descending	| Collection	|	Enabled	|
+| quantum	| ios.action Ascending ios.param Ascending seq Descending __name__ Descending	| Collection	|	Enabled	|
+
 
 ## Rules of Storage
 ```
