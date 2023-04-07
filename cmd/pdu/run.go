@@ -36,21 +36,20 @@ func RunCmd() *cobra.Command {
 		Short: "Run node daemon",
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
-			if echoMode {
-				if serv, err := node.New(interval, firebaseKeyPath, firebaseProjectID); err != nil {
-					return err
-				} else {
-					serv.RunEcho(port)
-				}
+
+			c := make(chan os.Signal)
+			signal.Notify(c, os.Interrupt, os.Kill)
+
+			if serv, err := node.New(interval, firebaseKeyPath, firebaseProjectID); err != nil {
+				return err
 			} else {
-				c := make(chan os.Signal)
-				signal.Notify(c, os.Interrupt, os.Kill)
-				if serv, err := node.New(interval, firebaseKeyPath, firebaseProjectID); err != nil {
-					return err
+				if echoMode {
+					serv.RunEcho(port, c)
 				} else {
 					serv.Run(c)
 				}
 			}
+
 			return nil
 		},
 	}

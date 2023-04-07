@@ -36,6 +36,8 @@ import (
 type Node struct {
 	interval int64
 	univ     core.Universe
+	qChan    chan *core.Quantum
+	e        *echo.Echo
 }
 
 func New(interval int64, firebaseKeyPath, firebaseProjectID string) (*Node, error) {
@@ -44,14 +46,15 @@ func New(interval int64, firebaseKeyPath, firebaseProjectID string) (*Node, erro
 	if err != nil {
 		return nil, err
 	}
-	return &Node{interval: interval, univ: fbu}, nil
+	return &Node{interval: interval, univ: fbu, qChan: make(chan *core.Quantum), e: echo.New()}, nil
 }
 
-func (n *Node) RunEcho(port int64) {
-	e := echo.New()
-	e.HideBanner = true
-	e.POST("/rec", n.receiverHandler)
-	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", port)))
+func (n *Node) RunEcho(port int64, c <-chan os.Signal) {
+	n.e.HideBanner = true
+	n.e.POST("/rec", n.receiverHandler)
+
+	go n.Run(c)
+	n.e.Logger.Fatal(n.e.Start(fmt.Sprintf(":%d", port)))
 }
 
 func (n *Node) receiverHandler(c echo.Context) error {
@@ -70,8 +73,7 @@ func (n *Node) receiverHandler(c echo.Context) error {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
 	// c.Logger().Info(string(data))
-
-	n.univ.ReceiveQuantums([]*core.Quantum{&quantum})
+	n.qChan <- &quantum
 	return c.JSON(http.StatusOK, nil)
 }
 
@@ -83,6 +85,11 @@ func (n *Node) Run(c <-chan os.Signal) {
 		select {
 		case <-c:
 			log.Println("main closed")
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if err := n.e.Shutdown(ctx); err != nil {
+				n.e.Logger.Fatal(err)
+			}
 			return
 		case <-time.After(time.Second * time.Duration(n.interval)):
 			log.Println("execution", runCnt)
@@ -92,6 +99,9 @@ func (n *Node) Run(c <-chan os.Signal) {
 				n.univ.ProcessQuantums(10, 0)
 				busy = false
 			}
+		case q := <-n.qChan:
+			log.Println("execution", core.Sig2Hex(q.Signature))
+			n.univ.ReceiveQuantums([]*core.Quantum{q})
 		}
 	}
 }
