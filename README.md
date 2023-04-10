@@ -18,6 +18,10 @@ PDU的Go语言版本，以Firebase作为数据存储。
 - [Development](#development)
 - [Contributing](#contributing)
 
+## Join Test
+
+iOS : [https://testflight.apple.com/join/FqQGxhbn](https://testflight.apple.com/join/FqQGxhbn)
+
 ## What is PDU?
 
 PDU is a social network service (SNS) system based on peer-to-peer (P2P) methods. All information in the system is identified by signature, called a message. Through references between messages, messages signed by the same key can form a total order relationship, and all messages can form a partial order relationship. Accounts are then defined on the basis of homologous total sequence messages. Any account can freely create a community, define its rules, and invite other accounts to join its own community based on self-identity. In any community, accounts and information rows can be filtered according to the invitation association relationship to achieve effective information acquisition. Please read the WhitePaper on [https://pdu.pub](https://pdu.pub/docs/en/WhitePaperV2.html) for more details.
