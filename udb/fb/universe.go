@@ -326,19 +326,23 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 							return
 						}
 
+						// for loop condition
 						individual.LastSigHex = sigHex
 						individual.LastSelfSeq += 1
 
 						qDocRef := fbu.quantumC.Doc(sigHex)
-						// add sequence to quantum
-						dMap, _ := FBStruct2Data(&FBQuantum{Sequence: fbu.status.Sequence, SelfSeq: individual.LastSelfSeq})
-						qDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"seq"}, []string{"sseq"}))
+						qDocRef.Update(fbu.ctx, []firestore.Update{
+							{Path: "seq", Value: fbu.status.Sequence},
+							{Path: "sseq", Value: individual.LastSelfSeq},
+						})
 
-						// add new individual
-						dMap, _ = FBStruct2Data(individual)
-						dMap["createTime"] = time.Now().UnixMilli()
-						dMap["updateTime"] = time.Now().UnixMilli()
-						iDocRef.Set(fbu.ctx, dMap)
+						// update individual
+						iDocRef.Update(fbu.ctx, []firestore.Update{
+							{Path: "last", Value: sigHex},
+							{Path: "lseq", Value: firestore.Increment(1)},
+							{Path: "createTime", Value: time.Now().UnixMilli()},
+							{Path: "updateTime", Value: time.Now().UnixMilli()},
+						})
 
 						if addressStatusMap[addrHex] == core.AttitudeIgnoreContent {
 							// clear recv
