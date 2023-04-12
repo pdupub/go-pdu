@@ -66,10 +66,11 @@ type FBUniverse struct {
 }
 
 type PlatformConfig struct {
-	Platform string `json:"platform"`
-	Version  int    `json:"version"`
-	Action   string `json:"action"`
-	Params   string `json:"params,omitempty"`
+	Platform string   `json:"platform"`
+	Version  int      `json:"version"`
+	Action   string   `json:"action"`
+	Params   string   `json:"params,omitempty"`
+	Tags     []string `json:"tags,omitempty"`
 }
 
 const (
@@ -433,10 +434,13 @@ func (fbu *FBUniverse) executeInfoPlatformCustom(quantum *core.Quantum, qDocRef 
 		return
 	}
 
-	platformSetting := make(map[string]string)
+	platformSetting := make(map[string]interface{})
 	platformSetting["action"] = config.Action
 	if config.Action == platformActionComment || config.Action == platformActionReply {
 		platformSetting["param"] = config.Params
+	}
+	if len(config.Tags) > 0 {
+		platformSetting["tags"] = config.Tags
 	}
 	data := make(map[string]interface{})
 	data[config.Platform] = platformSetting
