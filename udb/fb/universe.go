@@ -461,6 +461,16 @@ func (fbu *FBUniverse) executeInfoPlatformCustom(quantum *core.Quantum, qDocRef 
 	}
 }
 
+func (fbu *FBUniverse) updateIndividualByJoinCommunity(sigHex, addrHex string) {
+	iDocRef := fbu.individualC.Doc(addrHex)
+	cDocRef := fbu.communityC.Doc(sigHex)
+	iDocRef.Update(fbu.ctx, []firestore.Update{
+		// todo check if already in that community before increase
+		{Path: "joinedNum", Value: firestore.Increment(1)},
+		{Path: "communities", Value: firestore.ArrayUnion(cDocRef)},
+	})
+}
+
 func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firestore.DocumentRef) {
 	qid, _ := quantum.Ecrecover()
 	addrHex := qid.Hex()
@@ -504,11 +514,13 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 
 		initMembers := []string{}
 		members := map[string]bool{addrHex: true}
+		fbu.updateIndividualByJoinCommunity(core.Sig2Hex(quantum.Signature), addrHex)
 		inviteCnt := map[string]int{addrHex: minCosignCnt}
 		for i := 3; i < len(quantum.Contents) && i < 16; i++ {
 			memberHex := string(quantum.Contents[i].Data)
 			initMembers = append(initMembers, memberHex)
 			members[memberHex] = true
+			fbu.updateIndividualByJoinCommunity(core.Sig2Hex(quantum.Signature), memberHex)
 			inviteCnt[memberHex] = minCosignCnt
 		}
 
@@ -563,6 +575,7 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 						mergeKeys = append(mergeKeys, []string{"inviteCnt", target})
 						if newCommunity.InviteCnt[target] >= int(dMap["minCosignCnt"].(float64)) {
 							newCommunity.Members[target] = true
+							fbu.updateIndividualByJoinCommunity(newCommunity.DefineSigHex, target)
 							mergeKeys = append(mergeKeys, []string{"members", target})
 						}
 					}
