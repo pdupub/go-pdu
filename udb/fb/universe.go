@@ -434,8 +434,11 @@ func (fbu *FBUniverse) executeInfoPlatformCustom(quantum *core.Quantum, qDocRef 
 		return
 	}
 
+	// add platform info on current quantum
 	platformSetting := make(map[string]interface{})
 	platformSetting["action"] = config.Action
+	platformSetting["platform"] = config.Platform
+	platformSetting["version"] = config.Version
 	if config.Action == platformActionComment || config.Action == platformActionReply {
 		platformSetting["param"] = config.Params
 	}
@@ -445,6 +448,17 @@ func (fbu *FBUniverse) executeInfoPlatformCustom(quantum *core.Quantum, qDocRef 
 	data := make(map[string]interface{})
 	data[config.Platform] = platformSetting
 	qDocRef.Set(fbu.ctx, data, firestore.Merge([]string{config.Platform}))
+
+	// update reply or comment info on target quantum
+	if config.Action == platformActionComment || config.Action == platformActionReply {
+		if config.Params != "" {
+			tDocRef := fbu.quantumC.Doc(config.Params)
+			tDocRef.Update(fbu.ctx, []firestore.Update{
+				{Path: config.Action, Value: firestore.ArrayUnion(qDocRef)},
+				{Path: config.Platform + "." + config.Action + "Num", Value: firestore.Increment(1)},
+			})
+		}
+	}
 }
 
 func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firestore.DocumentRef) {
