@@ -228,6 +228,18 @@ func (fbu *FBUniverse) getStatusLevelByAddressHex(addrHex string) int {
 	return statusLevel
 }
 
+func (fbu *FBUniverse) customProcess(sigHex, field string) (accept []core.Sig, wait []core.Sig, reject []core.Sig, err error) {
+	docSnapshot, err := fbu.quantumC.Doc(sigHex).Get(fbu.ctx)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	qRes, err := fbu.snapToQuantum(field, docSnapshot)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return fbu.proccessQuantums([]*core.Quantum{qRes})
+}
+
 func (fbu *FBUniverse) ProcessQuantums(limit, skip int) (accept []core.Sig, wait []core.Sig, reject []core.Sig, err error) {
 	// load unprocessed quantums
 	unprocessedQuantums, err := fbu.loadUnprocessedQuantums(limit, skip)

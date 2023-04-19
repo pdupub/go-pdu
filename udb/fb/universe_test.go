@@ -350,6 +350,20 @@ func testManualInviteQuantums(t *testing.T) {
 
 }
 
+func testCustomQuantum(t *testing.T) {
+	ctx := context.Background()
+	fbu, err := NewFBUniverse(ctx, testKeyJSON, testProjectID)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	sigHex := "0x0d6c6fbeb40c817e74c4890d2652f7edf610274a58c399bbb6eadf671b80ea430fafdd1a38bf5880e1e2c44dad7e8a4a62d6ae77e5daac061e956e16c29e2ccc01"
+	field := "origin"
+	if _, _, _, err := fbu.customProcess(sigHex, field); err != nil {
+		t.Error(err)
+	}
+}
+
 func testDealQuantums(t *testing.T) {
 	ctx := context.Background()
 	fbu, err := NewFBUniverse(ctx, testKeyJSON, testProjectID)
@@ -591,6 +605,7 @@ func TestMain(t *testing.T) {
 	// testCreateQuantums(t)
 	// testManualInviteQuantums(t)
 	testDealQuantums(t)
+	// testCustomQuantum(t)
 	// testCheckQuantum(t)
 	// testGetQuantums(t)
 	// testCommunityInfo(t)
