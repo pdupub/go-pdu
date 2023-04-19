@@ -154,12 +154,15 @@ func (fbu *FBUniverse) loadUnprocessedQuantum(sig core.Sig) (*core.Quantum, erro
 	if err != nil {
 		return nil, err
 	}
+	return fbu.snapToQuantum("recv", docSnapshot)
+}
+
+func (fbu *FBUniverse) snapToQuantum(field string, docSnapshot *firestore.DocumentSnapshot) (*core.Quantum, error) {
 	if docSnapshot == nil {
 		return nil, errDocumentLoadDataFail
 	}
-
 	qRes := &core.Quantum{}
-	if qBytes, ok := docSnapshot.Data()["recv"]; !ok || qBytes == nil {
+	if qBytes, ok := docSnapshot.Data()[field]; !ok || qBytes == nil {
 		return nil, errReceivedQuantumMissing
 	} else {
 		if err := json.Unmarshal(qBytes.([]byte), qRes); err != nil {
@@ -174,18 +177,8 @@ func (fbu *FBUniverse) loadUnprocessedQuantums(limit, skip int) ([]*core.Quantum
 	var receivedQuantums []*core.Quantum
 	iter := fbu.quantumC.Where("recv", "!=", []byte{}).Offset(skip).Limit(limit).Documents(fbu.ctx)
 	for docSnapshot, err := iter.Next(); err != iterator.Done; docSnapshot, err = iter.Next() {
-		if docSnapshot == nil {
-			return nil, errDocumentLoadDataFail
-		}
-
-		if qBytes, ok := docSnapshot.Data()["recv"]; ok {
-			qRes := &core.Quantum{}
-			if err := json.Unmarshal(qBytes.([]byte), qRes); err != nil {
-				// delete current quantums, (or set recv to "")
-				docSnapshot.Ref.Delete(fbu.ctx)
-			} else {
-				receivedQuantums = append(receivedQuantums, qRes)
-			}
+		if qRes, err := fbu.snapToQuantum("recv", docSnapshot); err == nil {
+			receivedQuantums = append(receivedQuantums, qRes)
 		}
 	}
 	return receivedQuantums, nil
