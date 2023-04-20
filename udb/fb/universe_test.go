@@ -357,8 +357,8 @@ func testCustomQuantum(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	sigHex := "0x0d6c6fbeb40c817e74c4890d2652f7edf610274a58c399bbb6eadf671b80ea430fafdd1a38bf5880e1e2c44dad7e8a4a62d6ae77e5daac061e956e16c29e2ccc01"
-	field := "origin"
+	sigHex := "0x688aeb87d9bd949ee39094320e3ff7a4d26da7a163ea50eff894abc1c1ed8b305f84fcf9be1d156184a23cc2a6d246e783336b31d381f95f29683d7e8e26abbc01"
+	field := "recv"
 	if _, _, _, err := fbu.customProcess(sigHex, field); err != nil {
 		t.Error(err)
 	}

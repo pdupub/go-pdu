@@ -584,7 +584,7 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 						mergeKeys = append(mergeKeys, []string{"inviteCnt", target})
 						if newCommunity.InviteCnt[target] >= int(dMap["minCosignCnt"].(float64)) {
 							newCommunity.Members[target] = true
-							fbu.updateIndividualByJoinCommunity(newCommunity.DefineSigHex, target)
+							fbu.updateIndividualByJoinCommunity(communtiyHex, target)
 							mergeKeys = append(mergeKeys, []string{"members", target})
 						}
 					}
