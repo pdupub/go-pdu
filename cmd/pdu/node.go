@@ -110,7 +110,9 @@ func DiagnosisCmd() *cobra.Command {
 					if individual == nil {
 						fmt.Println("Individual not exist")
 					} else {
-						fmt.Println(individual)
+						if nickname, ok := individual.Profile["nickname"]; ok {
+							fmt.Println(string(nickname.Data))
+						}
 					}
 				}
 
@@ -175,7 +177,10 @@ func DiagnosisCmd() *cobra.Command {
 				fmt.Println("----------------step 3 pass ---------------------")
 				fmt.Println("")
 				// check if the selfref already selfref by other quantum
-
+				nextQ := fbu.GetNextQuantum(q.References[0])
+				if nextQ != nil {
+					fmt.Println(shortSigHex(q.References[0]), "already have other follower", shortSigHex(nextQ.Signature))
+				}
 			}
 			return nil
 		},

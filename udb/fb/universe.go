@@ -769,6 +769,29 @@ func (fbu *FBUniverse) GetQuantumsOnWait() ([]*core.Quantum, error) {
 	return qs, nil
 }
 
+// GetNextQuantum is not belong to interface of core/universe
+// return nil if next not found
+func (fbu *FBUniverse) GetNextQuantum(sig core.Sig) *core.Quantum {
+
+	ref := map[string]string{"SigHex": core.Sig2Hex(sig)}
+	iter := fbu.quantumC.Query.Where("refs", "array-contains", ref).Documents(fbu.ctx)
+	for docSnapshot, err := iter.Next(); err != iterator.Done; docSnapshot, err = iter.Next() {
+		qRes, err := NewFBQuantumFromSnap(docSnapshot)
+		if err != nil {
+			continue
+		}
+		q, err := qRes.GetOriginQuantum()
+		if err != nil {
+			continue
+		}
+		if core.Sig2Hex(q.References[0]) == core.Sig2Hex(sig) {
+			return q
+		}
+
+	}
+	return nil
+}
+
 // GetQuantums is not belong to interface of core/universe
 // this function can be used to backup data by node owner or download data from node by user
 func (fbu *FBUniverse) GetQuantums(limit int, skip int, desc bool) ([]*core.Quantum, error) {
