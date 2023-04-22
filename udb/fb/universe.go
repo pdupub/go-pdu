@@ -746,6 +746,29 @@ func (fbu *FBUniverse) GetFBDataByTable(collection string) ([]byte, error) {
 	return json.Marshal(res)
 }
 
+// GetQuantumsOnWait is not belong to interface of core/universe
+func (fbu *FBUniverse) GetQuantumsOnWait() ([]*core.Quantum, error) {
+	var qs []*core.Quantum
+	quantumQuery := fbu.quantumC.Query.Where("waitLoop", "!=", 0)
+	iter := quantumQuery.Documents(fbu.ctx)
+	for docSnapshot, err := iter.Next(); err != iterator.Done; docSnapshot, err = iter.Next() {
+		if docSnapshot == nil {
+			break
+		}
+		q := core.Quantum{}
+		if d, err := docSnapshot.DataAt("ignoreByWaitLoop"); err == nil && d != nil {
+			if err := json.Unmarshal(d.([]byte), &q); err == nil {
+				qs = append(qs, &q)
+			}
+		} else if d, err := docSnapshot.DataAt("recv"); err == nil && d != nil {
+			if err := json.Unmarshal(d.([]byte), &q); err == nil {
+				qs = append(qs, &q)
+			}
+		}
+	}
+	return qs, nil
+}
+
 // GetQuantums is not belong to interface of core/universe
 // this function can be used to backup data by node owner or download data from node by user
 func (fbu *FBUniverse) GetQuantums(limit int, skip int, desc bool) ([]*core.Quantum, error) {

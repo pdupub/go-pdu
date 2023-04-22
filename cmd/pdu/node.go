@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -47,6 +48,7 @@ func NodeCmd() *cobra.Command {
 	cmd.Flags().StringVar(&firebaseKeyPath, "fbKeyPath", params.TestFirebaseAdminSDKPath, "path of firebase json key")
 	cmd.Flags().StringVar(&firebaseProjectID, "fbProjectID", params.TestFirebaseProjectID, "project ID")
 
+	cmd.AddCommand(DiagnosisCmd())
 	cmd.AddCommand(BackupCmd())
 	cmd.AddCommand(ExecuteCmd())
 	cmd.AddCommand(UploadCmd())
@@ -54,6 +56,50 @@ func NodeCmd() *cobra.Command {
 	cmd.AddCommand(JudgeCmd())
 	cmd.AddCommand(HideProcessedQuantumCmd())
 	return cmd
+}
+
+func DiagnosisCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "diagnosis",
+		Short: "diagnosis quantums on remote node",
+		Args:  cobra.NoArgs,
+		RunE: func(_ *cobra.Command, args []string) error {
+			ctx := context.Background()
+			fbu, err := fb.NewFBUniverse(ctx, firebaseKeyPath, firebaseProjectID)
+			if err != nil {
+				return err
+			}
+			qs, err := fbu.GetQuantumsOnWait()
+			if err != nil {
+				return err
+			}
+			fmt.Println(len(qs))
+			for i, quantum := range qs {
+				sigHex := core.Sig2Hex(quantum.Signature)
+				fmt.Println("(", i, ")", sigHex[:10], "...", sigHex[120:])
+			}
+
+			for {
+				res := question("please select the number of sigHex to be diagnosis (q for quit)", false)
+				if res == "q" || res == "Q" {
+					break
+				}
+				num, err := strconv.Atoi(res)
+				if err != nil {
+					fmt.Println(err)
+					continue
+				} else if num >= len(qs) {
+					fmt.Println("number not exist")
+					continue
+				}
+				// start to diagnosis
+
+			}
+			return nil
+		},
+	}
+	return cmd
+
 }
 
 // UploadCmd
