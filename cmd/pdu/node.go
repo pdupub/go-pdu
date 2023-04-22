@@ -75,8 +75,7 @@ func DiagnosisCmd() *cobra.Command {
 			}
 			fmt.Println(len(qs))
 			for i, quantum := range qs {
-				sigHex := core.Sig2Hex(quantum.Signature)
-				fmt.Println("(", i, ")", sigHex[:10], "...", sigHex[120:])
+				fmt.Println("(", i, ")", shortSigHex(quantum.Signature))
 			}
 
 			for {
@@ -93,6 +92,56 @@ func DiagnosisCmd() *cobra.Command {
 					continue
 				}
 				// start to diagnosis
+				// check self ref
+				q := qs[num]
+				if len(q.References) == 0 {
+					fmt.Println("self ref missing")
+					continue
+				} else {
+					fmt.Println("self ref is", shortSigHex(q.References[0]))
+				}
+				fmt.Println("----------------step 1 pass ---------------------")
+				// is the ref in wait list
+				selfRefOnWait := false
+				for i, item := range qs {
+					if core.Sig2Hex(item.Signature) == core.Sig2Hex(q.References[0]) {
+						fmt.Println("self reference on wait", i, shortSigHex(item.Signature))
+						selfRefOnWait = true
+					}
+				}
+				if selfRefOnWait {
+					continue
+				}
+				fmt.Println("----------------step 2 pass ---------------------")
+
+				// is self ref is exist on firestore
+				parentQ, err := fbu.GetQuantum(q.References[0])
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
+				fmt.Println("----------------step 3 pass ---------------------")
+
+				// check if the two quantum from same author
+				pAddr, err := parentQ.Ecrecover()
+				if err != nil {
+					fmt.Println("Ecrecover ref[0] err", err)
+					continue
+				}
+
+				qAddr, err := q.Ecrecover()
+				if err != nil {
+					fmt.Println("Ecrecover diagnosis quantum err", err)
+					continue
+				}
+
+				if pAddr.Hex() != qAddr.Hex() {
+					fmt.Println("err : self ref from other author")
+					continue
+				}
+				fmt.Println("----------------step 4 pass ---------------------")
+
+				// check if the selfref already selfref by other quantum
 
 			}
 			return nil

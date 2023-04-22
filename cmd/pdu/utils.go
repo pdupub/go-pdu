@@ -22,6 +22,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/pdupub/go-pdu/core"
 )
 
 func boolChoice(tip string) bool {
@@ -76,4 +78,13 @@ func question(tip string, isMultiple bool) string {
 	}
 
 	return strings.TrimSuffix(inputText, "\n")
+}
+
+func shortSigHex(sig core.Sig) string {
+	sigHex := core.Sig2Hex(sig)
+	if sigHex == core.Sig2Hex(core.FirstQuantumReference) {
+		return "0x00"
+	}
+	shortSigHex := sigHex[:10] + "..." + sigHex[120:]
+	return shortSigHex
 }
