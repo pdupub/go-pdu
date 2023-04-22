@@ -94,13 +94,44 @@ func DiagnosisCmd() *cobra.Command {
 				// start to diagnosis
 				// check self ref
 				q := qs[num]
+				// display quantum
+				fmt.Println("")
+				fmt.Println("------------------------------------------------")
+				fmt.Println("Signature", shortSigHex(q.Signature))
+				address, err := q.Ecrecover()
+				if err != nil {
+					fmt.Println("Ecrecover fail")
+				}
+				fmt.Println("Author", address.Hex())
+				individual, err := fbu.GetIndividual(address)
+				if err != nil {
+					fmt.Println("GetIndividual fail", err)
+				} else {
+					if individual == nil {
+						fmt.Println("Individual not exist")
+					} else {
+						fmt.Println(individual)
+					}
+				}
+
 				if len(q.References) == 0 {
 					fmt.Println("self ref missing")
 					continue
 				} else {
-					fmt.Println("self ref is", shortSigHex(q.References[0]))
+					for i, ref := range q.References {
+						fmt.Println("Reference [", i, "]", shortSigHex(ref))
+					}
 				}
-				fmt.Println("----------------step 1 pass ---------------------")
+				readablecs, err := fb.CS2Readable(q.Contents)
+				if err != nil {
+					fmt.Println("parse content fail", err)
+				}
+				for _, rc := range readablecs.([]interface{}) {
+					fmt.Println(rc)
+				}
+
+				fmt.Println("------------------------------------------------")
+				fmt.Println("")
 				// is the ref in wait list
 				selfRefOnWait := false
 				for i, item := range qs {
@@ -112,7 +143,8 @@ func DiagnosisCmd() *cobra.Command {
 				if selfRefOnWait {
 					continue
 				}
-				fmt.Println("----------------step 2 pass ---------------------")
+				fmt.Println("----------------step 1 pass ---------------------")
+				fmt.Println("")
 
 				// is self ref is exist on firestore
 				parentQ, err := fbu.GetQuantum(q.References[0])
@@ -120,7 +152,8 @@ func DiagnosisCmd() *cobra.Command {
 					fmt.Println(err)
 					continue
 				}
-				fmt.Println("----------------step 3 pass ---------------------")
+				fmt.Println("----------------step 2 pass ---------------------")
+				fmt.Println("")
 
 				// check if the two quantum from same author
 				pAddr, err := parentQ.Ecrecover()
@@ -139,8 +172,8 @@ func DiagnosisCmd() *cobra.Command {
 					fmt.Println("err : self ref from other author")
 					continue
 				}
-				fmt.Println("----------------step 4 pass ---------------------")
-
+				fmt.Println("----------------step 3 pass ---------------------")
+				fmt.Println("")
 				// check if the selfref already selfref by other quantum
 
 			}
