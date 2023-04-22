@@ -75,7 +75,12 @@ func DiagnosisCmd() *cobra.Command {
 			}
 			fmt.Println(len(qs))
 			for i, quantum := range qs {
-				fmt.Println("(", i, ")", shortSigHex(quantum.Signature))
+				author := "unknown"
+				addr, err := quantum.Ecrecover()
+				if err == nil {
+					author = addr.Hex()
+				}
+				fmt.Println("(", i, ")", shortSigHex(quantum.Signature), "---", author)
 			}
 
 			for {
