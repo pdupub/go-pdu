@@ -84,10 +84,19 @@ func DiagnosisCmd() *cobra.Command {
 			}
 
 			for {
-				res := question("please select the number of sigHex to be diagnosis (q for quit)", false)
+				res := question("please select the number of sigHex to be diagnosis (q for quit / remove for delete all waits)", false)
 				if res == "q" || res == "Q" {
 					break
 				}
+				if res == "remove" {
+					var sigs []core.Sig
+					for _, q := range qs {
+						sigs = append(sigs, q.Signature)
+					}
+					fbu.RemoveQuantumsFromNode(sigs)
+					break
+				}
+
 				num, err := strconv.Atoi(res)
 				if err != nil {
 					fmt.Println(err)

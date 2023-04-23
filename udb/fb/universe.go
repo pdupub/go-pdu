@@ -792,6 +792,14 @@ func (fbu *FBUniverse) GetNextQuantum(sig core.Sig) *core.Quantum {
 	return nil
 }
 
+// RemoveQuantumsFromNode is not belong to interface of core/universe
+// no msg can be deleted from system
+func (fbu *FBUniverse) RemoveQuantumsFromNode(sigs []core.Sig) {
+	for _, sig := range sigs {
+		fbu.quantumC.Doc(core.Sig2Hex(sig)).Delete(fbu.ctx)
+	}
+}
+
 // GetQuantums is not belong to interface of core/universe
 // this function can be used to backup data by node owner or download data from node by user
 func (fbu *FBUniverse) GetQuantums(limit int, skip int, desc bool) ([]*core.Quantum, error) {
