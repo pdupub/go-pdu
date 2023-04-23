@@ -38,6 +38,7 @@ service cloud.firestore {
 | quantum	| address Ascending createTime Descending __name__ Descending	| Collection | Enabled	|
 | quantum	| address Ascending seq Descending __name__ Descending	| Collection	|	Enabled	|
 | quantum	| ios.action Ascending ios.param Ascending seq Descending __name__ Descending	| Collection	|	Enabled	|
+| individua | attitude.level Ascending updateTime Descending __name__ Descending | Collection | Enabled |
 
 
 ## Rules of Storage
