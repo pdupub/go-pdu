@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/pdupub/go-pdu/core"
 	"github.com/pdupub/go-pdu/identity"
@@ -32,43 +33,65 @@ import (
 
 // MsgCmd is used to create, add references, sign and upload Message
 func MsgCmd() *cobra.Command {
+	var importQuantumJSON string
+
 	cmd := &cobra.Command{
 		Use:   "msg",
 		Short: "Create and Broadcast Message (For test your own node)",
 		Args:  cobra.RangeArgs(0, 1),
 		RunE: func(_ *cobra.Command, args []string) (err error) {
-			var currentDID *identity.DID
-			// step 0: select the type of quantum and fill contents.
-			q, err := initQuantum()
-			if err != nil {
-				return err
-			}
-			nextStep := boolChoice("unlock the wallet?")
-
-			// step 1: unlock the test wallet
-			if nextStep {
-				if currentDID, err = unlockTestWallet(); err != nil {
+			var q *core.Quantum
+			nextStep := false
+			addrHex := ""
+			if importQuantumJSON != "" {
+				importQuantumJSON = strings.TrimSpace(importQuantumJSON)
+				tmpQ := core.Quantum{}
+				err = json.Unmarshal([]byte(importQuantumJSON), &tmpQ)
+				if err != nil {
 					return err
 				}
-				nextStep = boolChoice("continue to add references?")
-			}
-
-			// step 2: add the references list
-			if nextStep {
-				if q, err = addRefs(q, currentDID); err != nil {
+				q = &tmpQ
+				addr, err := q.Ecrecover()
+				if err != nil {
 					return err
 				}
-				nextStep = boolChoice("sign the quantum now?")
-			}
-
-			// step 3: sign quantum.
-			if nextStep {
-				if err = q.Sign(currentDID); err != nil {
-					return err
-				}
+				addrHex = addr.Hex()
 				nextStep = boolChoice("upload to Firebase?")
-			}
+			} else {
+				var currentDID *identity.DID
 
+				// step 0: select the type of quantum and fill contents.
+				q, err = initQuantum()
+				if err != nil {
+					return err
+				}
+				nextStep = boolChoice("unlock the wallet?")
+
+				// step 1: unlock the test wallet
+				if nextStep {
+					if currentDID, err = unlockTestWallet(); err != nil {
+						return err
+					}
+					addrHex = currentDID.GetAddress().Hex()
+					nextStep = boolChoice("continue to add references?")
+				}
+
+				// step 2: add the references list
+				if nextStep {
+					if q, err = addRefs(q, currentDID); err != nil {
+						return err
+					}
+					nextStep = boolChoice("sign the quantum now?")
+				}
+
+				// step 3: sign quantum.
+				if nextStep {
+					if err = q.Sign(currentDID); err != nil {
+						return err
+					}
+					nextStep = boolChoice("upload to Firebase?")
+				}
+			}
 			// stpe 4: upload to firebase.
 			// In the reproduction environment, this step should
 			// be performed on the mobile phone
@@ -89,7 +112,7 @@ func MsgCmd() *cobra.Command {
 					record := make(map[string]interface{})
 					record["sig"] = core.Sig2Hex(q.Signature)
 					record["json"] = jsonData
-					addRecord(currentDID.GetAddress().Hex(), record)
+					addRecord(addrHex, record)
 				}
 			}
 			// display the information no matter which step got.
@@ -97,6 +120,7 @@ func MsgCmd() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.PersistentFlags().StringVar(&importQuantumJSON, "quantumJson", "", "JSON of signed quantum, wrapped with '''")
 	return cmd
 }
 
@@ -221,6 +245,9 @@ func addRefs(quantum *core.Quantum, did *identity.DID) (*core.Quantum, error) {
 		selfRef = question("please input the self-reference(return if not)", false)
 	} else {
 		fmt.Println("self reference is ", selfRef[:16]+"..."+selfRef[110:])
+		if boolChoice("use another self-reference") {
+			selfRef = question("please input new self-reference", false)
+		}
 	}
 
 	if len(selfRef) != 0 {
