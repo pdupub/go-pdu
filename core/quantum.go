@@ -52,7 +52,7 @@ const (
 	// contents = [key1, newValue which content with empty data]
 	QuantumTypeProfile = 1
 
-	// QuantumTypeSpecies specifies the quantum of rule to build new species
+	// QuantumTypeSpeciation specifies the quantum of rule to build new species
 	// contents[0] is the display information of current species
 	// {fmt:QCFmtStringJSON/QCFmtStringTEXT..., data: ...}
 	// contents[1] is the number of invitation (co-signature) from users in current species
@@ -62,7 +62,7 @@ const (
 	// contents[3] ~ contents[15] is the initial users in this species
 	// {fmt:QCFmtBytesAddress/QCFmtStringAddressHex, data:0x1232...}
 	// signer of this species is also the initial user in this species
-	QuantumTypeSpecies = 2
+	QuantumTypeSpeciation = 2
 
 	// QuantumTypeInvitation specifies the quantum of invitation
 	// contents[0] is the signature of target species rule quantum
@@ -205,7 +205,7 @@ func CreateSpeciesQuantum(note string, minCosignCnt int, maxInviteCnt int, initA
 		qcs = append(qcs, &QContent{Format: QCFmtStringAddressHex, Data: []byte(addrHex)})
 	}
 
-	return NewQuantum(QuantumTypeSpecies, qcs, refs...)
+	return NewQuantum(QuantumTypeSpeciation, qcs, refs...)
 }
 
 func CreateInvitationQuantum(target Sig, addrsHex []string, refs ...Sig) (*Quantum, error) {

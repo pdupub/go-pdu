@@ -47,7 +47,7 @@ func TestNewSpecies(t *testing.T) {
 
 	baseSig := Sig([]byte("0x070d15041083041b48d0f2297357ce59ad18f6c608d70a1e6e04bcf494e366db"))
 
-	newQuantum, _ := NewQuantum(QuantumTypeSpecies, contents, baseSig)
+	newQuantum, _ := NewQuantum(QuantumTypeSpeciation, contents, baseSig)
 	if err := newQuantum.Sign(creator); err != nil {
 		t.Error(err)
 	}

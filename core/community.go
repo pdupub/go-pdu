@@ -32,7 +32,7 @@ type Species struct {
 }
 
 func NewSpecies(quantum *Quantum) (*Species, error) {
-	if quantum.Type != QuantumTypeSpecies {
+	if quantum.Type != QuantumTypeSpeciation {
 		return nil, errQuantumTypeNotFit
 	}
 	creator, err := quantum.Ecrecover()

@@ -152,7 +152,7 @@ func initQuantum() (*core.Quantum, error) {
 			profiles[k] = v
 		}
 		return core.CreateProfileQuantum(profiles, core.FirstQuantumReference)
-	case core.QuantumTypeSpecies:
+	case core.QuantumTypeSpeciation:
 		note := question("note of species", true)
 		minCosignCnt, err := strconv.Atoi(question("minimum count of cosign", false))
 		if err != nil {

@@ -511,7 +511,7 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 		dMap["updateTime"] = time.Now().UnixMilli()
 		mergeKeys = append(mergeKeys, []string{"updateTime"})
 		iDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
-	case core.QuantumTypeSpecies:
+	case core.QuantumTypeSpeciation:
 		minCosignCnt, err := strconv.Atoi(string(quantum.Contents[1].Data))
 		if err != nil {
 			minCosignCnt = 1
