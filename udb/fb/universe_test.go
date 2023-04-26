@@ -41,7 +41,7 @@ var testProjectID = params.TestFirebaseProjectID
 const (
 	collectionQuantum    = "quantum"
 	collectionUniverse   = "universe"
-	collectionCommunity  = "community"
+	collectionSpecies    = "species"
 	collectionIndividual = "individual"
 )
 
@@ -68,11 +68,11 @@ func testCreateInviteQuantum(t *testing.T, ctx context.Context, client *firestor
 	return testUploadQuantum(t, ctx, client, q)
 }
 
-func testCreateCommunityQuantum(t *testing.T, ctx context.Context, client *firestore.Client, did *identity.DID,
+func testCreateSpeciesQuantum(t *testing.T, ctx context.Context, client *firestore.Client, did *identity.DID,
 	note string, minCosignCnt int, maxInviteCnt int, initAddrsHex []string,
 	refs ...core.Sig) (*core.Quantum, *firestore.DocumentRef) {
 
-	q, err := core.CreateCommunityQuantum(note, minCosignCnt, maxInviteCnt, initAddrsHex, refs...)
+	q, err := core.CreateSpeciesQuantum(note, minCosignCnt, maxInviteCnt, initAddrsHex, refs...)
 	if err != nil {
 		t.Error(err)
 	}
@@ -134,8 +134,8 @@ func testClearQuantum(t *testing.T) {
 		docRef.Delete(ctx)
 	}
 
-	communityCollection := client.Collection(collectionCommunity)
-	docRefs, err = communityCollection.DocumentRefs(ctx).GetAll()
+	speciesCollection := client.Collection(collectionSpecies)
+	docRefs, err = speciesCollection.DocumentRefs(ctx).GetAll()
 	if err != nil {
 		t.Error(err)
 		return
@@ -292,7 +292,7 @@ func testCreateQuantums(t *testing.T) {
 	q5, _ := testCreateProfileQuantum(t, ctx, client, did2, profile2, ref2[len(ref2)-1], ref3[len(ref3)-1], q2.Signature)
 	ref2 = append(ref2, q5.Signature)
 
-	q6, _ := testCreateCommunityQuantum(t, ctx, client, did3, "Tody is Great", 2, 3, []string{did1.GetAddress().Hex(), did2.GetAddress().Hex()}, ref3[len(ref3)-1], q5.Signature)
+	q6, _ := testCreateSpeciesQuantum(t, ctx, client, did3, "Tody is Great", 2, 3, []string{did1.GetAddress().Hex(), did2.GetAddress().Hex()}, ref3[len(ref3)-1], q5.Signature)
 	ref3 = append(ref3, q6.Signature)
 
 	q7, _ := testCreateInviteQuantum(t, ctx, client, did3, q6.Signature, []string{did4.GetAddress().Hex()}, ref3[len(ref3)-1], q6.Signature, q5.Signature)
@@ -308,7 +308,7 @@ func testCreateQuantums(t *testing.T) {
 	t.Log("did2 last sig: ", core.Sig2Hex(ref2[len(ref2)-1]))
 	t.Log("did3 last sig: ", core.Sig2Hex(ref3[len(ref3)-1]))
 
-	t.Log("community sig: ", core.Sig2Hex(q6.Signature))
+	t.Log("species sig: ", core.Sig2Hex(q6.Signature))
 
 }
 
@@ -338,12 +338,12 @@ func testManualInviteQuantums(t *testing.T) {
 
 	// did1, did2, did3 exist in communtiy
 	extraInviteAddrHexList := []string{"0x00008Bd373Ac9f168f087E976d0068732fbD6835"}
-	communityDefineSig := core.Hex2Sig("0x4ac617c2ead08dd4ae046c048200e74c64d7b93f22f12c78d3f85b539afb94982157837dae9e4720193f64b480509a7815cda6ca356025555c1df631d995a62e01")
+	speciesDefineSig := core.Hex2Sig("0x4ac617c2ead08dd4ae046c048200e74c64d7b93f22f12c78d3f85b539afb94982157837dae9e4720193f64b480509a7815cda6ca356025555c1df631d995a62e01")
 	did1SelfRef := core.Hex2Sig("0x5c9110f071ee589a918f26b988dba3b990300e372392ceb83e36515d8beeef4a7bf5838123dc0b1f0717ed8b68e7be270538a954f5b17529bae44c412714d0f000")
 	did3SelfRef := core.Hex2Sig("0xadd9248fdeeb795bf0b6758418f28570075547019324eac7fb0d4e686709106a158a0929956bac853f1e70bf1de28e03c929e46514c6d0a85927fb6ec8d8948000")
 
-	q1, _ := testCreateInviteQuantum(t, ctx, client, did1, communityDefineSig, extraInviteAddrHexList, did1SelfRef, did3SelfRef)
-	q2, _ := testCreateInviteQuantum(t, ctx, client, did3, communityDefineSig, extraInviteAddrHexList, did3SelfRef, did1SelfRef)
+	q1, _ := testCreateInviteQuantum(t, ctx, client, did1, speciesDefineSig, extraInviteAddrHexList, did1SelfRef, did3SelfRef)
+	q2, _ := testCreateInviteQuantum(t, ctx, client, did3, speciesDefineSig, extraInviteAddrHexList, did3SelfRef, did1SelfRef)
 
 	t.Log("did1 last sig: ", core.Sig2Hex(q1.Signature))
 	t.Log("did3 last sig: ", core.Sig2Hex(q2.Signature))
@@ -457,8 +457,8 @@ func testTemp(t *testing.T) {
 	}
 }
 
-func testCommunityInfo(t *testing.T) {
-	t.Log("community test")
+func testSpeciesInfo(t *testing.T) {
+	t.Log("species test")
 	ctx := context.Background()
 	var fbu core.Universe
 	var err error
@@ -475,11 +475,11 @@ func testCommunityInfo(t *testing.T) {
 	// }
 	comSig := core.Hex2Sig("0x4ac617c2ead08dd4ae046c048200e74c64d7b93f22f12c78d3f85b539afb94982157837dae9e4720193f64b480509a7815cda6ca356025555c1df631d995a62e01")
 	// comSig := core.Hex2Sig("0xe2f00788cd5a4ba91c6c0a1e6e0944da1631a236ed7df74b83521dba9397dcd44f4c46792f0235099cc7352e33d82be29da1b08f23e25276a7095100862e2ac601")
-	// community, err := fbu.GetCommunity(comSig)
+	// species, err := fbu.GetSpecies(comSig)
 	// if err != nil {
 	// 	t.Error(err)
 	// }
-	// t.Log(community)
+	// t.Log(species)
 
 	individuals, err := fbu.QueryIndividuals(comSig, 1, 4, false)
 	if err != nil {
@@ -608,7 +608,7 @@ func TestMain(t *testing.T) {
 	// testCustomQuantum(t)
 	// testCheckQuantum(t)
 	// testGetQuantums(t)
-	// testCommunityInfo(t)
+	// testSpeciesInfo(t)
 	// testTemp(t)
 	// testShowPrivateKey(t)
 	// testProcessOriginQuantum(t)

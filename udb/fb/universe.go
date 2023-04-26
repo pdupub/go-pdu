@@ -60,7 +60,7 @@ type FBUniverse struct {
 	client      *firestore.Client
 	status      *UniverseStatus
 	quantumC    *firestore.CollectionRef
-	communityC  *firestore.CollectionRef
+	speciesC    *firestore.CollectionRef
 	individualC *firestore.CollectionRef
 	universeC   *firestore.CollectionRef
 }
@@ -99,7 +99,7 @@ func NewFBUniverse(ctx context.Context, keyFilename string, projectID string) (*
 	}
 	fbu.client = client
 	fbu.quantumC = fbu.client.Collection("quantum")
-	fbu.communityC = fbu.client.Collection("community")
+	fbu.speciesC = fbu.client.Collection("species")
 	fbu.individualC = fbu.client.Collection("individual")
 	fbu.universeC = fbu.client.Collection("universe")
 
@@ -470,13 +470,13 @@ func (fbu *FBUniverse) executeInfoPlatformCustom(quantum *core.Quantum, qDocRef 
 	}
 }
 
-func (fbu *FBUniverse) updateIndividualByJoinCommunity(sigHex, addrHex string) {
+func (fbu *FBUniverse) updateIndividualByJoinSpecies(sigHex, addrHex string) {
 	iDocRef := fbu.individualC.Doc(addrHex)
-	cDocRef := fbu.communityC.Doc(sigHex)
+	cDocRef := fbu.speciesC.Doc(sigHex)
 	iDocRef.Update(fbu.ctx, []firestore.Update{
-		// todo check if already in that community before increase
+		// todo check if already in that species before increase
 		{Path: "joinedNum", Value: firestore.Increment(1)},
-		{Path: "communities", Value: firestore.ArrayUnion(cDocRef)},
+		{Path: "species", Value: firestore.ArrayUnion(cDocRef)},
 	})
 }
 
@@ -511,7 +511,7 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 		dMap["updateTime"] = time.Now().UnixMilli()
 		mergeKeys = append(mergeKeys, []string{"updateTime"})
 		iDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
-	case core.QuantumTypeCommunity:
+	case core.QuantumTypeSpecies:
 		minCosignCnt, err := strconv.Atoi(string(quantum.Contents[1].Data))
 		if err != nil {
 			minCosignCnt = 1
@@ -523,17 +523,17 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 
 		initMembers := []string{}
 		members := map[string]bool{addrHex: true}
-		fbu.updateIndividualByJoinCommunity(core.Sig2Hex(quantum.Signature), addrHex)
+		fbu.updateIndividualByJoinSpecies(core.Sig2Hex(quantum.Signature), addrHex)
 		inviteCnt := map[string]int{addrHex: minCosignCnt}
 		for i := 3; i < len(quantum.Contents) && i < 16; i++ {
 			memberHex := string(quantum.Contents[i].Data)
 			initMembers = append(initMembers, memberHex)
 			members[memberHex] = true
-			fbu.updateIndividualByJoinCommunity(core.Sig2Hex(quantum.Signature), memberHex)
+			fbu.updateIndividualByJoinSpecies(core.Sig2Hex(quantum.Signature), memberHex)
 			inviteCnt[memberHex] = minCosignCnt
 		}
 
-		dMap, _ := FBStruct2Data(&FBCommunity{
+		dMap, _ := FBStruct2Data(&FBSpecies{
 			Note:           quantum.Contents[0],
 			DefineSigHex:   core.Sig2Hex(quantum.Signature),
 			CreatorAddrHex: addrHex,
@@ -546,7 +546,7 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 
 		dMap["createTime"] = time.Now().UnixMilli()
 		dMap["updateTime"] = time.Now().UnixMilli()
-		cDocRef := fbu.communityC.Doc(core.Sig2Hex(quantum.Signature))
+		cDocRef := fbu.speciesC.Doc(core.Sig2Hex(quantum.Signature))
 		cDocRef.Set(fbu.ctx, dMap)
 
 	case core.QuantumTypeInvitation:
@@ -564,7 +564,7 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 			}
 		}
 
-		cDocRef := fbu.communityC.Doc(communtiyHex)
+		cDocRef := fbu.speciesC.Doc(communtiyHex)
 		if snapshot, err := cDocRef.Get(fbu.ctx); err == nil {
 			dMap := snapshot.Data()
 
@@ -574,21 +574,21 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 
 					// TODO : count if out of max sign limit
 					var mergeKeys []firestore.FieldPath
-					newCommunity := &FBCommunity{Members: make(map[string]bool), InviteCnt: make(map[string]int)}
+					newSpecies := &FBSpecies{Members: make(map[string]bool), InviteCnt: make(map[string]int)}
 					for target := range targets {
 						if cnt, ok := inviteCnt[target]; ok {
-							newCommunity.InviteCnt[target] = int(cnt.(float64)) + 1
+							newSpecies.InviteCnt[target] = int(cnt.(float64)) + 1
 						} else {
-							newCommunity.InviteCnt[target] = 1
+							newSpecies.InviteCnt[target] = 1
 						}
 						mergeKeys = append(mergeKeys, []string{"inviteCnt", target})
-						if newCommunity.InviteCnt[target] >= int(dMap["minCosignCnt"].(float64)) {
-							newCommunity.Members[target] = true
-							fbu.updateIndividualByJoinCommunity(communtiyHex, target)
+						if newSpecies.InviteCnt[target] >= int(dMap["minCosignCnt"].(float64)) {
+							newSpecies.Members[target] = true
+							fbu.updateIndividualByJoinSpecies(communtiyHex, target)
 							mergeKeys = append(mergeKeys, []string{"members", target})
 						}
 					}
-					dMap, _ := FBStruct2Data(newCommunity)
+					dMap, _ := FBStruct2Data(newSpecies)
 					dMap["updateTime"] = time.Now().UnixMilli()
 					mergeKeys = append(mergeKeys, []string{"updateTime"})
 					cDocRef.Set(fbu.ctx, dMap, firestore.Merge(mergeKeys...))
@@ -846,26 +846,26 @@ func (fbu *FBUniverse) JudgeIndividual(address identity.Address, level int, judg
 	return nil
 }
 
-func (fbu *FBUniverse) JudgeCommunity(sig core.Sig, level int, statement string) error {
-	// defulat community should be not follow
+func (fbu *FBUniverse) JudgeSpecies(sig core.Sig, level int, statement string) error {
+	// defulat species should be not follow
 	return nil
 }
 
 func (fbu *FBUniverse) QueryIndividuals(sig core.Sig, skip int, limit int, desc bool) ([]*core.Individual, error) {
 	docID := core.Sig2Hex(sig)
-	docRef := fbu.communityC.Doc(docID)
+	docRef := fbu.speciesC.Doc(docID)
 	docSnapshot, err := docRef.Get(fbu.ctx)
 	if err != nil {
 		return nil, err
 	}
-	fbCommunity, err := Data2FBCommunity(docSnapshot.Data())
+	fbSpecies, err := Data2FBSpecies(docSnapshot.Data())
 	if err != nil {
 		return nil, err
 	}
 	index := 0
 	count := 0
 	individuals := []*core.Individual{}
-	for addrHex := range fbCommunity.Members {
+	for addrHex := range fbSpecies.Members {
 		if skip <= index {
 			if ind, err := fbu.GetIndividual(identity.HexToAddress(addrHex)); err == nil {
 				individuals = append(individuals, ind)
@@ -880,24 +880,24 @@ func (fbu *FBUniverse) QueryIndividuals(sig core.Sig, skip int, limit int, desc 
 	return individuals, nil
 }
 
-func (fbu *FBUniverse) GetCommunity(sig core.Sig) (*core.Community, error) {
+func (fbu *FBUniverse) GetSpecies(sig core.Sig) (*core.Species, error) {
 	docID := core.Sig2Hex(sig)
-	docRef := fbu.communityC.Doc(docID)
+	docRef := fbu.speciesC.Doc(docID)
 	docSnapshot, err := docRef.Get(fbu.ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	fbCommunity, err := Data2FBCommunity(docSnapshot.Data())
+	fbSpecies, err := Data2FBSpecies(docSnapshot.Data())
 	if err != nil {
 		return nil, err
 	}
 
-	community, err := FBCommunity2Community(docID, fbCommunity)
+	species, err := FBSpecies2Species(docID, fbSpecies)
 	if err != nil {
 		return nil, err
 	}
-	return community, nil
+	return species, nil
 }
 
 func (fbu *FBUniverse) GetIndividual(address identity.Address) (*core.Individual, error) {

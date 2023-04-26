@@ -52,28 +52,28 @@ const (
 	// contents = [key1, newValue which content with empty data]
 	QuantumTypeProfile = 1
 
-	// QuantumTypeCommunity specifies the quantum of rule to build new community
-	// contents[0] is the display information of current community
+	// QuantumTypeSpecies specifies the quantum of rule to build new species
+	// contents[0] is the display information of current species
 	// {fmt:QCFmtStringJSON/QCFmtStringTEXT..., data: ...}
-	// contents[1] is the number of invitation (co-signature) from users in current community
+	// contents[1] is the number of invitation (co-signature) from users in current species
 	// {fmt:QCFmtStringInt, data:1} at least 1. (creater is absolutely same with others)
 	// contents[2] is the max number of invitation by one user
 	// {fmt:QCFmtStringInt, data:1} -1 means no limit, 0 means not allowed
-	// contents[3] ~ contents[15] is the initial users in this community
+	// contents[3] ~ contents[15] is the initial users in this species
 	// {fmt:QCFmtBytesAddress/QCFmtStringAddressHex, data:0x1232...}
-	// signer of this community is also the initial user in this community
-	QuantumTypeCommunity = 2
+	// signer of this species is also the initial user in this species
+	QuantumTypeSpecies = 2
 
 	// QuantumTypeInvitation specifies the quantum of invitation
-	// contents[0] is the signature of target community rule quantum
-	// {fmt:QCFmtBytesSignature/QCFmtStringSignatureHex, data:signature of target community rule quantum}
+	// contents[0] is the signature of target species rule quantum
+	// {fmt:QCFmtBytesSignature/QCFmtStringSignatureHex, data:signature of target species rule quantum}
 	// contents[1] ~ contents[n] is the address of be invited
 	// {fmt:QCFmtBytesAddress/QCFmtStringAddressHex, data:0x123...}
 	// no matter all invitation send in same quantum of different quantum
 	// only first n address (rule.contents[2]) will be accepted
-	// user can not quit community, but any user can block any other user (or self) from any community
-	// accepted by any community is decided by user in that community feel about u, not opposite.
-	// User belong to community, quantum belong to user. (On trandation forum, posts usually belong to
+	// user can not quit species, but any user can block any other user (or self) from any species
+	// accepted by any species is decided by user in that species feel about u, not opposite.
+	// User belong to species, quantum belong to user. (On trandation forum, posts usually belong to
 	// one topic and have lots of tag, is just the function easy to implemnt not base struct here)
 	QuantumTypeInvitation = 3
 
@@ -195,7 +195,7 @@ func CreateProfileQuantum(profiles map[string]interface{}, refs ...Sig) (*Quantu
 	return NewQuantum(QuantumTypeProfile, qcs, refs...)
 }
 
-func CreateCommunityQuantum(note string, minCosignCnt int, maxInviteCnt int, initAddrsHex []string, refs ...Sig) (*Quantum, error) {
+func CreateSpeciesQuantum(note string, minCosignCnt int, maxInviteCnt int, initAddrsHex []string, refs ...Sig) (*Quantum, error) {
 	var qcs []*QContent
 
 	qcs = append(qcs, CreateTextContent(note))
@@ -205,7 +205,7 @@ func CreateCommunityQuantum(note string, minCosignCnt int, maxInviteCnt int, ini
 		qcs = append(qcs, &QContent{Format: QCFmtStringAddressHex, Data: []byte(addrHex)})
 	}
 
-	return NewQuantum(QuantumTypeCommunity, qcs, refs...)
+	return NewQuantum(QuantumTypeSpecies, qcs, refs...)
 }
 
 func CreateInvitationQuantum(target Sig, addrsHex []string, refs ...Sig) (*Quantum, error) {

@@ -290,13 +290,13 @@ func BackupCmd() *cobra.Command {
 
 			}
 
-			if coms, err := fbu.GetFBDataByTable("community"); err != nil {
+			if coms, err := fbu.GetFBDataByTable("species"); err != nil {
 				return err
 			} else {
 				if err = os.WriteFile(fmt.Sprintf("./backup_communties_%d", timestamp), coms, 0644); err != nil {
 					return err
 				}
-				fmt.Println("communities backup finished!")
+				fmt.Println("species backup finished!")
 
 			}
 
@@ -331,11 +331,11 @@ func HideProcessedQuantumCmd() *cobra.Command {
 	return cmd
 }
 
-// JudgeCmd used to judge Individual and Community on your own node.
+// JudgeCmd used to judge Individual and Species on your own node.
 func JudgeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "judge",
-		Short: "Judge Individual & Community on your own node",
+		Short: "Judge Individual & Species on your own node",
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
 
@@ -345,7 +345,7 @@ func JudgeCmd() *cobra.Command {
 				return err
 			}
 
-			_, target := multiChoice("please select the target", "Individual", "Community")
+			_, target := multiChoice("please select the target", "Individual", "Species")
 			if target == 0 {
 				addrHex := question("please provide the address which you want to reset the level", false)
 				// TODO: addrHex should check
@@ -438,7 +438,7 @@ func truncate() error {
 	}
 	defer client.Close()
 
-	if err := truncateTable(client, ctx, "community"); err != nil {
+	if err := truncateTable(client, ctx, "species"); err != nil {
 		return err
 	}
 	if err := truncateTable(client, ctx, "individual"); err != nil {

@@ -42,17 +42,17 @@ type Universe interface {
 	// JudgeIndividual update the attitude towards Individual and how to process quantums from this signer.
 	JudgeIndividual(address identity.Address, level int, judgment string, evidence ...[]Sig) error
 
-	// JudgeCommunity update the attitude towards Community, decide if filter the individual in this community or not
-	JudgeCommunity(sig Sig, level int, statement string) error
+	// JudgeSpecies update the attitude towards species, decide if filter the individual in this species or not
+	JudgeSpecies(sig Sig, level int, statement string) error
 
 	// QueryQuantums query quantums from whole accepted quantums if address is nil, not filter by type if qType is 0
 	QueryQuantums(address identity.Address, qType int, skip int, limit int, desc bool) ([]*Quantum, error)
 
-	// QueryIndividuals query Individual from whole universe if community sig is nil.
+	// QueryIndividuals query Individual from whole universe if species sig is nil.
 	QueryIndividuals(sig Sig, skip int, limit int, desc bool) ([]*Individual, error)
 
-	// GetCommunity return community by signature of community create signature.
-	GetCommunity(sig Sig) (*Community, error)
+	// GetSpecies return species by signature of species create signature.
+	GetSpecies(sig Sig) (*Species, error)
 
 	// GetIndividual return individual by address.
 	GetIndividual(address identity.Address) (*Individual, error)

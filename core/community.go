@@ -22,7 +22,7 @@ import (
 	"github.com/pdupub/go-pdu/identity"
 )
 
-type Community struct {
+type Species struct {
 	Note         *QContent          `json:"note"`
 	Define       Sig                `json:"define"`
 	Creator      identity.Address   `json:"creator"`
@@ -31,44 +31,44 @@ type Community struct {
 	InitMembers  []identity.Address `json:"initMembers"`
 }
 
-func NewCommunity(quantum *Quantum) (*Community, error) {
-	if quantum.Type != QuantumTypeCommunity {
+func NewSpecies(quantum *Quantum) (*Species, error) {
+	if quantum.Type != QuantumTypeSpecies {
 		return nil, errQuantumTypeNotFit
 	}
 	creator, err := quantum.Ecrecover()
 	if err != nil {
 		return nil, err
 	}
-	community := Community{
+	species := Species{
 		Define:  quantum.Signature,
 		Creator: creator,
 	}
 
 	for i, content := range quantum.Contents {
 		if i == 0 {
-			community.Note = content
+			species.Note = content
 		}
 
 		if i == 1 {
 			// default min cosign count is 1
-			community.MinCosignCnt = 1
+			species.MinCosignCnt = 1
 			if content.Format == QCFmtStringInt {
-				community.MinCosignCnt, _ = strconv.Atoi(string(content.Data))
+				species.MinCosignCnt, _ = strconv.Atoi(string(content.Data))
 			}
 		}
 
 		if i == 2 {
 			// default max invite count is 0
-			community.MaxInviteCnt = 0
+			species.MaxInviteCnt = 0
 			if content.Format == QCFmtStringInt {
-				community.MaxInviteCnt, _ = strconv.Atoi(string(content.Data))
+				species.MaxInviteCnt, _ = strconv.Atoi(string(content.Data))
 			}
 		}
 
 		if i >= 3 && content.Format == QCFmtStringAddressHex {
-			community.InitMembers = append(community.InitMembers, identity.HexToAddress(string(content.Data)))
+			species.InitMembers = append(species.InitMembers, identity.HexToAddress(string(content.Data)))
 		}
 	}
 
-	return &community, nil
+	return &species, nil
 }

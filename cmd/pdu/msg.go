@@ -125,7 +125,7 @@ func MsgCmd() *cobra.Command {
 }
 
 func initQuantum() (*core.Quantum, error) {
-	_, qType := multiChoice("please select the type of message", "Information", "Profile", "Community Define", "Invitation", "End Account")
+	_, qType := multiChoice("please select the type of message", "Information", "Profile", "Species Define", "Invitation", "End Account")
 
 	switch qType {
 	case core.QuantumTypeInfo:
@@ -152,8 +152,8 @@ func initQuantum() (*core.Quantum, error) {
 			profiles[k] = v
 		}
 		return core.CreateProfileQuantum(profiles, core.FirstQuantumReference)
-	case core.QuantumTypeCommunity:
-		note := question("note of community", true)
+	case core.QuantumTypeSpecies:
+		note := question("note of species", true)
 		minCosignCnt, err := strconv.Atoi(question("minimum count of cosign", false))
 		if err != nil {
 			return nil, err
@@ -170,9 +170,9 @@ func initQuantum() (*core.Quantum, error) {
 			}
 			initAddrsHex = append(initAddrsHex, addr)
 		}
-		return core.CreateCommunityQuantum(note, minCosignCnt, maxInviteCnt, initAddrsHex, core.FirstQuantumReference)
+		return core.CreateSpeciesQuantum(note, minCosignCnt, maxInviteCnt, initAddrsHex, core.FirstQuantumReference)
 	case core.QuantumTypeInvitation:
-		communityHex := question("please input the target community hex address", false)
+		speciesHex := question("please input the target species hex address", false)
 
 		var addrsHex []string
 		for i := 0; i < 7; i++ {
@@ -182,7 +182,7 @@ func initQuantum() (*core.Quantum, error) {
 			}
 			addrsHex = append(addrsHex, addr)
 		}
-		return core.CreateInvitationQuantum(core.Hex2Sig(communityHex), addrsHex, core.FirstQuantumReference)
+		return core.CreateInvitationQuantum(core.Hex2Sig(speciesHex), addrsHex, core.FirstQuantumReference)
 	case core.QuantumTypeEnd:
 		return core.CreateEndQuantum(core.FirstQuantumReference)
 	}

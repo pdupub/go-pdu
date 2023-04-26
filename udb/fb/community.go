@@ -23,7 +23,7 @@ import (
 	"github.com/pdupub/go-pdu/identity"
 )
 
-type FBCommunity struct {
+type FBSpecies struct {
 	Note            *core.QContent  `json:"note"`
 	DefineSigHex    string          `json:"define"`
 	CreatorAddrHex  string          `json:"creator"`
@@ -36,8 +36,8 @@ type FBCommunity struct {
 	UpdateTimestamp int64           `json:"updateTime"`
 }
 
-func FBCommunity2Community(uid string, fbc *FBCommunity) (*core.Community, error) {
-	c := core.Community{}
+func FBSpecies2Species(uid string, fbc *FBSpecies) (*core.Species, error) {
+	c := core.Species{}
 	c.Note = fbc.Note
 	c.Define = core.Hex2Sig(uid)
 	c.Creator = identity.HexToAddress(fbc.CreatorAddrHex)
@@ -51,13 +51,13 @@ func FBCommunity2Community(uid string, fbc *FBCommunity) (*core.Community, error
 	return &c, nil
 }
 
-func Data2FBCommunity(d map[string]interface{}) (*FBCommunity, error) {
+func Data2FBSpecies(d map[string]interface{}) (*FBSpecies, error) {
 	dataBytes, err := json.Marshal(d)
 	if err != nil {
 		return nil, err
 	}
 
-	fbq := new(FBCommunity)
+	fbq := new(FBSpecies)
 	err = json.Unmarshal(dataBytes, fbq)
 	if err != nil {
 		return nil, err

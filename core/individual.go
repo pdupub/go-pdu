@@ -39,12 +39,12 @@ type Attitude struct {
 
 // Individual is the user in pdu system
 type Individual struct {
-	Address     identity.Address     `json:"address"`
-	Profile     map[string]*QContent `json:"profile,omitempty"`
-	Communities []*Community         `json:"communities,omitempty"`
-	Attitude    *Attitude            `json:"attitude"`
-	LastSig     Sig                  `json:"lastSignature,omitempty"`
-	LastSeq     int64                `json:"lastSequence,omitempty"`
+	Address  identity.Address     `json:"address"`
+	Profile  map[string]*QContent `json:"profile,omitempty"`
+	Species  []*Species           `json:"species,omitempty"`
+	Attitude *Attitude            `json:"attitude"`
+	LastSig  Sig                  `json:"lastSignature,omitempty"`
+	LastSeq  int64                `json:"lastSequence,omitempty"`
 }
 
 func NewIndividual(address identity.Address) *Individual {
