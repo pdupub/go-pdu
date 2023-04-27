@@ -418,7 +418,7 @@ func (fbu *FBUniverse) proccessQuantums(unprocessedQuantums []*core.Quantum) (ac
 }
 
 func (fbu *FBUniverse) executeInfoPlatformCustom(quantum *core.Quantum, qDocRef *firestore.DocumentRef) {
-	if quantum.Type != core.QuantumTypeInfo {
+	if quantum.Type != core.QuantumTypeInformation {
 		return
 	}
 
@@ -490,9 +490,9 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 		qDocRef.Set(fbu.ctx, readableRecord, firestore.Merge([]string{"rcs"}))
 	}
 	switch quantum.Type {
-	case core.QuantumTypeInfo:
+	case core.QuantumTypeInformation:
 		fbu.executeInfoPlatformCustom(quantum, qDocRef)
-	case core.QuantumTypeProfile:
+	case core.QuantumTypeIntegration:
 		profileMap := make(map[string]*core.QContent)
 		readableProfileMap := make(map[string]interface{})
 		var mergeKeys []firestore.FieldPath
@@ -516,21 +516,21 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 		if err != nil {
 			minCosignCnt = 1
 		}
-		maxInviteCnt, err := strconv.Atoi(string(quantum.Contents[2].Data))
+		maxIdentifyCnt, err := strconv.Atoi(string(quantum.Contents[2].Data))
 		if err != nil {
-			maxInviteCnt = 0
+			maxIdentifyCnt = 0
 		}
 
 		initMembers := []string{}
 		members := map[string]bool{addrHex: true}
 		fbu.updateIndividualByJoinSpecies(core.Sig2Hex(quantum.Signature), addrHex)
-		inviteCnt := map[string]int{addrHex: minCosignCnt}
+		identifyCnt := map[string]int{addrHex: minCosignCnt}
 		for i := 3; i < len(quantum.Contents) && i < 16; i++ {
 			memberHex := string(quantum.Contents[i].Data)
 			initMembers = append(initMembers, memberHex)
 			members[memberHex] = true
 			fbu.updateIndividualByJoinSpecies(core.Sig2Hex(quantum.Signature), memberHex)
-			inviteCnt[memberHex] = minCosignCnt
+			identifyCnt[memberHex] = minCosignCnt
 		}
 
 		dMap, _ := FBStruct2Data(&FBSpecies{
@@ -538,10 +538,10 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 			DefineSigHex:   core.Sig2Hex(quantum.Signature),
 			CreatorAddrHex: addrHex,
 			MinCosignCnt:   minCosignCnt,
-			MaxInviteCnt:   maxInviteCnt,
+			MaxIdentifyCnt: maxIdentifyCnt,
 			InitMembersHex: initMembers,
 			Members:        members,
-			InviteCnt:      inviteCnt,
+			IdentifyCnt:    identifyCnt,
 		})
 
 		dMap["createTime"] = time.Now().UnixMilli()
@@ -549,10 +549,10 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 		cDocRef := fbu.speciesC.Doc(core.Sig2Hex(quantum.Signature))
 		cDocRef.Set(fbu.ctx, dMap)
 
-	case core.QuantumTypeInvitation:
-		communtiyHex := core.Sig2Hex(quantum.Contents[0].Data)          // if QCFmtBytesSignature = 33
+	case core.QuantumTypeIdentification:
+		speciesHex := core.Sig2Hex(quantum.Contents[0].Data)            // if QCFmtBytesSignature = 33
 		if quantum.Contents[0].Format == core.QCFmtStringSignatureHex { // QCFmtStringSignatureHex = 7
-			communtiyHex = string(quantum.Contents[0].Data)
+			speciesHex = string(quantum.Contents[0].Data)
 		}
 
 		targets := make(map[string]struct{})
@@ -564,27 +564,27 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 			}
 		}
 
-		cDocRef := fbu.speciesC.Doc(communtiyHex)
+		cDocRef := fbu.speciesC.Doc(speciesHex)
 		if snapshot, err := cDocRef.Get(fbu.ctx); err == nil {
 			dMap := snapshot.Data()
 
 			if members, ok := dMap["members"]; ok {
 				if _, ok := members.(map[string]interface{})[addrHex]; ok {
-					inviteCnt := dMap["inviteCnt"].(map[string]interface{})
+					identifyCnt := dMap["identifyCnt"].(map[string]interface{})
 
 					// TODO : count if out of max sign limit
 					var mergeKeys []firestore.FieldPath
-					newSpecies := &FBSpecies{Members: make(map[string]bool), InviteCnt: make(map[string]int)}
+					newSpecies := &FBSpecies{Members: make(map[string]bool), IdentifyCnt: make(map[string]int)}
 					for target := range targets {
-						if cnt, ok := inviteCnt[target]; ok {
-							newSpecies.InviteCnt[target] = int(cnt.(float64)) + 1
+						if cnt, ok := identifyCnt[target]; ok {
+							newSpecies.IdentifyCnt[target] = int(cnt.(float64)) + 1
 						} else {
-							newSpecies.InviteCnt[target] = 1
+							newSpecies.IdentifyCnt[target] = 1
 						}
-						mergeKeys = append(mergeKeys, []string{"inviteCnt", target})
-						if newSpecies.InviteCnt[target] >= int(dMap["minCosignCnt"].(float64)) {
+						mergeKeys = append(mergeKeys, []string{"identifyCnt", target})
+						if newSpecies.IdentifyCnt[target] >= int(dMap["minCosignCnt"].(float64)) {
 							newSpecies.Members[target] = true
-							fbu.updateIndividualByJoinSpecies(communtiyHex, target)
+							fbu.updateIndividualByJoinSpecies(speciesHex, target)
 							mergeKeys = append(mergeKeys, []string{"members", target})
 						}
 					}
@@ -595,13 +595,13 @@ func (fbu *FBUniverse) executeQuantumFunc(quantum *core.Quantum, qDocRef *firest
 				}
 			}
 		}
-	case core.QuantumTypeEnd:
+	case core.QuantumTypeTermination:
 		iDocRef := fbu.individualC.Doc(addrHex)
 		dMap, _ := FBStruct2Data(&FBIndividual{Attitude: &core.Attitude{Level: core.AttitudeReject}})
 		dMap["updateTime"] = time.Now().UnixMilli()
 		iDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"attitude", "level"}, []string{"updateTime"}))
 	default:
-		// core.QuantumTypeInfo or unknown
+		// core.QuantumTypeInformation or unknown
 
 	}
 	// reset copy the bytes from recv to origin, and clear recv

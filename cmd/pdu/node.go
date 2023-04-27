@@ -293,7 +293,7 @@ func BackupCmd() *cobra.Command {
 			if coms, err := fbu.GetFBDataByTable("species"); err != nil {
 				return err
 			} else {
-				if err = os.WriteFile(fmt.Sprintf("./backup_communties_%d", timestamp), coms, 0644); err != nil {
+				if err = os.WriteFile(fmt.Sprintf("./backup_species_%d", timestamp), coms, 0644); err != nil {
 					return err
 				}
 				fmt.Println("species backup finished!")

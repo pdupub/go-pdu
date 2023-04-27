@@ -47,7 +47,7 @@ func TestInfoQuantum(t *testing.T) {
 	c2 := CreateTextContent(">")
 	c3 := CreateFloatContent(99.9)
 
-	q, err := NewQuantum(QuantumTypeInfo, []*QContent{c0, c1, c2, c3}, FirstQuantumReference)
+	q, err := NewQuantum(QuantumTypeInformation, []*QContent{c0, c1, c2, c3}, FirstQuantumReference)
 	if err != nil {
 		t.Error(err)
 	}
@@ -96,7 +96,7 @@ func TestSignAndVerify(t *testing.T) {
 	t.Log("content fmt", QCFmtStringTEXT)
 	t.Log("content data", string(qc.Data))
 
-	q, err := NewQuantum(QuantumTypeInfo, []*QContent{qc}, refs...)
+	q, err := NewQuantum(QuantumTypeInformation, []*QContent{qc}, refs...)
 	if err != nil {
 		t.Error(err)
 	}

@@ -125,10 +125,10 @@ func MsgCmd() *cobra.Command {
 }
 
 func initQuantum() (*core.Quantum, error) {
-	_, qType := multiChoice("please select the type of message", "Information", "Profile", "Species Define", "Invitation", "End Account")
+	_, qType := multiChoice("please select the type of message", "Information", "Integration", "Speciation", "Identification", "Termination")
 
 	switch qType {
-	case core.QuantumTypeInfo:
+	case core.QuantumTypeInformation:
 		var qcs []*core.QContent
 		text := question("please input the text content", true)
 		qcs = append(qcs, core.CreateTextContent(text))
@@ -138,7 +138,7 @@ func initQuantum() (*core.Quantum, error) {
 			qcs = append(qcs, qc)
 		}
 		return core.CreateInfoQuantum(qcs, core.FirstQuantumReference)
-	case core.QuantumTypeProfile:
+	case core.QuantumTypeIntegration:
 		profiles := make(map[string]interface{})
 		for i := 0; i < 6; i++ {
 			k := question("please input the attribute name", false)
@@ -151,14 +151,14 @@ func initQuantum() (*core.Quantum, error) {
 			}
 			profiles[k] = v
 		}
-		return core.CreateProfileQuantum(profiles, core.FirstQuantumReference)
+		return core.CreateIntegrationQuantum(profiles, core.FirstQuantumReference)
 	case core.QuantumTypeSpeciation:
 		note := question("note of species", true)
 		minCosignCnt, err := strconv.Atoi(question("minimum count of cosign", false))
 		if err != nil {
 			return nil, err
 		}
-		maxInviteCnt, err := strconv.Atoi(question("maximum count of Invite", false))
+		maxIdentifyCnt, err := strconv.Atoi(question("maximum count of Identify", false))
 		if err != nil {
 			return nil, err
 		}
@@ -170,21 +170,21 @@ func initQuantum() (*core.Quantum, error) {
 			}
 			initAddrsHex = append(initAddrsHex, addr)
 		}
-		return core.CreateSpeciesQuantum(note, minCosignCnt, maxInviteCnt, initAddrsHex, core.FirstQuantumReference)
-	case core.QuantumTypeInvitation:
+		return core.CreateSpeciesQuantum(note, minCosignCnt, maxIdentifyCnt, initAddrsHex, core.FirstQuantumReference)
+	case core.QuantumTypeIdentification:
 		speciesHex := question("please input the target species hex address", false)
 
 		var addrsHex []string
 		for i := 0; i < 7; i++ {
-			addr := question("please input address to be invited (return if not)", false)
+			addr := question("please input address to be identified (return if not)", false)
 			if len(addr) == 0 {
 				break
 			}
 			addrsHex = append(addrsHex, addr)
 		}
-		return core.CreateInvitationQuantum(core.Hex2Sig(speciesHex), addrsHex, core.FirstQuantumReference)
-	case core.QuantumTypeEnd:
-		return core.CreateEndQuantum(core.FirstQuantumReference)
+		return core.CreateIdentificationQuantum(core.Hex2Sig(speciesHex), addrsHex, core.FirstQuantumReference)
+	case core.QuantumTypeTermination:
+		return core.CreateTerminationQuantum(core.FirstQuantumReference)
 	}
 	return nil, nil
 }

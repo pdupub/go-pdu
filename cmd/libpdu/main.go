@@ -47,7 +47,7 @@ func signMsgSample(privKeyHexC, messageC, refC *C.char) *C.char {
 	// quantum
 	message := C.GoString(messageC)
 	content, _ := core.NewContent(core.QCFmtStringTEXT, []byte(message))
-	q, _ := core.NewQuantum(core.QuantumTypeInfo, []*core.QContent{content}, refBytes)
+	q, _ := core.NewQuantum(core.QuantumTypeInformation, []*core.QContent{content}, refBytes)
 
 	// add signature
 	q.Sign(did)

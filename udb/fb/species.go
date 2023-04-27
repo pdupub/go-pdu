@@ -28,10 +28,10 @@ type FBSpecies struct {
 	DefineSigHex    string          `json:"define"`
 	CreatorAddrHex  string          `json:"creator"`
 	MinCosignCnt    int             `json:"minCosignCnt"`
-	MaxInviteCnt    int             `json:"maxInviteCnt"`
+	MaxIdentifyCnt  int             `json:"maxIdentifyCnt"`
 	InitMembersHex  []string        `json:"initMembers"`
 	Members         map[string]bool `json:"members"`
-	InviteCnt       map[string]int  `json:"inviteCnt"`
+	IdentifyCnt     map[string]int  `json:"identifyCnt"`
 	CreateTimestamp int64           `json:"createTime"`
 	UpdateTimestamp int64           `json:"updateTime"`
 }
@@ -42,7 +42,7 @@ func FBSpecies2Species(uid string, fbc *FBSpecies) (*core.Species, error) {
 	c.Define = core.Hex2Sig(uid)
 	c.Creator = identity.HexToAddress(fbc.CreatorAddrHex)
 	c.MinCosignCnt = fbc.MinCosignCnt
-	c.MaxInviteCnt = fbc.MaxInviteCnt
+	c.MaxIdentifyCnt = fbc.MaxIdentifyCnt
 
 	for _, addrHex := range fbc.InitMembersHex {
 		c.InitMembers = append(c.InitMembers, identity.HexToAddress(addrHex))

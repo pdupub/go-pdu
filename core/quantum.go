@@ -40,47 +40,47 @@ var (
 type Sig []byte
 
 const (
-	// QuantumTypeInfo specifies quantum which user just want to share information, such as
+	// QuantumTypeInformation specifies quantum which user just want to share information, such as
 	// post articles, reply to others or chat message with others (encrypted by receiver's public key)
-	QuantumTypeInfo = 0
+	QuantumTypeInformation = 0
 
-	// QuantumTypeProfile specifies the quantum to update user's (signer's) profile.
+	// QuantumTypeIntegration specifies the quantum to update user's (signer's) profile.
 	// contents = [key1(QCFmtStringTEXT), value1, key2, value2 ...]
-	// if user want to update key1, send new QuantumTypeProfile quantum with
+	// if user want to update key1, send new QuantumTypeIntegration quantum with
 	// contents = [key1, newValue ...]
-	// if user want to delete key1, send new QuantumTypeProfile quantum with
+	// if user want to delete key1, send new QuantumTypeIntegration quantum with
 	// contents = [key1, newValue which content with empty data]
-	QuantumTypeProfile = 1
+	QuantumTypeIntegration = 1
 
 	// QuantumTypeSpeciation specifies the quantum of rule to build new species
 	// contents[0] is the display information of current species
 	// {fmt:QCFmtStringJSON/QCFmtStringTEXT..., data: ...}
-	// contents[1] is the number of invitation (co-signature) from users in current species
+	// contents[1] is the number of identification (co-signature) from users in current species
 	// {fmt:QCFmtStringInt, data:1} at least 1. (creater is absolutely same with others)
-	// contents[2] is the max number of invitation by one user
+	// contents[2] is the max number of identification by one user
 	// {fmt:QCFmtStringInt, data:1} -1 means no limit, 0 means not allowed
 	// contents[3] ~ contents[15] is the initial users in this species
 	// {fmt:QCFmtBytesAddress/QCFmtStringAddressHex, data:0x1232...}
 	// signer of this species is also the initial user in this species
 	QuantumTypeSpeciation = 2
 
-	// QuantumTypeInvitation specifies the quantum of invitation
+	// QuantumTypeIdentification specifies the quantum of identification
 	// contents[0] is the signature of target species rule quantum
 	// {fmt:QCFmtBytesSignature/QCFmtStringSignatureHex, data:signature of target species rule quantum}
-	// contents[1] ~ contents[n] is the address of be invited
+	// contents[1] ~ contents[n] is the address of be identified
 	// {fmt:QCFmtBytesAddress/QCFmtStringAddressHex, data:0x123...}
-	// no matter all invitation send in same quantum of different quantum
+	// no matter all identification send in same quantum of different quantum
 	// only first n address (rule.contents[2]) will be accepted
 	// user can not quit species, but any user can block any other user (or self) from any species
 	// accepted by any species is decided by user in that species feel about u, not opposite.
 	// User belong to species, quantum belong to user. (On trandation forum, posts usually belong to
 	// one topic and have lots of tag, is just the function easy to implemnt not base struct here)
-	QuantumTypeInvitation = 3
+	QuantumTypeIdentification = 3
 
-	// QuantumTypeEnd specifies the quantum of ending life cycle
+	// QuantumTypeTermination specifies the quantum of ending life cycle
 	// When receive this quantum, no more quantum from same address should be received or broadcast.
 	// The decision of end from any identity should be respected, no matter for security reason or just want to leave.
-	QuantumTypeEnd = 4
+	QuantumTypeTermination = 4
 )
 
 var (
@@ -168,12 +168,12 @@ func (q *Quantum) Ecrecover() (identity.Address, error) {
 }
 
 func CreateInfoQuantum(qcs []*QContent, refs ...Sig) (*Quantum, error) {
-	return NewQuantum(QuantumTypeInfo, qcs, refs...)
+	return NewQuantum(QuantumTypeInformation, qcs, refs...)
 }
 
-func CreateProfileQuantum(profiles map[string]interface{}, refs ...Sig) (*Quantum, error) {
+func CreateIntegrationQuantum(data map[string]interface{}, refs ...Sig) (*Quantum, error) {
 	var qcs []*QContent
-	for k, v := range profiles {
+	for k, v := range data {
 		key := CreateTextContent(k)
 		var value *QContent
 		switch v.(type) {
@@ -192,15 +192,15 @@ func CreateProfileQuantum(profiles map[string]interface{}, refs ...Sig) (*Quantu
 		qcs = append(qcs, key, value)
 	}
 
-	return NewQuantum(QuantumTypeProfile, qcs, refs...)
+	return NewQuantum(QuantumTypeIntegration, qcs, refs...)
 }
 
-func CreateSpeciesQuantum(note string, minCosignCnt int, maxInviteCnt int, initAddrsHex []string, refs ...Sig) (*Quantum, error) {
+func CreateSpeciesQuantum(note string, minCosignCnt int, maxIdentifyCnt int, initAddrsHex []string, refs ...Sig) (*Quantum, error) {
 	var qcs []*QContent
 
 	qcs = append(qcs, CreateTextContent(note))
 	qcs = append(qcs, CreateIntContent(int64(minCosignCnt)))
-	qcs = append(qcs, CreateIntContent(int64(maxInviteCnt)))
+	qcs = append(qcs, CreateIntContent(int64(maxIdentifyCnt)))
 	for _, addrHex := range initAddrsHex {
 		qcs = append(qcs, &QContent{Format: QCFmtStringAddressHex, Data: []byte(addrHex)})
 	}
@@ -208,15 +208,15 @@ func CreateSpeciesQuantum(note string, minCosignCnt int, maxInviteCnt int, initA
 	return NewQuantum(QuantumTypeSpeciation, qcs, refs...)
 }
 
-func CreateInvitationQuantum(target Sig, addrsHex []string, refs ...Sig) (*Quantum, error) {
+func CreateIdentificationQuantum(target Sig, addrsHex []string, refs ...Sig) (*Quantum, error) {
 	var qcs []*QContent
 	qcs = append(qcs, &QContent{Format: QCFmtBytesSignature, Data: target})
 	for _, addrHex := range addrsHex {
 		qcs = append(qcs, &QContent{Format: QCFmtStringAddressHex, Data: []byte(addrHex)})
 	}
-	return NewQuantum(QuantumTypeInvitation, qcs, refs...)
+	return NewQuantum(QuantumTypeIdentification, qcs, refs...)
 }
 
-func CreateEndQuantum(refs ...Sig) (*Quantum, error) {
-	return NewQuantum(QuantumTypeEnd, []*QContent{}, refs...)
+func CreateTerminationQuantum(refs ...Sig) (*Quantum, error) {
+	return NewQuantum(QuantumTypeTermination, []*QContent{}, refs...)
 }

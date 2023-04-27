@@ -45,10 +45,10 @@ const (
 	collectionIndividual = "individual"
 )
 
-func testCreateEndQuantum(t *testing.T, ctx context.Context, client *firestore.Client, did *identity.DID,
+func testCreateTerminationQuantum(t *testing.T, ctx context.Context, client *firestore.Client, did *identity.DID,
 	refs ...core.Sig) (*core.Quantum, *firestore.DocumentRef) {
 
-	q, err := core.CreateEndQuantum(refs...)
+	q, err := core.CreateTerminationQuantum(refs...)
 	if err != nil {
 		t.Error(err)
 	}
@@ -56,10 +56,10 @@ func testCreateEndQuantum(t *testing.T, ctx context.Context, client *firestore.C
 	return testUploadQuantum(t, ctx, client, q)
 }
 
-func testCreateInviteQuantum(t *testing.T, ctx context.Context, client *firestore.Client, did *identity.DID,
+func testCreateIdentificationQuantum(t *testing.T, ctx context.Context, client *firestore.Client, did *identity.DID,
 	target core.Sig, addrsHex []string,
 	refs ...core.Sig) (*core.Quantum, *firestore.DocumentRef) {
-	q, err := core.CreateInvitationQuantum(target, addrsHex, refs...)
+	q, err := core.CreateIdentificationQuantum(target, addrsHex, refs...)
 	if err != nil {
 		t.Error(err)
 	}
@@ -69,10 +69,10 @@ func testCreateInviteQuantum(t *testing.T, ctx context.Context, client *firestor
 }
 
 func testCreateSpeciesQuantum(t *testing.T, ctx context.Context, client *firestore.Client, did *identity.DID,
-	note string, minCosignCnt int, maxInviteCnt int, initAddrsHex []string,
+	note string, minCosignCnt int, maxIdentifyCnt int, initAddrsHex []string,
 	refs ...core.Sig) (*core.Quantum, *firestore.DocumentRef) {
 
-	q, err := core.CreateSpeciesQuantum(note, minCosignCnt, maxInviteCnt, initAddrsHex, refs...)
+	q, err := core.CreateSpeciesQuantum(note, minCosignCnt, maxIdentifyCnt, initAddrsHex, refs...)
 	if err != nil {
 		t.Error(err)
 	}
@@ -80,8 +80,8 @@ func testCreateSpeciesQuantum(t *testing.T, ctx context.Context, client *firesto
 	return testUploadQuantum(t, ctx, client, q)
 }
 
-func testCreateProfileQuantum(t *testing.T, ctx context.Context, client *firestore.Client, did *identity.DID, profiles map[string]interface{}, refs ...core.Sig) (*core.Quantum, *firestore.DocumentRef) {
-	q, err := core.CreateProfileQuantum(profiles, refs...)
+func testCreateIntegrationQuantum(t *testing.T, ctx context.Context, client *firestore.Client, did *identity.DID, profiles map[string]interface{}, refs ...core.Sig) (*core.Quantum, *firestore.DocumentRef) {
+	q, err := core.CreateIntegrationQuantum(profiles, refs...)
 	if err != nil {
 		t.Error(err)
 	}
@@ -286,22 +286,22 @@ func testCreateQuantums(t *testing.T) {
 	profile22["city"] = "NONON"
 	profile22["temp"] = 12.3
 
-	q4, _ := testCreateProfileQuantum(t, ctx, client, did1, profile1, ref1[len(ref1)-1], ref2[len(ref2)-1], q2.Signature)
+	q4, _ := testCreateIntegrationQuantum(t, ctx, client, did1, profile1, ref1[len(ref1)-1], ref2[len(ref2)-1], q2.Signature)
 	ref1 = append(ref1, q4.Signature)
 
-	q5, _ := testCreateProfileQuantum(t, ctx, client, did2, profile2, ref2[len(ref2)-1], ref3[len(ref3)-1], q2.Signature)
+	q5, _ := testCreateIntegrationQuantum(t, ctx, client, did2, profile2, ref2[len(ref2)-1], ref3[len(ref3)-1], q2.Signature)
 	ref2 = append(ref2, q5.Signature)
 
 	q6, _ := testCreateSpeciesQuantum(t, ctx, client, did3, "Tody is Great", 2, 3, []string{did1.GetAddress().Hex(), did2.GetAddress().Hex()}, ref3[len(ref3)-1], q5.Signature)
 	ref3 = append(ref3, q6.Signature)
 
-	q7, _ := testCreateInviteQuantum(t, ctx, client, did3, q6.Signature, []string{did4.GetAddress().Hex()}, ref3[len(ref3)-1], q6.Signature, q5.Signature)
+	q7, _ := testCreateIdentificationQuantum(t, ctx, client, did3, q6.Signature, []string{did4.GetAddress().Hex()}, ref3[len(ref3)-1], q6.Signature, q5.Signature)
 	ref3 = append(ref3, q7.Signature)
 
-	q8, _ := testCreateEndQuantum(t, ctx, client, did2, ref2[len(ref2)-1], q6.Signature, q7.Signature)
+	q8, _ := testCreateTerminationQuantum(t, ctx, client, did2, ref2[len(ref2)-1], q6.Signature, q7.Signature)
 	ref2 = append(ref2, q8.Signature)
 
-	q9, _ := testCreateProfileQuantum(t, ctx, client, did2, profile22, ref2[len(ref2)-1], ref3[len(ref3)-1], q8.Signature)
+	q9, _ := testCreateIntegrationQuantum(t, ctx, client, did2, profile22, ref2[len(ref2)-1], ref3[len(ref3)-1], q8.Signature)
 	ref2 = append(ref2, q9.Signature)
 
 	t.Log("did1 last sig: ", core.Sig2Hex(ref1[len(ref1)-1]))
@@ -312,7 +312,7 @@ func testCreateQuantums(t *testing.T) {
 
 }
 
-func testManualInviteQuantums(t *testing.T) {
+func testManualIdentificationQuantums(t *testing.T) {
 	ctx := context.Background()
 	opt := option.WithCredentialsFile(testKeyJSON)
 	config := &firebase.Config{ProjectID: testProjectID}
@@ -336,14 +336,14 @@ func testManualInviteQuantums(t *testing.T) {
 	did4, _ := identity.New()
 	did4.UnlockWallet("../../"+params.TestKeystore(3), params.TestPassword)
 
-	// did1, did2, did3 exist in communtiy
-	extraInviteAddrHexList := []string{"0x00008Bd373Ac9f168f087E976d0068732fbD6835"}
+	// did1, did2, did3 exist in species
+	extraIdentifyAddrHexList := []string{"0x00008Bd373Ac9f168f087E976d0068732fbD6835"}
 	speciesDefineSig := core.Hex2Sig("0x4ac617c2ead08dd4ae046c048200e74c64d7b93f22f12c78d3f85b539afb94982157837dae9e4720193f64b480509a7815cda6ca356025555c1df631d995a62e01")
 	did1SelfRef := core.Hex2Sig("0x5c9110f071ee589a918f26b988dba3b990300e372392ceb83e36515d8beeef4a7bf5838123dc0b1f0717ed8b68e7be270538a954f5b17529bae44c412714d0f000")
 	did3SelfRef := core.Hex2Sig("0xadd9248fdeeb795bf0b6758418f28570075547019324eac7fb0d4e686709106a158a0929956bac853f1e70bf1de28e03c929e46514c6d0a85927fb6ec8d8948000")
 
-	q1, _ := testCreateInviteQuantum(t, ctx, client, did1, speciesDefineSig, extraInviteAddrHexList, did1SelfRef, did3SelfRef)
-	q2, _ := testCreateInviteQuantum(t, ctx, client, did3, speciesDefineSig, extraInviteAddrHexList, did3SelfRef, did1SelfRef)
+	q1, _ := testCreateIdentificationQuantum(t, ctx, client, did1, speciesDefineSig, extraIdentifyAddrHexList, did1SelfRef, did3SelfRef)
+	q2, _ := testCreateIdentificationQuantum(t, ctx, client, did3, speciesDefineSig, extraIdentifyAddrHexList, did3SelfRef, did1SelfRef)
 
 	t.Log("did1 last sig: ", core.Sig2Hex(q1.Signature))
 	t.Log("did3 last sig: ", core.Sig2Hex(q2.Signature))
@@ -603,7 +603,7 @@ func testShowPrivateKey(t *testing.T) {
 func TestMain(t *testing.T) {
 	// testClearQuantum(t)
 	// testCreateQuantums(t)
-	// testManualInviteQuantums(t)
+	// testManualIdentificationQuantums(t)
 	testDealQuantums(t)
 	// testCustomQuantum(t)
 	// testCheckQuantum(t)

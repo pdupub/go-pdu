@@ -25,7 +25,7 @@ import (
 const (
 	AttitudeRejectOnRef   = -2 // reject the quantum which use any quantum from this address as reference
 	AttitudeReject        = -1 // reject any quantum from this address
-	AttitudeIgnoreContent = 1  // accept the quantum from this address, but not eval the content, such as invite ...
+	AttitudeIgnoreContent = 1  // accept the quantum from this address, but not eval the content, such as identify ...
 	AttitudeAccept        = 2  // accept the quantum from this address as normal
 	AttitudeBroadcast     = 3  // accept the quantum from this address, broadcast them and used them as reference
 )

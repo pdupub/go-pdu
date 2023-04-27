@@ -38,7 +38,7 @@ func FBIndividual2Individual(uid string, fbi *FBIndividual) (*core.Individual, e
 	i := core.Individual{}
 	i.Address = identity.HexToAddress(uid)
 	i.Profile = fbi.Profile
-	// i.Communities
+	// i.Species
 	i.Attitude = fbi.Attitude
 	i.LastSig = core.Hex2Sig(fbi.LastSigHex)
 	i.LastSeq = fbi.LastSelfSeq

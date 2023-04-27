@@ -23,12 +23,12 @@ import (
 )
 
 type Species struct {
-	Note         *QContent          `json:"note"`
-	Define       Sig                `json:"define"`
-	Creator      identity.Address   `json:"creator"`
-	MinCosignCnt int                `json:"minCosignCnt"`
-	MaxInviteCnt int                `json:"maxInviteCnt"`
-	InitMembers  []identity.Address `json:"initMembers"`
+	Note           *QContent          `json:"note"`
+	Define         Sig                `json:"define"`
+	Creator        identity.Address   `json:"creator"`
+	MinCosignCnt   int                `json:"minCosignCnt"`
+	MaxIdentifyCnt int                `json:"maxIdentifyCnt"`
+	InitMembers    []identity.Address `json:"initMembers"`
 }
 
 func NewSpecies(quantum *Quantum) (*Species, error) {
@@ -58,10 +58,10 @@ func NewSpecies(quantum *Quantum) (*Species, error) {
 		}
 
 		if i == 2 {
-			// default max invite count is 0
-			species.MaxInviteCnt = 0
+			// default max identify count is 0
+			species.MaxIdentifyCnt = 0
 			if content.Format == QCFmtStringInt {
-				species.MaxInviteCnt, _ = strconv.Atoi(string(content.Data))
+				species.MaxIdentifyCnt, _ = strconv.Atoi(string(content.Data))
 			}
 		}
 
