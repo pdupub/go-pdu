@@ -17,7 +17,17 @@
 package core
 
 import (
+	"errors"
+
 	"github.com/pdupub/go-pdu/identity"
+)
+
+var (
+	ErrQuantumAlreadyExist = errors.New("quantum already exist")
+	ErrSignatureIncorrect  = errors.New("signature is incorrect")
+	ErrSelfRefMissing      = errors.New("self reference is missing")
+	ErrOffspringDuplicate  = errors.New("offspring duplicate")
+	ErrAncestorMissing     = errors.New("ancestor missing")
 )
 
 // Universe is an interface that describes an PDU Universe. A type that implements Universe

@@ -32,12 +32,35 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+var (
+	errQuantumAlreadyExist = RespErr{ErrCode: 1, ErrMsg: core.ErrQuantumAlreadyExist.Error()}
+	errSignatureIncorrect  = RespErr{ErrCode: 2, ErrMsg: core.ErrSignatureIncorrect.Error()}
+	errSelfRefMissing      = RespErr{ErrCode: 3, ErrMsg: core.ErrSelfRefMissing.Error()}
+	errOffspringDuplicate  = RespErr{ErrCode: 4, ErrMsg: core.ErrOffspringDuplicate.Error()}
+	errAncestorMissing     = RespErr{ErrCode: 5, ErrMsg: core.ErrAncestorMissing.Error()}
+
+	errCodeRequestHeader = 101
+	errCodeRequestBody   = 102
+	errCodeRequestJSON   = 110
+)
+
 // Node
 type Node struct {
 	interval int64
 	univ     core.Universe
 	qChan    chan *core.Quantum
 	e        *echo.Echo
+}
+
+type Resp struct {
+	Data  interface{} `json:"data,omitempty"`
+	Error RespErr     `json:"error,omitempty"`
+}
+
+type RespErr struct {
+	ErrCode int           `json:"code"`
+	ErrMsg  string        `json:"message"`
+	Params  []interface{} `json:"params,omitempty"` // key-value
 }
 
 func New(interval int64, firebaseKeyPath, firebaseProjectID string) (*Node, error) {
@@ -58,33 +81,66 @@ func (n *Node) RunEcho(port int64, c <-chan os.Signal) {
 }
 
 func (n *Node) receiverHandler(c echo.Context) error {
+	resp := Resp{}
 	if c.Request().Header.Get("Content-Type") != echo.MIMEApplicationJSON {
-		return c.String(http.StatusBadRequest, "")
+		resp.Error = RespErr{ErrCode: errCodeRequestHeader, ErrMsg: ""}
+		return c.JSON(http.StatusOK, resp)
 	}
 
 	data, err := ioutil.ReadAll(c.Request().Body)
 	if err != nil {
-		return c.String(http.StatusBadRequest, err.Error())
+		resp.Error = RespErr{ErrCode: errCodeRequestBody, ErrMsg: err.Error()}
+		return c.JSON(http.StatusOK, resp)
 	}
 
 	var quantum core.Quantum
 	err = json.Unmarshal(data, &quantum)
 	if err != nil {
-		return c.String(http.StatusBadRequest, err.Error())
+		resp.Error = RespErr{ErrCode: errCodeRequestJSON, ErrMsg: err.Error()}
+		return c.JSON(http.StatusOK, resp)
 	}
-	// c.Logger().Info(string(data))
 
 	// check if exist already
-	// n.univ.GetQuantum(quantum.Signature)
+	// GetQuantum return err if not exist
+	_, err = n.univ.GetQuantum(quantum.Signature)
+	if err != nil {
+		resp.Error = errQuantumAlreadyExist
+		return c.JSON(http.StatusOK, resp)
+	}
 
 	// check if refs[0] is individual.last
-	// if not
-	// check if refs[0] is exist
-	// if exist return duplicate ref use, return err with sigHex of last
-	// if not exist return missing quantums since last err with sigHex of last
+	addr, err := quantum.Ecrecover()
+	if err != nil {
+		resp.Error = errSignatureIncorrect
+		return c.JSON(http.StatusOK, resp)
+	}
+
+	// get individual will return err if address not exist, so ignore if err return
+	indv, err := n.univ.GetIndividual(addr)
+	if err == nil {
+		// check if refs[0] is exist
+		if len(quantum.References) == 0 {
+			resp.Error = errSelfRefMissing
+			return c.JSON(http.StatusOK, resp)
+		}
+
+		if core.Sig2Hex(indv.LastSig) != core.Sig2Hex(quantum.References[0]) {
+			if _, err = n.univ.GetQuantum(quantum.References[0]); err == nil {
+				// if exist return duplicate ref use, return err with sigHex of last
+				resp.Error = errOffspringDuplicate
+				return c.JSON(http.StatusOK, resp)
+			} else {
+				// if not exist return missing quantums since last err with sigHex of last
+				// TODO: quantum of this situation maybe allowed later
+				resp.Error = errAncestorMissing
+				return c.JSON(http.StatusOK, resp)
+			}
+		}
+	}
 
 	n.qChan <- &quantum
-	return c.JSON(http.StatusOK, nil)
+	resp.Data = map[string]string{"status": "ok"}
+	return c.JSON(http.StatusOK, resp)
 }
 
 // Run
