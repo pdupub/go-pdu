@@ -48,6 +48,7 @@ func NodeCmd() *cobra.Command {
 	cmd.Flags().StringVar(&firebaseKeyPath, "fbKeyPath", params.TestFirebaseAdminSDKPath, "path of firebase json key")
 	cmd.Flags().StringVar(&firebaseProjectID, "fbProjectID", params.TestFirebaseProjectID, "project ID")
 
+	cmd.AddCommand(GetQuantumCmd())
 	cmd.AddCommand(DiagnosisCmd())
 	cmd.AddCommand(BackupCmd())
 	cmd.AddCommand(ExecuteCmd())
@@ -55,6 +56,34 @@ func NodeCmd() *cobra.Command {
 	cmd.AddCommand(TruncateCmd())
 	cmd.AddCommand(JudgeCmd())
 	cmd.AddCommand(HideProcessedQuantumCmd())
+	return cmd
+}
+
+func GetQuantumCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "get",
+		Short: "get quantum from remote",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			sigHex := args[0]
+			ctx := context.Background()
+			fbu, err := fb.NewFBUniverse(ctx, firebaseKeyPath, firebaseProjectID)
+			if err != nil {
+				return err
+			}
+			if q, err := fbu.GetQuantum(core.Hex2Sig(sigHex)); err != nil {
+				fmt.Println(err)
+			} else {
+				if qBytes, err := json.Marshal(q); err != nil {
+					fmt.Println(err)
+				} else {
+					fmt.Println(string(qBytes))
+				}
+			}
+			return nil
+		},
+	}
+
 	return cmd
 }
 

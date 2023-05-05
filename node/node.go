@@ -73,6 +73,16 @@ func (n *Node) receiverHandler(c echo.Context) error {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
 	// c.Logger().Info(string(data))
+
+	// check if exist already
+	// n.univ.GetQuantum(quantum.Signature)
+
+	// check if refs[0] is individual.last
+	// if not
+	// check if refs[0] is exist
+	// if exist return duplicate ref use, return err with sigHex of last
+	// if not exist return missing quantums since last err with sigHex of last
+
 	n.qChan <- &quantum
 	return c.JSON(http.StatusOK, nil)
 }
