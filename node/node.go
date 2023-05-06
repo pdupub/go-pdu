@@ -125,16 +125,20 @@ func (n *Node) receiverHandler(c echo.Context) error {
 		}
 
 		if core.Sig2Hex(indv.LastSig) != core.Sig2Hex(quantum.References[0]) {
+			params := []interface{}{map[string]string{"last": core.Sig2Hex(indv.LastSig)}}
 			if _, err = n.univ.GetQuantum(quantum.References[0]); err == nil {
 				// if exist return duplicate ref use, return err with sigHex of last
 				resp.Error = errOffspringDuplicate
-				return c.JSON(http.StatusOK, resp)
+				resp.Error.Params = params
 			} else {
 				// if not exist return missing quantums since last err with sigHex of last
-				// TODO: quantum of this situation maybe allowed later
+				// !!! return err, but still accept the quantum
+				n.qChan <- &quantum
 				resp.Error = errAncestorMissing
-				return c.JSON(http.StatusOK, resp)
+				resp.Error.Params = params
 			}
+			return c.JSON(http.StatusOK, resp)
+
 		}
 	}
 
