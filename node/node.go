@@ -126,7 +126,7 @@ func (n *Node) receiverHandler(c echo.Context) error {
 
 		if core.Sig2Hex(indv.LastSig) != core.Sig2Hex(quantum.References[0]) {
 			params := []interface{}{map[string]string{"last": core.Sig2Hex(indv.LastSig)}}
-			if _, err = n.univ.GetQuantum(quantum.References[0]); err == nil {
+			if _, err = n.univ.GetQuantum(quantum.References[0]); err == nil || core.Sig2Hex(quantum.References[0]) == core.Sig2Hex(core.FirstQuantumReference) {
 				// if exist return duplicate ref use, return err with sigHex of last
 				resp.Error = errOffspringDuplicate
 				resp.Error.Params = params
