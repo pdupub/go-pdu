@@ -103,7 +103,7 @@ func (n *Node) receiverHandler(c echo.Context) error {
 	// check if exist already
 	// GetQuantum return err if not exist
 	_, err = n.univ.GetQuantum(quantum.Signature)
-	if err != nil {
+	if err == nil {
 		resp.Error = errQuantumAlreadyExist
 		return c.JSON(http.StatusOK, resp)
 	}
