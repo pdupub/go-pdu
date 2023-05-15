@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/pdupub/go-pdu/core"
+	"github.com/pdupub/go-pdu/identity"
 	"github.com/pdupub/go-pdu/udb/fb"
 
 	"github.com/labstack/echo/v4"
@@ -75,11 +76,24 @@ func New(interval int64, firebaseKeyPath, firebaseProjectID string) (*Node, erro
 func (n *Node) RunEcho(port int64, c <-chan os.Signal) {
 	n.e.HideBanner = true
 	n.e.POST("/rec", n.receiverHandler)
+	n.e.GET("/indvidual/:address", n.getIndividualHandler)
 
 	go n.Run(c)
 	n.e.Logger.Fatal(n.e.Start(fmt.Sprintf(":%d", port)))
 }
 
+func (n *Node) getIndividualHandler(c echo.Context) error {
+	resp := Resp{}
+
+	addrHex := c.Param("address")
+	individual, err := n.univ.GetIndividual(identity.HexToAddress(addrHex))
+	if err != nil {
+		resp.Error = RespErr{ErrCode: errCodeRequestJSON, ErrMsg: err.Error()}
+		return c.JSON(http.StatusOK, resp)
+	}
+	resp.Data = map[string]interface{}{"status": "ok", "individual": individual}
+	return c.JSON(http.StatusOK, resp)
+}
 func (n *Node) receiverHandler(c echo.Context) error {
 	resp := Resp{}
 	if c.Request().Header.Get("Content-Type") != echo.MIMEApplicationJSON {
