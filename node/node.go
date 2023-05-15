@@ -76,7 +76,7 @@ func New(interval int64, firebaseKeyPath, firebaseProjectID string) (*Node, erro
 func (n *Node) RunEcho(port int64, c <-chan os.Signal) {
 	n.e.HideBanner = true
 	n.e.POST("/rec", n.receiverHandler)
-	n.e.GET("/indvidual/:address", n.getIndividualHandler)
+	n.e.GET("/individual/:address", n.getIndividualHandler)
 
 	go n.Run(c)
 	n.e.Logger.Fatal(n.e.Start(fmt.Sprintf(":%d", port)))
