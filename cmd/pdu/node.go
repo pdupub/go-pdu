@@ -286,7 +286,7 @@ func BackupCmd() *cobra.Command {
 			skip := 0
 			var backup []*core.Quantum
 			for {
-				records, err := fbu.GetQuantums(limit, skip, true)
+				records, err := fbu.GetQuantums(limit, skip, false)
 				if err != nil {
 					return err
 				}
