@@ -2,10 +2,7 @@
 
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/pdupub/go-pdu)
 [![GoReport](https://goreportcard.com/badge/github.com/pdupub/go-pdu)](https://goreportcard.com/report/github.com/pdupub/go-pdu)
-[![Travis](https://travis-ci.org/pdupub/go-pdu.svg?branch=master)](https://travis-ci.org/pdupub/go-pdu)
 [![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](LICENSE)
-[![Chat](https://img.shields.io/badge/gitter-Docs%20chat-4AB495.svg)](https://gitter.im/pdupub/go-pdu)
-[![Coverage Status](https://coveralls.io/repos/github/pdupub/go-pdu/badge.svg?branch=master)](https://coveralls.io/github/pdupub/go-pdu?branch=master)
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go#distributed-systems)
 
 Golang implementation of PDU.
@@ -24,65 +21,38 @@ iOS : [https://testflight.apple.com/join/FqQGxhbn](https://testflight.apple.com/
 
 ## What is PDU?
 
-PDU is a social network service (SNS) system based on peer-to-peer (P2P) methods. All information in the system is identified by signature, called a message. Through references between messages, messages signed by the same key can form a total order relationship, and all messages can form a partial order relationship. Accounts are then defined on the basis of homologous total sequence messages. Any account can freely create a species, define its rules, and confirm other accounts to join its own species based on self-identity. In any species, accounts and information rows can be filtered according to the identification association relationship to achieve effective information acquisition. Please read the WhitePaper on [https://pdu.pub](https://pdu.pub/docs/en/WhitePaperV2.html) for more details.
+PDU is a social network service (SNS) system based on peer-to-peer and help users to effectively screen information publishers without relying on third-party authentication. All messages in the system determine the ordered relationship through mutual reference, and then determine their source by signature. Homologous total order message sequence is regarded as an information publisher identity, and all messages in the system can constitute one or more message sets with partial order relationship. Any information publisher is free to create a new species or identify other identities as belonging to a certain species. The user constructs the species range based on the obtained species identification information, and further filters suspicious information publishers according to the identification relationship. This process changes the unified verification and consistent user range in centralized services into a scalable species-based identity range determined by users themselves.
 
-PDU是基于点对点的方式构建社交网络服务，系统中所有信息均由签名确定其来源，称为消息。通过消息间的引用，同源消息可以构成全序关系，异源消息构成偏序关系。又以同源全序消息为基础，定义账户。任何账户都可以自由的创建社区规则，并基于自我认同，邀请其他账户加入自身所属社区。社区内的账户均存在偏序关联，可以基于这种关联关系，对账户和信息行筛选，以实现信息的有效获取。更多内容，详见[PDU白皮书(v2)](https://pdu.pub/docs/zh/WhitePaperV2.html)。
+Please read the WhitePaper on [https://pdu.pub](https://pdu.pub/docs/en/WhitePaperV3.html) for more details.
+
+PDU是基于点对点的方式构建社交网络服务。帮助使用者能够在不依赖第三方认证的情况下，实现对信息发布者的有效筛选。系统中所有消息通过相互的引用确定有序关系，再由签名确定其来源。同源的全序消息序列被视为一个信息发布者身份，而所有的消息在系统中可构成一个或者多个有偏序关系的消息集合。任何信息发布者都可以自由的创建新族群或对其他身份做出属于某族群的认定。使用者根据已获取的族群认定消息来构建族群范围，并依据认定关系进一步过滤可疑的信息发布者。此过程将中心化服务中统一验证和一致的用户范围，变为基于可扩展的族群，由使用者自行决定的身份范围。。更多内容，详见[PDU白皮书(v3)](https://pdu.pub/docs/zh/WhitePaperV3.html)。
 
 ## Usage
 
 ```
-Run node daemon
+ParaDigi Universe
+	A decentralized social networking service
+	Website: https://pdu.pub
 
 Usage:
-  pdu run [loop interval] [flags]
-
-Flags:
-  -h, --help           help for run
-      --interval int   time interval between consecutive processing on node (default 5)
-
-Global Flags:
-      --fbKeyPath string     path of firebase json key (default "udb/fb/test-firebase-adminsdk.json")
-      --fbProjectID string   project ID (default "pdupub-a2bdd")
-      --projectPath string   project root path (default "./")
-```
-
-```
-Operations on node
-
-Usage:
-  pdu node [command]
+  pdu [command]
 
 Available Commands:
-  backup      Backup processed quantums to local
-  exe         Do process quantum once on node
-  hide        Hide processed Quantum in node
-  judge       Judge Individual & Species on your own node
-  truncate    Clear up all data on firebase collections
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  key         Create keystores (For test)
+  msg         Create and Broadcast Message (For test your own node)
+  node        Operations on node
+  run         Run node daemon
 
 Flags:
-  -h, --help   help for node
-
-Global Flags:
       --fbKeyPath string     path of firebase json key (default "udb/fb/test-firebase-adminsdk.json")
-      --fbProjectID string   project ID (default "pdupub-a2bdd")
+      --fbProjectID string   project ID (default "pdu-dev-1")
+  -h, --help                 help for pdu
       --projectPath string   project root path (default "./")
+  -v, --version              version for pdu
 
-Use "pdu node [command] --help" for more information about a command.
-```
-
-```
-Create and Broadcast Message (For test your own node)
-
-Usage:
-  pdu msg [flags]
-
-Flags:
-  -h, --help   help for msg
-
-Global Flags:
-      --fbKeyPath string     path of firebase json key (default "udb/fb/test-firebase-adminsdk.json")
-      --fbProjectID string   project ID (default "pdupub-a2bdd")
-      --projectPath string   project root path (default "./")
+Use "pdu [command] --help" for more information about a command.
 ```
 
 
