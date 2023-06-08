@@ -82,7 +82,7 @@ func CreateFloatContent(num float64) *QContent {
 
 func (c *QContent) GetData() (interface{}, error) {
 	switch c.Format {
-	case QCFmtStringTEXT, QCFmtStringURL, QCFmtStringJSON, QCFmtStringAddressHex, QCFmtBytesSignature:
+	case QCFmtStringTEXT, QCFmtStringURL, QCFmtStringJSON, QCFmtStringAddressHex, QCFmtStringSignatureHex:
 		return string(c.Data), nil
 	case QCFmtStringInt:
 		return strconv.ParseInt(string(c.Data), 10, 64)

@@ -49,6 +49,7 @@ func main() {
 	rootCmd.AddCommand(MsgCmd())
 	rootCmd.AddCommand(KeyCmd())
 	rootCmd.AddCommand(NodeCmd())
+	rootCmd.AddCommand(ReportCmd())
 
 	rootCmd.PersistentFlags().StringVar(&projectPath, "projectPath", "./", "project root path")
 	rootCmd.PersistentFlags().StringVar(&firebaseKeyPath, "fbKeyPath", params.TestFirebaseAdminSDKPath, "path of firebase json key")

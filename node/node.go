@@ -43,6 +43,7 @@ var (
 	errCodeRequestHeader = 101
 	errCodeRequestBody   = 102
 	errCodeRequestJSON   = 110
+	errCodeUnknown       = 200
 )
 
 // Node
@@ -78,6 +79,7 @@ func (n *Node) RunEcho(port int64, c <-chan os.Signal) {
 	n.e.Static("/resource", "resource")
 	n.e.POST("/rec", n.receiverHandler)
 	n.e.GET("/individual/:address", n.getIndividualHandler)
+	n.e.POST("/report", n.reportHandler)
 
 	go n.Run(c)
 	n.e.Logger.Fatal(n.e.Start(fmt.Sprintf(":%d", port)))
@@ -95,6 +97,40 @@ func (n *Node) getIndividualHandler(c echo.Context) error {
 	resp.Data = map[string]interface{}{"status": "ok", "individual": individual}
 	return c.JSON(http.StatusOK, resp)
 }
+
+func (n *Node) reportHandler(c echo.Context) error {
+	resp := Resp{}
+	if c.Request().Header.Get("Content-Type") != echo.MIMEApplicationJSON {
+		resp.Error = RespErr{ErrCode: errCodeRequestHeader, ErrMsg: ""}
+		return c.JSON(http.StatusOK, resp)
+	}
+
+	data, err := ioutil.ReadAll(c.Request().Body)
+	if err != nil {
+		resp.Error = RespErr{ErrCode: errCodeRequestBody, ErrMsg: err.Error()}
+		return c.JSON(http.StatusOK, resp)
+	}
+	// report is not part of pdu, only function for iOS or Android platform
+	// user can report quantum, user or species. Node will record if the signer exist,
+	// but should not do anything auto. report should not use quantum struct to avoid
+	// be used as bad behavir proof of signer.
+
+	var report fb.Report
+	err = json.Unmarshal(data, &report)
+	if err != nil {
+		resp.Error = RespErr{ErrCode: errCodeRequestJSON, ErrMsg: err.Error()}
+		return c.JSON(http.StatusOK, resp)
+	}
+
+	err = n.univ.(*fb.FBUniverse).ReceiveReport(&report)
+	if err != nil {
+		resp.Error = RespErr{ErrCode: errCodeUnknown, ErrMsg: err.Error()}
+		return c.JSON(http.StatusOK, resp)
+	}
+	resp.Data = map[string]string{"status": "ok"}
+	return c.JSON(http.StatusOK, resp)
+}
+
 func (n *Node) receiverHandler(c echo.Context) error {
 	resp := Resp{}
 	if c.Request().Header.Get("Content-Type") != echo.MIMEApplicationJSON {

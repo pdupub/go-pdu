@@ -38,6 +38,7 @@ var (
 	errQuantumIsReject        = errors.New("quantum is reject")
 	errQuantumIsWaiting       = errors.New("quantum is waiting")
 	errIndividualLevelUnknown = errors.New("individual level is unknown")
+	errIndividualNotExist     = errors.New("individual is not exist")
 )
 
 var (
@@ -645,6 +646,68 @@ func (fbu *FBUniverse) QueryQuantums(address identity.Address, qType int, skip i
 	}
 
 	return qs, nil
+}
+
+func (fbu *FBUniverse) ReceiveReport(report *Report) error {
+
+	// check if refs[0] is individual.last
+	addr, err := report.Ecrecover()
+	if err != nil {
+		return err
+	}
+
+	// get individual will return err if address not exist, so ignore if err return
+	_, err = fbu.GetIndividual(addr)
+	if err != nil {
+		return err
+	}
+	var targetAddress identity.Address
+	var targetSig core.Sig
+	switch report.Content.Format {
+	case core.QCFmtStringAddressHex:
+		targetAddress = identity.HexToAddress(string(report.Content.Data))
+	case core.QCFmtStringSignatureHex:
+		targetSig = core.Hex2Sig(string(report.Content.Data))
+	case core.QCFmtBytesAddress:
+		targetAddress = identity.BytesToAddress(report.Content.Data)
+	case core.QCFmtBytesSignature:
+		targetSig = report.Content.Data
+	}
+
+	if targetSig != nil {
+		if _, err = fbu.GetQuantum(targetSig); err != nil {
+			return err
+		}
+		// update quantum
+		cDocRef := fbu.quantumC.Doc(core.Sig2Hex(targetSig))
+		if snapshot, err := cDocRef.Get(fbu.ctx); err == nil {
+			dMap := snapshot.Data()
+			if _, ok := dMap["reports"]; ok {
+				dMap["reports"].(map[string]bool)[addr.Hex()] = true
+			} else {
+				dMap["reports"] = map[string]bool{addr.Hex(): true}
+			}
+			cDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"reports", addr.Hex()}))
+		}
+
+	} else {
+		if _, err = fbu.GetIndividual(targetAddress); err != nil {
+			return err
+		}
+		// update individual
+		cDocRef := fbu.individualC.Doc(targetAddress.Hex())
+		if snapshot, err := cDocRef.Get(fbu.ctx); err == nil {
+			dMap := snapshot.Data()
+			if _, ok := dMap["reports"]; ok {
+				dMap["reports"].(map[string]bool)[addr.Hex()] = true
+			} else {
+				dMap["reports"] = map[string]bool{addr.Hex(): true}
+			}
+			cDocRef.Set(fbu.ctx, dMap, firestore.Merge([]string{"reports", addr.Hex()}))
+		}
+	}
+
+	return nil
 }
 
 func (fbu *FBUniverse) ReceiveQuantums(quantums []*core.Quantum) (accept []core.Sig, wait []core.Sig, reject []core.Sig, err error) {
