@@ -450,7 +450,7 @@ func (fbu *FBUniverse) executeInfoPlatformCustom(quantum *core.Quantum, qDocRef 
 	platformSetting["platform"] = config.Platform
 	platformSetting["version"] = config.Version
 	if config.Action == platformActionComment || config.Action == platformActionReply {
-		platformSetting["param"] = config.Params
+		platformSetting["params"] = config.Params
 	}
 	if len(config.Tags) > 0 {
 		platformSetting["tags"] = config.Tags
