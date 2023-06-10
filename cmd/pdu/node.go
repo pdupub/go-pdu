@@ -55,7 +55,33 @@ func NodeCmd() *cobra.Command {
 	cmd.AddCommand(UploadCmd())
 	cmd.AddCommand(TruncateCmd())
 	cmd.AddCommand(JudgeCmd())
+	cmd.AddCommand(TmpCmd())
 	cmd.AddCommand(HideProcessedQuantumCmd())
+	return cmd
+}
+
+func TmpCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "tmp",
+		Short: "tmp funcs for format data on node",
+		Args:  cobra.NoArgs,
+		RunE: func(_ *cobra.Command, args []string) error {
+			// ctx := context.Background()
+			// fbu, err := fb.NewFBUniverse(ctx, firebaseKeyPath, firebaseProjectID)
+			// if err != nil {
+			// 	return err
+			// }
+			// if sigHexList, err := fbu.ReformatData(); err != nil {
+			// 	fmt.Println(err)
+			// } else {
+			// 	for _, sigHex := range sigHexList {
+			// 		fmt.Println(sigHex[:10], "...", sigHex[120:])
+			// 	}
+			// }
+			return nil
+		},
+	}
+
 	return cmd
 }
 

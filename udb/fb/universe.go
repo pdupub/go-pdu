@@ -809,6 +809,34 @@ func (fbu *FBUniverse) GetFBDataByTable(collection string) ([]byte, error) {
 	return json.Marshal(res)
 }
 
+// ReformatData is not belong to interface of core/universe
+func (fbu *FBUniverse) ReformatData() ([]string, error) {
+	var sigHexList []string
+	quantumQuery := fbu.quantumC.Query.Where("ios.param", "!=", "")
+	iter := quantumQuery.Documents(fbu.ctx)
+	for docSnapshot, err := iter.Next(); err != iterator.Done; docSnapshot, err = iter.Next() {
+		if docSnapshot == nil {
+			break
+		}
+		sigHexList = append(sigHexList, docSnapshot.Ref.ID)
+
+		param, err := docSnapshot.DataAt("ios.param")
+		if err != nil {
+			break
+		}
+
+		paramsSig := param.(string)
+		iosData := make(map[string]string)
+		iosData["params"] = paramsSig
+
+		dMap := make(map[string]interface{})
+		dMap["ios"] = iosData
+		docSnapshot.Ref.Set(fbu.ctx, dMap, firestore.Merge([]string{"ios", "params"}))
+	}
+
+	return sigHexList, nil
+}
+
 // GetQuantumsOnWait is not belong to interface of core/universe
 func (fbu *FBUniverse) GetQuantumsOnWait() ([]*core.Quantum, error) {
 	var qs []*core.Quantum
