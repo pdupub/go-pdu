@@ -49,14 +49,15 @@ var (
 	errContentFmtNotFit = errors.New("content format not fit")
 )
 
-// QContent is one piece of data in Quantum,
-// all variables should be in alphabetical order.
+// QContent is the fundamental data structure that forms Quantum, and variables
+// are arranged in alphabetical order according to their names.
 type QContent struct {
 	Data   []byte `json:"data,omitempty"`
 	Format int    `json:"fmt"`
 }
 
 func NewContent(fmt int, data []byte) (*QContent, error) {
+	// TODO: check fmt is equal to one of QCFmt...
 	return &QContent{Format: fmt, Data: data}, nil
 }
 
@@ -65,6 +66,7 @@ func CreateTextContent(t string) *QContent {
 	return c
 }
 
+// CreateEmptyContent is create QContent which fmt is QCFmtStringText
 func CreateEmptyContent() *QContent {
 	c, _ := NewContent(QCFmtStringTEXT, []byte(""))
 	return c

@@ -19,6 +19,7 @@ package main
 import (
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/spf13/cobra"
 
@@ -37,8 +38,8 @@ func RunCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, args []string) error {
 
-			c := make(chan os.Signal)
-			signal.Notify(c, os.Interrupt, os.Kill)
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 			if serv, err := node.New(interval, firebaseKeyPath, firebaseProjectID); err != nil {
 				return err

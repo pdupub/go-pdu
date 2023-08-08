@@ -28,6 +28,9 @@ import (
 )
 
 // ReportCmd is used to build report json
+// report json is not part of pdu/core, is signed but not a quantum, this kind of msg
+// is used for fit platform rule, such as AppStore ...
+
 // the request is send by curl
 // curl -X POST -H "Content-Type: application/json" -d '{"c":{"data": "0x123", "fmt": 6}, "sig":"..."}' <URL>
 

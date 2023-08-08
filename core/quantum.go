@@ -16,6 +16,15 @@
 
 package core
 
+// Quantum is the only structure for the information released by the publisher in the PDU,
+// and it is also the only structure for information exchange between nodes in this P2P system.
+// Each Quantum consists of three parts: signature, reference list and data.
+// Signatures are used to determine the source of information and integrity.
+// References are used to determine the order of the information, the data content is composed of QContent.
+// Quantum是PDU中发布者所发布信息的唯一结构，也是这个P2P的系统中，各节点之间信息交流的唯一结构。
+// 每个Quantum都由三部分构成：签名，引用和数据内容。签名用以确定信息源即完整性，引用用来确定信息
+// 间的顺序，数据内容由QContent数组构成。
+
 import (
 	"encoding/json"
 	"errors"
@@ -42,6 +51,8 @@ type Sig []byte
 const (
 	// QuantumTypeInformation specifies quantum which user just want to share information, such as
 	// post articles, reply to others or chat message with others (encrypted by receiver's public key)
+	// QuantumTypeInformation 表示这个Quantum包含的内容只应被作为信息处理，如发布文章，图片等媒体内容或对于他人的回复，
+	// 不同于后面所介绍的四种类型，此类型没有任何会被系统默认处理的特殊功能。
 	QuantumTypeInformation = 0
 
 	// QuantumTypeIntegration specifies the quantum to update user's (signer's) profile.
@@ -50,6 +61,9 @@ const (
 	// contents = [key1, newValue ...]
 	// if user want to delete key1, send new QuantumTypeIntegration quantum with
 	// contents = [key1, newValue which content with empty data]
+	// QuantumTypeIntegration 表示这个Quantum为整合类型，此类型的quantum主要用于维护信息发布者的公开字典，可用户维护
+	// 信息发布者的profile或者作为账本维护每个地址的资金情况。QContent数组是由key和value循环组成，如果这个数组的长度为
+	// 奇数则忽略最后一个key
 	QuantumTypeIntegration = 1
 
 	// QuantumTypeSpeciation specifies the quantum of rule to build new species
@@ -62,6 +76,9 @@ const (
 	// contents[3] ~ contents[15] is the initial users in this species
 	// {fmt:QCFmtBytesAddress/QCFmtStringAddressHex, data:0x1232...}
 	// signer of this species is also the initial user in this species
+	// QuantumTypeSpeciation特指创建新的族群，QContent数组中的第一项是这个族群的说明，二三两项为认定的限制条件
+	// 从第四项开始是初始地址，族群默认包含创建者属于这个族群且创建者无需将自己的地址写入到族群创建的quantum当中。
+	// 需要注意：第二三两项的认定限制条件有可能在后续的开发中消失，转而将族群的判定条件完全交由信息使用者确定
 	QuantumTypeSpeciation = 2
 
 	// QuantumTypeIdentification specifies the quantum of identification
@@ -75,11 +92,15 @@ const (
 	// accepted by any species is decided by user in that species feel about u, not opposite.
 	// User belong to species, quantum belong to user. (On trandation forum, posts usually belong to
 	// one topic and have lots of tag, is just the function easy to implemnt not base struct here)
+	// QuantumTypeIdentification 特指表达对于其他信息发布者属于某个特定族群的认定类Quantum。
+	// 需要注意：后续的认定消息发布不仅限于属于某特定族群的地址，而可以由任何地址发布，因为判定的某地址是否属于某族群的权利
+	// 将完全交于信息使用者，此改变和QuantumTypeSpeciation将会同步进行。
 	QuantumTypeIdentification = 3
 
 	// QuantumTypeTermination specifies the quantum of ending life cycle
 	// When receive this quantum, no more quantum from same address should be received or broadcast.
 	// The decision of end from any identity should be respected, no matter for security reason or just want to leave.
+	// QuantumTypeTermination 特指废弃这个地址的quantum，表达发布者希望系统不在接受和处理由这个私钥签发的后续任何信息。
 	QuantumTypeTermination = 4
 )
 
@@ -176,15 +197,15 @@ func CreateIntegrationQuantum(data map[string]interface{}, refs ...Sig) (*Quantu
 	for k, v := range data {
 		key := CreateTextContent(k)
 		var value *QContent
-		switch v.(type) {
+		switch v := v.(type) {
 		case string:
-			value = CreateTextContent(v.(string))
+			value = CreateTextContent(v)
 		case float64:
-			value = CreateFloatContent(v.(float64))
+			value = CreateFloatContent(v)
 		case int:
-			value = CreateIntContent(int64(v.(int)))
+			value = CreateIntContent(int64(v))
 		case int64:
-			value = CreateIntContent(v.(int64))
+			value = CreateIntContent(v)
 		default:
 			// img for avator will be deal later
 			return nil, errContentFmtNotFit

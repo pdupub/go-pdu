@@ -32,7 +32,7 @@ var (
 	didCnt       int
 )
 
-// KeyCmd is used to create or unlock private key.
+// KeyCmd is used to create group of private keys for test.
 func KeyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "key [keystore_path]",

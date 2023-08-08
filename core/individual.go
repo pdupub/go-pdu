@@ -20,8 +20,19 @@ import (
 	"github.com/pdupub/go-pdu/identity"
 )
 
+// The information in Individual is intended for the information recipient or consumer.
+// For different information consumers, the information in Individual, except for the
+// address, may vary. Consumer does not necessarily have the identity represented by
+// the private key and address (as Individual). All Individual information within each
+// information consumer also does not need to be publicly disclosed.
+
+// 在PDU中，用户的身份被分割成信息的发布者和使用者，同一用户往往同时具备这两个身份，但用户的这两个身份间
+// 并不存在必然联系。Individual中所包含的信息，使用者本地对于自身可见的信息发布者的记录，这些不同的使用者
+// 对于相同的发布者其记录内容除Address之外，都可能不同。使用者无义务公开自己本地的Individual信息，即无
+// 义务表达对于其他用户的态度。
+
 // All Attitude State below is used to show my current subjective attitude to
-// that individual for new quantums, not influence the quantums already be accepted before.
+// that individual for new quantums, not influence the quantums already be accepted.
 const (
 	AttitudeRejectOnRef   = -2 // reject the quantum which use any quantum from this address as reference
 	AttitudeReject        = -1 // reject any quantum from this address
@@ -34,13 +45,13 @@ const (
 type Attitude struct {
 	Level    int        `json:"level"`              // Attitude const level
 	Judgment string     `json:"judgment,omitempty"` // my subjective judgment
-	Evidence []*Quantum `json:"evidence,omitempty"` // evidence of my judgment, can be omit but all quantum should come from current individual
+	Evidence []*Quantum `json:"evidence,omitempty"` // evidence of my judgment, which can be omit but all quantum should come from current individual
 }
 
-// Individual is the user in pdu system
+// Individual is the publisher in pdu system
 type Individual struct {
 	Address  identity.Address     `json:"address"`
-	Profile  map[string]*QContent `json:"profile,omitempty"`
+	Profile  map[string]*QContent `json:"profile,omitempty"` // profile info base on quantums user accept from this address
 	Species  []*Species           `json:"species,omitempty"`
 	Attitude *Attitude            `json:"attitude"`
 	LastSig  Sig                  `json:"lastSignature,omitempty"`
