@@ -20,7 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -105,7 +105,7 @@ func (n *Node) reportHandler(c echo.Context) error {
 		return c.JSON(http.StatusOK, resp)
 	}
 
-	data, err := ioutil.ReadAll(c.Request().Body)
+	data, err := io.ReadAll(c.Request().Body)
 	if err != nil {
 		resp.Error = RespErr{ErrCode: errCodeRequestBody, ErrMsg: err.Error()}
 		return c.JSON(http.StatusOK, resp)
@@ -138,7 +138,7 @@ func (n *Node) receiverHandler(c echo.Context) error {
 		return c.JSON(http.StatusOK, resp)
 	}
 
-	data, err := ioutil.ReadAll(c.Request().Body)
+	data, err := io.ReadAll(c.Request().Body)
 	if err != nil {
 		resp.Error = RespErr{ErrCode: errCodeRequestBody, ErrMsg: err.Error()}
 		return c.JSON(http.StatusOK, resp)

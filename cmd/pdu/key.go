@@ -18,7 +18,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -61,13 +61,13 @@ func KeyCmd() *cobra.Command {
 
 func getPassAndSalt() (pass []byte, salt []byte, err error) {
 
-	pass, err = ioutil.ReadFile(passwordPath)
+	pass, err = os.ReadFile(passwordPath)
 	pass = []byte(strings.Replace(string(pass), "\n", "", -1))
 	if err != nil {
 		return
 	}
 
-	salt, err = ioutil.ReadFile(saltPath)
+	salt, err = os.ReadFile(saltPath)
 	salt = []byte(strings.Replace(string(salt), "\n", "", -1))
 	if err != nil {
 		return

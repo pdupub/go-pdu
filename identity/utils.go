@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -155,7 +154,7 @@ func CreateKeystoreArrayAndSaveLocal(keyDir string, passwd, salt []byte, cnt int
 			// Could not create directory keyFilePath
 			return dids, err
 		}
-		if err := ioutil.WriteFile(keyFilePath, keyJSON, 0600); err != nil {
+		if err := os.WriteFile(keyFilePath, keyJSON, 0600); err != nil {
 			// Failed to write keyfile to keyFilePath
 			return dids, err
 		}
@@ -167,7 +166,7 @@ func CreateKeystoreArrayAndSaveLocal(keyDir string, passwd, salt []byte, cnt int
 
 func UnlockKeystoreArray(keyDir string, passwd, salt []byte) ([]*DID, error) {
 	var ids []*DID
-	rd, err := ioutil.ReadDir(keyDir)
+	rd, err := os.ReadDir(keyDir)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +187,7 @@ func UnlockKeystoreArray(keyDir string, passwd, salt []byte) ([]*DID, error) {
 }
 
 func unlockKeystore(filename string, auth string) (*DID, error) {
-	keyjson, err := ioutil.ReadFile(filename)
+	keyjson, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}

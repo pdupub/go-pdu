@@ -18,7 +18,7 @@ package identity
 
 import (
 	"encoding/hex"
-	"io/ioutil"
+	"os"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -47,7 +47,7 @@ func BytesToAddress(bytes []byte) Address {
 
 // UnlockWallet used to unlock wallet
 func (d *DID) UnlockWallet(keyFilePath, password string) error {
-	keyJSON, err := ioutil.ReadFile(keyFilePath)
+	keyJSON, err := os.ReadFile(keyFilePath)
 	if err != nil {
 		return err
 	}
