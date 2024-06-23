@@ -23,16 +23,6 @@
             "env": {},
             "args": [],
             "showLog": true
-        },
-        {
-            "name": "Test UDB FB",
-            "type": "go",
-            "request": "launch",
-            "mode": "test",
-            "program": "${workspaceFolder}/udb/fb",
-            "env": {},
-            "args": [],
-            "showLog": true
-        } 
+        }
     ]
 }

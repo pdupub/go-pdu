@@ -1,4 +1,4 @@
-// Copyright 2021 The PDU Authors
+// Copyright 2024 The PDU Authors
 // This file is part of the PDU library.
 //
 // The PDU library is free software: you can redistribute it and/or modify
@@ -18,13 +18,6 @@ package params
 
 import (
 	"fmt"
-)
-
-// test for udb/firebase
-
-const (
-	TestFirebaseAdminSDKPath = "udb/fb/test-firebase-adminsdk.json"
-	TestFirebaseProjectID    = "pdu-dev-1" // "pdupub-a2bdd"
 )
 
 // test for identity
