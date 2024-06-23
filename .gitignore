@@ -1,5 +1,6 @@
 # PDU
-backup_*
+udb.db
+build/
 
 # idea
 # .vscode/

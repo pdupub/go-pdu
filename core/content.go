@@ -17,80 +17,82 @@
 package core
 
 import (
-	"errors"
-	"fmt"
-	"strconv"
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
+	"io"
 )
 
-const (
-	QCFmtStringTEXT         = 1
-	QCFmtStringURL          = 2
-	QCFmtStringJSON         = 3
-	QCFmtStringInt          = 4
-	QCFmtStringFloat        = 5
-	QCFmtStringAddressHex   = 6
-	QCFmtStringSignatureHex = 7
-
-	QCFmtBytesSignature = 33
-	QCFmtBytesAddress   = 34
-
-	QCFmtImagePNG = 65
-	QCFmtImageJPG = 66
-	QCFmtImageBMP = 67
-
-	QCFmtAudioWAV = 97
-	QCFmtAudioMP3 = 98
-
-	QCFmtVideoMP4 = 129
-)
-
-var (
-	errContentParseFail = errors.New("contents parse fail")
-	errContentFmtNotFit = errors.New("content format not fit")
-)
-
-// QContent is the fundamental data structure that forms Quantum, and variables
-// are arranged in alphabetical order according to their names.
 type QContent struct {
-	Data   []byte `json:"data,omitempty"`
-	Format int    `json:"fmt"`
+	Data   []byte `json:"data,omitempty"` // Store as []byte
+	Format string `json:"fmt"`
+	Zipped bool   `json:"zipped,omitempty"`
 }
 
-func NewContent(fmt int, data []byte) (*QContent, error) {
-	// TODO: check fmt is equal to one of QCFmt...
-	return &QContent{Format: fmt, Data: data}, nil
-}
-
-func CreateTextContent(t string) *QContent {
-	c, _ := NewContent(QCFmtStringTEXT, []byte(t))
-	return c
-}
-
-// CreateEmptyContent is create QContent which fmt is QCFmtStringText
-func CreateEmptyContent() *QContent {
-	c, _ := NewContent(QCFmtStringTEXT, []byte(""))
-	return c
-}
-
-func CreateIntContent(num int64) *QContent {
-	c, _ := NewContent(QCFmtStringInt, []byte(fmt.Sprintf("%d", num)))
-	return c
-}
-
-func CreateFloatContent(num float64) *QContent {
-	c, _ := NewContent(QCFmtStringFloat, []byte(fmt.Sprintf("%g", num)))
-	return c
-}
-
-func (c *QContent) GetData() (interface{}, error) {
-	switch c.Format {
-	case QCFmtStringTEXT, QCFmtStringURL, QCFmtStringJSON, QCFmtStringAddressHex, QCFmtStringSignatureHex:
-		return string(c.Data), nil
-	case QCFmtStringInt:
-		return strconv.ParseInt(string(c.Data), 10, 64)
-	case QCFmtStringFloat:
-		return strconv.ParseFloat(string(c.Data), 64)
-	default:
-		return c.Data, nil
+// NewQContent creates a new QContent object
+func NewQContent(data []byte, format string, zipped bool) (*QContent, error) {
+	if zipped {
+		var buf bytes.Buffer
+		writer := gzip.NewWriter(&buf)
+		_, err := writer.Write(data)
+		if err != nil {
+			return nil, err
+		}
+		if err := writer.Close(); err != nil {
+			return nil, err
+		}
+		data = buf.Bytes()
 	}
+
+	return &QContent{
+		Data:   data,
+		Format: format,
+		Zipped: zipped,
+	}, nil
+}
+
+// NewTXTQContent creates a new textQContent object
+func NewTXTQContent(data []byte) (*QContent, error) {
+	return NewQContent(data, "txt", false)
+}
+
+// GetData returns the binary data of the QContent object
+func (q *QContent) GetData() ([]byte, error) {
+	data := q.Data
+	if q.Zipped {
+		reader, err := gzip.NewReader(bytes.NewReader(data))
+		if err != nil {
+			return nil, err
+		}
+		defer reader.Close()
+		data, err = io.ReadAll(reader)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return data, nil
+}
+
+// GetFormat returns the format of the QContent object
+func (q *QContent) GetFormat() string {
+	return q.Format
+}
+
+// IsZipped returns whether the QContent object is zipped
+func (q *QContent) IsZipped() bool {
+	return q.Zipped
+}
+
+// ToJSON converts the QContent object to a JSON string
+func (q *QContent) ToJSON() (string, error) {
+	data, err := json.Marshal(q)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+// FromJSON populates the QContent object from a JSON string
+func (q *QContent) FromJSON(jsonStr string) error {
+	return json.Unmarshal([]byte(jsonStr), q)
 }

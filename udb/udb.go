@@ -14,33 +14,52 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
 
-package core
+package udb
 
 import (
-	"testing"
+	"log"
 
-	"github.com/pdupub/go-pdu/identity"
-	"github.com/pdupub/go-pdu/params"
+	"go.etcd.io/bbolt"
 )
 
-func TestNewIndividual(t *testing.T) {
-	did, _ := identity.New()
-	did.UnlockWallet("../"+params.TestKeystore(0), params.TestPassword)
+var DB *bbolt.DB
 
-	newInd := NewIndividual(did.GetAddress())
-
-	if did.GetAddress() != newInd.GetAddress() {
-		t.Error("address not match")
+func InitDB() {
+	var err error
+	DB, err = bbolt.Open("udb.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	k1, _ := NewContent(QCFmtStringTEXT, []byte("nickname"))
-	v1, _ := NewContent(QCFmtStringTEXT, []byte("pdu"))
-
-	if err := newInd.UpsertProfile([]*QContent{k1, v1}); err != nil {
-		t.Error(err)
+	err = DB.Update(func(tx *bbolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("MyBucket"))
+		return err
+	})
+	if err != nil {
+		log.Fatal(err)
 	}
+}
 
-	for k := range newInd.Profile {
-		t.Log(k)
-	}
+func CloseDB() {
+	DB.Close()
+}
+
+func Put(key, value string) error {
+	return DB.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("MyBucket"))
+		return b.Put([]byte(key), []byte(value))
+	})
+}
+
+func Get(key string) (string, error) {
+	var value string
+	err := DB.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte("MyBucket"))
+		v := b.Get([]byte(key))
+		if v != nil {
+			value = string(v)
+		}
+		return nil
+	})
+	return value, err
 }

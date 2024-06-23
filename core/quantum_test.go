@@ -13,135 +13,108 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
-
 package core
 
 import (
-	"encoding/hex"
-	"encoding/json"
+	"io"
+	"os"
 	"testing"
 
 	"github.com/pdupub/go-pdu/identity"
 	"github.com/pdupub/go-pdu/params"
-	"golang.org/x/crypto/sha3"
 )
 
-func TestUtils(t *testing.T) {
-	msg := "hello123"
-	t.Log("message ", msg)
-	t.Log("msg to bytes", []byte(msg))
+func TestNewQuantum(t *testing.T) {
+	cs := []*QContent{
+		{Data: []byte("content1"), Format: "txt", Zipped: false},
+	}
+	refs := []Sig{InitialQuantumReference}
 
-	d := sha3.NewLegacyKeccak256()
-	d.Write([]byte(msg))
-	hashBytes := d.Sum(nil)
-	t.Log("hash bytes", hashBytes)
-	t.Log("hash hex", hex.EncodeToString(hashBytes))
+	quantum, err := NewQuantum(QuantumTypeInformation, cs, refs...)
+	if err != nil {
+		t.Errorf("error creating Quantum: %v", err)
+	}
+
+	if len(quantum.Contents) != len(cs) {
+		t.Errorf("expected %d contents, got %d", len(cs), len(quantum.Contents))
+	}
+
+	if len(quantum.References) != len(refs) {
+		t.Errorf("expected %d references, got %d", len(refs), len(quantum.References))
+	}
+
+	if quantum.Type != QuantumTypeInformation {
+		t.Errorf("expected type %d, got %d", QuantumTypeInformation, quantum.Type)
+	}
 }
 
-func TestInfoQuantum(t *testing.T) {
-	did, _ := identity.New()
-	did.UnlockWallet("../"+params.TestKeystore(0), params.TestPassword)
+func TestQuantumSignAndEcrecover(t *testing.T) {
 
-	c0 := CreateTextContent("Hello!")
-	c1 := CreateIntContent(100)
-	c2 := CreateTextContent(">")
-	c3 := CreateFloatContent(99.9)
-
-	q, err := NewQuantum(QuantumTypeInformation, []*QContent{c0, c1, c2, c3}, FirstQuantumReference)
+	file, err := os.Open("testdata/logo.png")
 	if err != nil {
-		t.Error(err)
+		t.Errorf("Error opening file: %v", err)
+		return
 	}
-	q.Sign(did)
-	if j, err := json.Marshal(q); err != nil {
-		t.Error(err)
-	} else {
-		t.Log("###########################################################")
-		t.Log("signed q is:")
-		t.Log(string(j))
-		t.Log("hex signature is:", len(q.Signature))
-		t.Log(Sig2Hex(q.Signature))
-		t.Log("[]byte(sig) is:")
-		t.Log(Hex2Sig(string([]byte(Sig2Hex(q.Signature)))))
-		t.Log("q.Signature is:")
-		t.Log(q.Signature)
-		t.Log("###########################################################")
-	}
+	defer file.Close()
 
-	if d, err := q.Contents[0].GetData(); err != nil || d.(string) != "Hello!" {
-		t.Error(err)
-	}
-	if d, err := q.Contents[1].GetData(); err != nil || d.(int64) != 100 {
-		t.Error(err)
-	}
-	if d, err := q.Contents[2].GetData(); err != nil || d.(string) != ">" {
-		t.Error(err)
-	}
-	if d, err := q.Contents[3].GetData(); err != nil || d.(float64) != 99.9 {
-		t.Error(err)
-	}
-
-}
-
-func TestSignAndVerify(t *testing.T) {
-	did, _ := identity.New()
-	did.UnlockWallet("../"+params.TestKeystore(0), params.TestPassword)
-
-	refs := []Sig{Hex2Sig("0x3e34d7ba1ed979e0b5c5cb0507837554bf16798e5bde0b4b55df1f33a1e12fa22dff93ae2f2b362eabe866e6394d56cff4625f22efab18540769e827053a574c00"),
-		Hex2Sig("0x8bcb61fd8d0e280b7eaa92de0821bfedf62795ddfb1d8f6f6cf6ee6fb7974dd947fa9c73cf3ef1ac47003da28ab3f4c44eb58a619920a4d6fe8604ff4aa10c4e00")}
-
-	qc, err := NewContent(QCFmtStringTEXT, []byte("Hello World!"))
+	// 获取文件信息
+	fileInfo, err := file.Stat()
 	if err != nil {
-		t.Error(err)
+		t.Errorf("Error getting file info: %v", err)
+		return
 	}
-	t.Log("content fmt", QCFmtStringTEXT)
-	t.Log("content data", string(qc.Data))
 
-	q, err := NewQuantum(QuantumTypeInformation, []*QContent{qc}, refs...)
+	// 创建一个字节切片来保存文件内容
+	fileSize := fileInfo.Size()
+	fileBytes := make([]byte, fileSize)
+
+	// 将文件内容读入字节切片
+	_, err = io.ReadFull(file, fileBytes)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("Error reading file: %v", err)
+		return
 	}
 
-	b, err := json.Marshal(q.UnsignedQuantum)
+	cs := []*QContent{
+		{Data: []byte("content1"), Format: "txt", Zipped: false},
+		{Data: fileBytes, Format: "png", Zipped: true},
+	}
+	refs := []Sig{InitialQuantumReference}
+
+	quantum, err := NewQuantum(QuantumTypeInformation, cs, refs...)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("error creating Quantum: %v", err)
 	}
-	t.Log("unsigned q", string(b))
-	t.Log("###", b)
 
-	sig, err := did.Sign(b)
+	// Create a new DID for signing
+	did, err := identity.New()
 	if err != nil {
-		t.Error(err)
-	}
-	t.Log("signature", Sig2Hex(sig))
-
-	if err := q.Sign(did); err != nil {
-		t.Error(err)
+		t.Errorf("error creating new DID: %v", err)
 	}
 
-	signedQ, err := json.Marshal(q)
+	// Unlock the DID
+	err = did.UnlockWallet("../"+params.TestKeystore(0), params.TestPassword)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("error unlocking wallet: %v", err)
 	}
-	t.Log("signed q", string(signedQ))
 
-	addr, err := q.Ecrecover()
+	err = quantum.Sign(did)
 	if err != nil {
-		t.Error(err)
-	}
-	if addr != did.GetAddress() {
-		t.Error("address not match")
-	}
-	t.Log("ecrecover address", addr.Hex())
-
-	if jsonUnsignedQuantumBytes, err := json.Marshal(q.UnsignedQuantum); err != nil {
-		t.Error(err)
-	} else {
-		t.Log("unsigned quantum json", string(jsonUnsignedQuantumBytes))
+		t.Errorf("error signing Quantum: %v", err)
 	}
 
-	if jsonQuantumBytes, err := json.Marshal(q); err != nil {
-		t.Error(err)
-	} else {
-		t.Log("quantum json", string(jsonQuantumBytes))
+	address, err := quantum.Ecrecover()
+	if err != nil {
+		t.Errorf("error recovering address: %v", err)
 	}
+
+	// Add assertions based on expected address values
+	expectedAddress := did.GetAddress()
+	if address != expectedAddress {
+		t.Errorf("expected address %s, got %s", expectedAddress, address)
+	}
+
+	// Marshal converts the UnsignedQuantum to a byte slice
+	// q, _ := quantum.Marshal()
+	// t.Logf("quantum : %s", q)
 }

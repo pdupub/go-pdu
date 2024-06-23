@@ -63,7 +63,7 @@ get clone https://github.com/pdupub/go-pdu.git
 
 To build:
 ```
-make install 
+make build 
 ```
 
 
