@@ -49,7 +49,7 @@ func main() {
 		Short: "Run node command",
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("P2P node running")
-			node.Run()
+			node.Run(8544)
 		},
 	}
 

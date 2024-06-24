@@ -22,10 +22,11 @@ import (
 const protocolID = "/p2p/1.0.0"
 
 // createNode creates a new libp2p host
-func createNode() (host.Host, context.Context) {
+func createNode(listenPort int) (host.Host, context.Context) {
 	ctx := context.Background()
 	h, err := libp2p.New(
 		libp2p.Transport(tcp.NewTCPTransport),
+		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", listenPort)),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -75,8 +76,8 @@ func connectToPeer(h host.Host, peerAddr string) {
 }
 
 // Run starts the libp2p node and listens for incoming connections
-func Run() {
-	h, ctx := createNode()
+func Run(listenPort int) {
+	h, ctx := createNode(listenPort)
 	handleInterrupt(ctx, h)
 
 	h.SetStreamHandler(protocol.ID(protocolID), handleStream)
