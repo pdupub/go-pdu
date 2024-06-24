@@ -17,15 +17,25 @@
 package core
 
 import (
+	"log"
 	"sync"
+
+	"github.com/pdupub/go-pdu/udb"
 )
 
 type Universe struct {
 	mu sync.RWMutex
+	DB *udb.UDB
 }
 
-func NewUniverse() *Universe {
-	return &Universe{}
+func NewUniverse(dbName string) (*Universe, error) {
+	db, err := udb.InitDB(dbName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &Universe{
+		DB: db,
+	}, nil
 }
 
 func (u *Universe) Recv(quantum *Quantum) error {
