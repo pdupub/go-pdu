@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MetaMask Interaction</title>
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="text/javascript"></script>
+    <script>
+        const targetChainId = '0x2304'; // Default chainId set to 0x2304
+
+        function encodeBase64UTF8(str) {
+            const utf8Bytes = new TextEncoder().encode(str);
+            const binaryString = String.fromCharCode(...utf8Bytes);
+            return btoa(binaryString);
+        }
+
+        async function checkNetwork() {
+            if (typeof window.ethereum !== 'undefined') {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const network = await provider.getNetwork();
+
+                if (network.chainId !== parseInt(targetChainId, 16)) {
+                    try {
+                        await ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: targetChainId }],
+                        });
+                        // Network switched, proceed with signing the message
+                        await signMessage();
+                    } catch (switchError) {
+                        if (switchError.code === 4902) {
+                            alert('Network not found. Please add the network to MetaMask first.');
+                        } else {
+                            console.error(switchError);
+                            alert('Failed to switch network');
+                        }
+                    }
+                } else {
+                    // Already on the correct network, proceed with signing the message
+                    await signMessage();
+                }
+            } else {
+                alert('MetaMask is not installed');
+            }
+        }
+
+        async function signMessage() {
+            const message = document.getElementById('message').value;
+            if (message.length > 1024) {
+                alert('Message length should not exceed 1024 characters');
+                return;
+            }
+
+            const messageJson = {
+                cs: [{ data: encodeBase64UTF8(message), fmt: "txt" }],
+                refs: ["0x00", "0x123"]
+            };
+
+            const messageString = JSON.stringify(messageJson);
+
+            try {
+                await ethereum.request({ method: 'eth_requestAccounts' });
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                const signature = await signer.signMessage(messageString);
+                console.log('Signature:', signature);
+
+                const jsonResult = {
+                    ...messageJson,
+                    sig: signature
+                };
+
+                document.getElementById('signature').innerText = 'Signature: ' + signature;
+                document.getElementById('jsonResult').innerText = JSON.stringify(jsonResult, null, 2);
+
+                // Send JSON result to the server
+                await sendJsonToServer(jsonResult);
+            } catch (error) {
+                console.error(error);
+                alert('Error signing message');
+            }
+        }
+
+        async function sendJsonToServer(jsonData) {
+            try {
+                const response = await fetch('http://localhost:8545/rpc', { // Ensure this URL matches your Go server's endpoint
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(jsonData)
+                });
+                const responseData = await response.json();
+                console.log('Server response:', responseData);
+            } catch (error) {
+                console.error('Error sending JSON to server:', error);
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>MetaMask Interaction</h1>
+    <textarea id="message" rows="10" cols="50" maxlength="1024" placeholder="Enter your message here..."></textarea>
+    <br>
+    <button onclick="checkNetwork()">Sign Message</button>
+    <p id="signature"></p>
+    <pre id="jsonResult"></pre>
+</body>
+</html>

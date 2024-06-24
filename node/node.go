@@ -3,16 +3,17 @@ package node
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
@@ -23,6 +24,28 @@ import (
 )
 
 const protocolID = "/p2p/1.0.0"
+
+// JSON-RPC request structure
+type JSONRPCRequest struct {
+	Jsonrpc string          `json:"jsonrpc"`
+	Method  string          `json:"method,omitempty"`
+	Params  json.RawMessage `json:"params"`
+	ID      json.RawMessage `json:"id,omitempty"`
+}
+
+// JSON-RPC response structure
+type JSONRPCResponse struct {
+	Jsonrpc string          `json:"jsonrpc"`
+	Result  interface{}     `json:"result,omitempty"`
+	Error   *RPCError       `json:"error,omitempty"`
+	ID      json.RawMessage `json:"id"`
+}
+
+// RPCError structure
+type RPCError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
 
 // createNode creates a new libp2p host
 func createNode(listenPort int) (host.Host, context.Context) {
@@ -78,38 +101,124 @@ func connectToPeer(h host.Host, peerAddr string) {
 	fmt.Printf("Connected to %s\n", peerinfo.ID.String())
 }
 
+func handleWebsite(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, filepath.Join("node/static", "index.html"))
+}
+
 // startWebServer starts a simple web server
 func startWebServer(port int) {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, this is the web server!")
-	})
 
-	addr := fmt.Sprintf(":%d", port)
-	go func() {
-		fmt.Printf("Starting web server on %s\n", addr)
-		if err := http.ListenAndServe(addr, nil); err != nil {
-			log.Fatalf("Failed to start web server: %s", err)
+	http.HandleFunc("/", handleWebsite)
+	fmt.Printf("Starting Website server on port %d... \n", port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+}
+
+func handleCustomJSONRequest(w http.ResponseWriter, body []byte) {
+	var jsonData map[string]interface{}
+	err := json.Unmarshal(body, &jsonData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Log the JSON data received
+	log.Printf("Received custom JSON data: %+v\n", jsonData)
+
+	// Respond with a success message
+	response := map[string]string{"status": "success"}
+	responseBody, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(responseBody)
+}
+
+func handleRPCRequest(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST method is supported", http.StatusMethodNotAllowed)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Log the incoming request
+	log.Printf("Received request: %s\n", string(body))
+
+	var req JSONRPCRequest
+	err = json.Unmarshal(body, &req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if req.Method == "" {
+		// If the method field is missing, treat it as a custom JSON request
+		handleCustomJSONRequest(w, body)
+		return
+	}
+
+	// Handle standard JSON-RPC requests
+	var result interface{}
+	var rpcErr *RPCError
+
+	switch req.Method {
+	case "eth_chainId":
+		result = "0x2304" // Example chain ID, replace with actual chain ID
+	case "net_version":
+		result = "1" // Example network version, replace with actual network version
+	case "eth_blockNumber":
+		result = "0xBC614E" // Example block number, replace with actual block number
+	case "eth_getBlockByNumber":
+		result = "0xBC614E" // Example block data, replace with actual block data
+	case "eth_gasPrice":
+		result = "0x09184e72a000" // Example gas price, replace with actual gas price
+	case "eth_getBalance":
+		result = "0x8AC7230489E80000" // Example balance, replace with actual logic to fetch balance
+	case "eth_getTransactionCount":
+		result = "0x1" // Example transaction count, replace with actual logic to fetch transaction count
+	// case "eth_call":
+	// 	result, rpcErr = handleEthCall(req.Params)
+	default:
+		rpcErr = &RPCError{
+			Code:    -32601,
+			Message: "Method not found",
 		}
-	}()
+	}
+
+	resp := JSONRPCResponse{
+		Jsonrpc: "2.0",
+		Result:  result,
+		Error:   rpcErr,
+		ID:      req.ID,
+	}
+
+	responseBody, err := json.Marshal(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Log the outgoing response
+	log.Printf("Sending response: %s\n", string(responseBody))
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(responseBody)
 }
 
 // startRPCServer starts a JSON-RPC server compatible with MetaMask
 func startRPCServer(port int) {
-	server := rpc.NewServer()
-	// 注册需要的RPC服务，这里可以自定义自己的RPC方法
-	// server.RegisterName("YourServiceName", &YourService{})
 
-	addr := fmt.Sprintf(":%d", port)
-	go func() {
-		fmt.Printf("Starting RPC server on %s\n", addr)
-		listener, err := net.Listen("tcp", addr)
-		if err != nil {
-			log.Fatalf("Failed to start RPC server: %s", err)
-		}
-		if err := server.ServeListener(listener); err != nil {
-			log.Fatalf("Failed to serve RPC requests: %s", err)
-		}
-	}()
+	http.HandleFunc("/rpc", handleRPCRequest)
+	fmt.Printf("Starting RPC server on port %d...\n", port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
 
 // Run starts the libp2p node and listens for incoming connections
@@ -124,8 +233,8 @@ func Run(listenPort, webPort, rpcPort int) {
 		fmt.Printf("Node Address: %s\n", addr.String())
 	}
 
-	startWebServer(webPort)
-	startRPCServer(rpcPort)
+	go startWebServer(webPort)
+	go startRPCServer(rpcPort)
 
 	fmt.Println("Enter the multiaddr of a peer to connect to (empty to skip):")
 	peerAddr, _ := bufio.NewReader(os.Stdin).ReadString('\n')

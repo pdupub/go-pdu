@@ -115,6 +115,6 @@ func TestQuantumSignAndEcrecover(t *testing.T) {
 	}
 
 	// Marshal converts the UnsignedQuantum to a byte slice
-	// q, _ := quantum.Marshal()
-	// t.Logf("quantum : %s", q)
+	q, _ := quantum.Marshal()
+	t.Logf("quantum : %s", q)
 }
