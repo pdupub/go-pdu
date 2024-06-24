@@ -26,7 +26,7 @@ func createNode() (host.Host, context.Context) {
 	return h, ctx
 }
 
-func handleInterrupt(ctx context.Context, h host.Host) {
+func handleInterrupt(_ context.Context, h host.Host) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
