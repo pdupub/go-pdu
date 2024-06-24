@@ -18,7 +18,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/pdupub/go-pdu/node"
@@ -59,22 +58,15 @@ func main() {
 		Short: "Run db command",
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("Running db...")
-			udb.InitDB()
-			defer udb.CloseDB()
+			dbName := "udb.db"
+			db, err := udb.InitDB(dbName)
+			defer db.CloseDB()
 
-			// 存储一个键值对
-			err := udb.Put("key1", "value1")
 			if err != nil {
-				log.Fatal(err)
+				fmt.Println(err)
+				os.Exit(1)
 			}
-
-			// 读取一个值
-			value, err := udb.Get("key1")
-			if err != nil {
-				log.Fatal(err)
-			}
-			fmt.Printf("The value of 'key1' is: %s\n", value)
-
+			// db方法的代码
 		},
 	}
 

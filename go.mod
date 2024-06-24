@@ -6,9 +6,8 @@ require (
 	github.com/ethereum/go-ethereum v1.14.5
 	github.com/google/uuid v1.4.0
 	github.com/libp2p/go-libp2p v0.35.1
+	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/spf13/cobra v1.8.1
-	go.etcd.io/bbolt v1.3.10
-	golang.org/x/crypto v0.23.0
 )
 
 require (
@@ -112,6 +111,7 @@ require (
 	go.uber.org/mock v0.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
+	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.25.0 // indirect

@@ -17,49 +17,111 @@
 package udb
 
 import (
+	"database/sql"
 	"log"
 
-	"go.etcd.io/bbolt"
+	_ "github.com/mattn/go-sqlite3"
 )
 
-var DB *bbolt.DB
+type UDB struct {
+	db *sql.DB
+}
 
-func InitDB() {
-	var err error
-	DB, err = bbolt.Open("udb.db", 0600, nil)
+// InitDB initializes the SQLite database with the given name and returns a UDB instance
+func InitDB(dbName string) (*UDB, error) {
+	db, err := sql.Open("sqlite3", dbName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = DB.Update(func(tx *bbolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("MyBucket"))
-		return err
-	})
+	// Create tables if they don't exist
+	createTables := `
+	CREATE TABLE IF NOT EXISTS Setting (
+		id INTEGER PRIMARY KEY AUTOINCREMENT
+	);
+
+	CREATE TABLE IF NOT EXISTS Quantum (
+		sig TEXT PRIMARY KEY,
+		contents TEXT
+	);
+
+	CREATE TABLE IF NOT EXISTS Publisher (
+		address TEXT PRIMARY KEY,
+		value TEXT
+	);
+
+	CREATE TABLE IF NOT EXISTS Reference (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		sig TEXT,
+		ref TEXT
+	);
+	`
+	_, err = db.Exec(createTables)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
+	return &UDB{db: db}, nil
 }
 
-func CloseDB() {
-	DB.Close()
+// CloseDB closes the SQLite database
+func (udb *UDB) CloseDB() {
+	udb.db.Close()
 }
 
-func Put(key, value string) error {
-	return DB.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket([]byte("MyBucket"))
-		return b.Put([]byte(key), []byte(value))
-	})
+// PutQuantum stores a key-value pair in the Quantum table
+func (udb *UDB) PutQuantum(sig, contents string) error {
+	_, err := udb.db.Exec("INSERT OR REPLACE INTO Quantum (sig, contents) VALUES (?, ?)", sig, contents)
+	return err
 }
 
-func Get(key string) (string, error) {
+// GetQuantum retrieves a value by key from the Quantum table
+func (udb *UDB) GetQuantum(sig string) (string, error) {
+	var contents string
+	err := udb.db.QueryRow("SELECT contents FROM Quantum WHERE sig = ?", sig).Scan(&contents)
+	return contents, err
+}
+
+// PutPublisher stores a key-value pair in the Publisher table
+func (udb *UDB) PutPublisher(address, value string) error {
+	_, err := udb.db.Exec("INSERT OR REPLACE INTO Publisher (address, value) VALUES (?, ?)", address, value)
+	return err
+}
+
+// GetPublisher retrieves a value by key from the Publisher table
+func (udb *UDB) GetPublisher(address string) (string, error) {
 	var value string
-	err := DB.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket([]byte("MyBucket"))
-		v := b.Get([]byte(key))
-		if v != nil {
-			value = string(v)
-		}
-		return nil
-	})
+	err := udb.db.QueryRow("SELECT value FROM Publisher WHERE address = ?", address).Scan(&value)
 	return value, err
+}
+
+// PutReference stores a reference in the Reference table
+func (udb *UDB) PutReference(sig, ref string) error {
+	_, err := udb.db.Exec("INSERT INTO Reference (sig, ref) VALUES (?, ?)", sig, ref)
+	return err
+}
+
+// GetReference retrieves a reference by ID from the Reference table
+func (udb *UDB) GetReference(id int64) (string, string, error) {
+	var sig, ref string
+	err := udb.db.QueryRow("SELECT sig, ref FROM Reference WHERE id = ?", id).Scan(&sig, &ref)
+	return sig, ref, err
+}
+
+// GetReferencesBySig retrieves all refs for a given sig from the Reference table
+func (udb *UDB) GetReferencesBySig(sig string) ([]string, error) {
+	rows, err := udb.db.Query("SELECT ref FROM Reference WHERE sig = ?", sig)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var refs []string
+	for rows.Next() {
+		var ref string
+		if err := rows.Scan(&ref); err != nil {
+			return nil, err
+		}
+		refs = append(refs, ref)
+	}
+	return refs, nil
 }
