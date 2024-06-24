@@ -49,7 +49,10 @@ func main() {
 		Short: "Run node command",
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("P2P node running")
-			node.Run(8544)
+			listenPort := 4001 // P2P 监听端口
+			webPort := 8080    // Web 服务器端口
+			rpcPort := 8545    // RPC 服务器端口
+			node.Run(listenPort, webPort, rpcPort)
 		},
 	}
 

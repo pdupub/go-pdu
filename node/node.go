@@ -5,11 +5,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
@@ -75,8 +78,42 @@ func connectToPeer(h host.Host, peerAddr string) {
 	fmt.Printf("Connected to %s\n", peerinfo.ID.String())
 }
 
+// startWebServer starts a simple web server
+func startWebServer(port int) {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Hello, this is the web server!")
+	})
+
+	addr := fmt.Sprintf(":%d", port)
+	go func() {
+		fmt.Printf("Starting web server on %s\n", addr)
+		if err := http.ListenAndServe(addr, nil); err != nil {
+			log.Fatalf("Failed to start web server: %s", err)
+		}
+	}()
+}
+
+// startRPCServer starts a JSON-RPC server compatible with MetaMask
+func startRPCServer(port int) {
+	server := rpc.NewServer()
+	// 注册需要的RPC服务，这里可以自定义自己的RPC方法
+	// server.RegisterName("YourServiceName", &YourService{})
+
+	addr := fmt.Sprintf(":%d", port)
+	go func() {
+		fmt.Printf("Starting RPC server on %s\n", addr)
+		listener, err := net.Listen("tcp", addr)
+		if err != nil {
+			log.Fatalf("Failed to start RPC server: %s", err)
+		}
+		if err := server.ServeListener(listener); err != nil {
+			log.Fatalf("Failed to serve RPC requests: %s", err)
+		}
+	}()
+}
+
 // Run starts the libp2p node and listens for incoming connections
-func Run(listenPort int) {
+func Run(listenPort, webPort, rpcPort int) {
 	h, ctx := createNode(listenPort)
 	handleInterrupt(ctx, h)
 
@@ -86,6 +123,9 @@ func Run(listenPort int) {
 	for _, addr := range h.Addrs() {
 		fmt.Printf("Node Address: %s\n", addr.String())
 	}
+
+	startWebServer(webPort)
+	startRPCServer(rpcPort)
 
 	fmt.Println("Enter the multiaddr of a peer to connect to (empty to skip):")
 	peerAddr, _ := bufio.NewReader(os.Stdin).ReadString('\n')
