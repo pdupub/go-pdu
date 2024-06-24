@@ -39,8 +39,6 @@ var (
 	InitialQuantumReference = Hex2Sig("0x00")
 )
 
-type Sig []byte
-
 const (
 	// QuantumTypeInformation specifies the quantum to post information. can be omitted
 	QuantumTypeInformation = 0
@@ -49,13 +47,22 @@ const (
 	QuantumTypeIntegration = 1
 )
 
+type QCS []*QContent
 type UnsignedQuantum struct {
 	// Contents contain all data in this quantum
-	Contents []*QContent `json:"cs,omitempty"`
+	Contents QCS `json:"cs,omitempty"`
 	// References contains all references in this quantum
 	References []Sig `json:"refs"`
 	// Type specifies the type of this quantum
 	Type int `json:"type,omitempty"`
+}
+
+func (cs QCS) String() (string, error) {
+	b, err := json.Marshal(cs)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 // Quantum defines the single message signed by user.

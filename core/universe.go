@@ -17,6 +17,7 @@
 package core
 
 import (
+	"errors"
 	"log"
 	"sync"
 
@@ -42,6 +43,30 @@ func (u *Universe) Recv(quantum *Quantum) error {
 
 	u.mu.Lock()
 	defer u.mu.Unlock()
+
+	// 检查数据库的Quantum表中是否有对应的sig
+	_, err := u.DB.GetQuantum(quantum.Signature.toHex())
+	if err == nil {
+		return errors.New("quantum already exists")
+	}
+
+	// 将quantum存到Quantum表
+	qcs, err := quantum.Contents.String()
+	if err != nil {
+		return err
+	}
+	err = u.DB.PutQuantum(quantum.Signature.toHex(), qcs)
+	if err != nil {
+		return err
+	}
+
+	// 将quantum中的refs列表存到Reference表
+	for _, ref := range quantum.References {
+		err = u.DB.PutReference(quantum.Signature.toHex(), ref.toHex())
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

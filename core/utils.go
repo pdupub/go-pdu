@@ -20,6 +20,12 @@ import (
 	"encoding/hex"
 )
 
+type Sig []byte
+
+func (sig *Sig) toHex() string {
+	return Sig2Hex(*sig)
+}
+
 func Sig2Hex(sig Sig) string {
 	return "0x" + hex.EncodeToString(sig)
 }

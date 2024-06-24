@@ -19,6 +19,9 @@ package core
 import (
 	"os"
 	"testing"
+
+	"github.com/pdupub/go-pdu/identity"
+	"github.com/pdupub/go-pdu/params"
 )
 
 func TestNewUniverse(t *testing.T) {
@@ -39,6 +42,94 @@ func TestNewUniverse(t *testing.T) {
 	if universe.DB == nil {
 		t.Fatalf("Expected non-nil DB, got nil")
 	}
+}
 
-	// 这里可以添加更多针对 Recv 方法的测试
+func TestRecv(t *testing.T) {
+	const testDBName = "universe_test.db"
+
+	// 删除测试数据库文件，以确保测试从干净的状态开始
+	os.Remove(testDBName)
+
+	// 初始化 Universe 并获取 UDB 实例
+	universe, err := NewUniverse(testDBName)
+	if err != nil {
+		t.Fatalf("NewUniverse failed: %v", err)
+	}
+	defer universe.DB.CloseDB()
+	defer os.Remove(testDBName)
+
+	// // 创建测试 Quantum 对象
+	// quantum := &Quantum{
+	// 	Signature: []byte("test-sig"),
+	// 	Contents:  QCS{&QContent{Data: []byte("test-content"), Format: "txt", Zipped: false}},
+
+	// 	// Contents:   QCS{&QContent{Data: []byte("test-content"), Format: "txt", Zipped: false}},
+	// 	References: []Sig{[]byte("ref1"), []byte("ref2")},
+	// }
+
+	cs := []*QContent{
+		{Data: []byte("content1"), Format: "txt", Zipped: false},
+	}
+	refs := []Sig{InitialQuantumReference}
+
+	quantum, err := NewQuantum(QuantumTypeInformation, cs, refs...)
+	if err != nil {
+		t.Errorf("error creating Quantum: %v", err)
+	}
+
+	// Create a new DID for signing
+	did, err := identity.New()
+	if err != nil {
+		t.Errorf("error creating new DID: %v", err)
+	}
+
+	// Unlock the DID
+	err = did.UnlockWallet("../"+params.TestKeystore(0), params.TestPassword)
+	if err != nil {
+		t.Errorf("error unlocking wallet: %v", err)
+	}
+
+	err = quantum.Sign(did)
+	if err != nil {
+		t.Errorf("error signing Quantum: %v", err)
+	}
+
+	// 调用 Recv 方法
+	err = universe.Recv(quantum)
+	if err != nil {
+		t.Fatalf("Recv failed: %v", err)
+	}
+
+	// 检查 Quantum 表中是否有对应的记录
+	contents, err := universe.DB.GetQuantum(quantum.Signature.toHex())
+	if err != nil {
+		t.Fatalf("GetQuantum failed: %v", err)
+	}
+	expectedContent, _ := quantum.Contents.String()
+	if contents != expectedContent {
+		t.Fatalf("GetQuantum: expected %s, got %s", expectedContent, contents)
+	}
+
+	// 检查 Reference 表中是否有对应的记录
+	refsRes, err := universe.DB.GetReferencesBySig(quantum.Signature.toHex())
+	if err != nil {
+		t.Fatalf("GetReferencesBySig failed: %v", err)
+	}
+	if len(refsRes) != len(quantum.References) {
+		t.Fatalf("GetReferencesBySig: expected %d refs, got %d", len(quantum.References), len(refs))
+	}
+	for i, ref := range refsRes {
+		if ref != quantum.References[i].toHex() {
+			t.Fatalf("GetReferencesBySig: expected ref %s, got %s", quantum.References[i], ref)
+		}
+	}
+
+	// 测试重复插入相同的 Quantum
+	err = universe.Recv(quantum)
+	if err == nil {
+		t.Fatalf("Expected error for duplicate quantum, got nil")
+	}
+	if err.Error() != "quantum already exists" {
+		t.Fatalf("Expected 'quantum already exists' error, got %v", err)
+	}
 }
