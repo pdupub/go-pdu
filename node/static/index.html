@@ -14,6 +14,30 @@
             return btoa(binaryString);
         }
 
+
+        function hexToBytes(hex) {
+            let bytes = [];
+            for (let c = 0; c < hex.length; c += 2) {
+                bytes.push(parseInt(hex.substr(c, 2), 16));
+            }
+            return bytes;
+        }
+
+        function bytesToBase64(bytes) {
+            const binary = String.fromCharCode.apply(null, bytes);
+            return btoa(binary);
+        }
+
+        function convertHexToBase64(hexInput) {
+            try {
+                const bytes = hexToBytes(hexInput);
+                const base64 = bytesToBase64(bytes);
+                return base64;
+            } catch (error) {
+                return 'Invalid hex string';
+            }
+        }
+
         async function checkNetwork() {
             if (typeof window.ethereum !== 'undefined') {
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -50,10 +74,10 @@
                 alert('Message length should not exceed 1024 characters');
                 return;
             }
-
+            const ref = "f09ec9d2fd43cfad1f0c93859e5678450c05d26a33c9298673ed991497e4e01c6a125379618b2fb2eb70fba5cc2ae1c946fa76bb0eeadc4723ded6176743ebab1c";
             const messageJson = {
                 cs: [{ data: encodeBase64UTF8(message), fmt: "txt" }],
-                refs: ["0x00", "0x123"]
+                refs: [convertHexToBase64(ref)]
             };
 
             const messageString = JSON.stringify(messageJson);
@@ -65,8 +89,10 @@
                 const signature = await signer.signMessage(messageString);
                 console.log('Signature:', signature);
 
+                // Create JSON result
                 const jsonResult = {
-                    ...messageJson,
+                    cs: [{ data: message, fmt: "txt" }],
+                    refs: [ref],
                     sig: signature
                 };
 
