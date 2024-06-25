@@ -107,7 +107,6 @@ func handleWebsite(w http.ResponseWriter, r *http.Request) {
 
 // startWebServer starts a simple web server
 func startWebServer(port int) {
-
 	http.HandleFunc("/", handleWebsite)
 	fmt.Printf("Starting Website server on port %d... \n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
@@ -213,12 +212,32 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseBody)
 }
 
+// withCORS adds CORS headers to a handler
+func withCORS(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		handler.ServeHTTP(w, r)
+	})
+}
+
 // startRPCServer starts a JSON-RPC server compatible with MetaMask
 func startRPCServer(port int) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/rpc", handleRPCRequest)
 
-	http.HandleFunc("/rpc", handleRPCRequest)
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: withCORS(mux),
+	}
+
 	fmt.Printf("Starting RPC server on port %d...\n", port)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+	log.Fatal(server.ListenAndServe())
 }
 
 // Run starts the libp2p node and listens for incoming connections
