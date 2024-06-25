@@ -18,6 +18,7 @@ package identity
 
 import (
 	"encoding/hex"
+	"fmt"
 	"os"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -103,6 +104,9 @@ func (d *DID) LoadECDSA(privateKeyHex string) error {
 }
 
 func (d *DID) Sign(b []byte) ([]byte, error) {
-	hash := crypto.Keccak256(b)
-	return crypto.Sign(hash, d.GetKey().PrivateKey)
+	if d.key == nil {
+		return nil, fmt.Errorf("wallet is not unlocked")
+	}
+	hash := crypto.Keccak256Hash(b)
+	return crypto.Sign(hash.Bytes(), d.GetKey().PrivateKey)
 }

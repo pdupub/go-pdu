@@ -199,6 +199,11 @@ func unlockKeystore(filename string, auth string) (*DID, error) {
 }
 
 func Ecrecover(b []byte, sig []byte) (Address, error) {
+	// The signature should have the recovery id at the end
+	if len(sig) != 65 {
+		return Address{}, fmt.Errorf("invalid signature length")
+	}
+
 	hash := crypto.Keccak256(b)
 	pk, err := crypto.Ecrecover(hash, sig)
 	if err != nil {
