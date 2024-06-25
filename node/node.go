@@ -137,6 +137,14 @@ func handleCustomJSONRequest(w http.ResponseWriter, body []byte) {
 	log.Printf("Quantum content[0] format: %+s\n", quantum.Contents[0].Format)
 	log.Printf("Quantum ref[0]: %s\n", core.Sig2Hex(quantum.References[0]))
 
+	addr, err := quantum.Ecrecover()
+	if err != nil {
+		// http.Error(w, err.Error(), http.StatusInternalServerError)
+		// return
+		log.Printf("Failed to recover address: %s\n", err.Error())
+	}
+	log.Printf("Quantum address: %s\n", addr.Hex())
+
 	// Respond with a success message
 	response := map[string]string{"status": "success"}
 	responseBody, err := json.Marshal(response)

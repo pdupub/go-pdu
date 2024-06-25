@@ -57,7 +57,7 @@
             };
 
             const messageString = JSON.stringify(messageJson);
-
+            console.log('Message:', messageString);
             try {
                 await ethereum.request({ method: 'eth_requestAccounts' });
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
