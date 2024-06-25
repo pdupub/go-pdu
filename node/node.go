@@ -21,6 +21,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/pdupub/go-pdu/core"
 )
 
 const protocolID = "/p2p/1.0.0"
@@ -122,6 +123,19 @@ func handleCustomJSONRequest(w http.ResponseWriter, body []byte) {
 
 	// Log the JSON data received
 	log.Printf("Received custom JSON data: %+v\n", jsonData)
+
+	quantum, err := core.JsonToQuantum(body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Log the quantum
+	log.Printf("Quantum: %+v\n", quantum)
+	log.Printf("Quantum signature: %s\n", core.Sig2Hex(quantum.Signature))
+	log.Printf("Quantum content[0] data: %+s\n", quantum.Contents[0].Data)
+	log.Printf("Quantum content[0] format: %+s\n", quantum.Contents[0].Format)
+	log.Printf("Quantum ref[0]: %s\n", core.Sig2Hex(quantum.References[0]))
 
 	// Respond with a success message
 	response := map[string]string{"status": "success"}

@@ -18,6 +18,7 @@ package core
 
 import (
 	"encoding/hex"
+	"encoding/json"
 )
 
 type Sig []byte
@@ -36,4 +37,37 @@ func Hex2Sig(str string) Sig {
 	}
 	h, _ := hex.DecodeString(str)
 	return h
+}
+
+func JsonToQuantum(body []byte) (*Quantum, error) {
+	var jsonData map[string]interface{}
+	err := json.Unmarshal(body, &jsonData)
+	if err != nil {
+		return nil, err
+	}
+
+	quantum := &Quantum{Signature: Hex2Sig(jsonData["sig"].(string))}
+	refs := []Sig{}
+	for _, ref := range jsonData["refs"].([]interface{}) {
+		refs = append(refs, Hex2Sig(ref.(string)))
+	}
+	cs := []*QContent{}
+	for _, content := range jsonData["cs"].([]interface{}) {
+		qc := &QContent{}
+		if data, ok := content.(map[string]interface{})["data"]; ok {
+			qc.Data = []byte(data.(string))
+		}
+		if fmt, ok := content.(map[string]interface{})["fmt"]; ok {
+			qc.Format = fmt.(string)
+		}
+
+		if zipped, ok := content.(map[string]interface{})["zipped"]; ok {
+			qc.Zipped = zipped.(bool)
+		}
+		cs = append(cs, qc)
+	}
+	quantum.Contents = cs
+	quantum.References = refs
+
+	return quantum, nil
 }
