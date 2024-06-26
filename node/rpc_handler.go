@@ -2,9 +2,7 @@ package node
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
-	"log"
 	"net/http"
 )
 
@@ -102,18 +100,4 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(responseBody)
-}
-
-// startRPCServer starts a JSON-RPC server compatible with MetaMask
-func startRPCServer(port int) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/rpc", handleRPCRequest)
-
-	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
-		Handler: withCORS(mux),
-	}
-
-	fmt.Printf("Starting RPC server on port %d...\n", port)
-	log.Fatal(server.ListenAndServe())
 }

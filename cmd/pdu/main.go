@@ -17,7 +17,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 
 	"github.com/pdupub/go-pdu/node"
@@ -29,12 +29,19 @@ func main() {
 		Use:   "pdu",
 		Short: "A decentralized P2P program",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("P2P node running")
-			// 初始化并启动节点的代码
-			listenPort := 4001 // P2P 监听端口
-			webPort := 8546    // Web 服务器端口
-			rpcPort := 8545    // RPC 服务器端口
-			node.Run(listenPort, webPort, rpcPort)
+			log.Println("P2P node running")
+			listenPort := 4001
+			webPort := 8546
+			rpcPort := 8545
+			dbName := "pdu.db"
+
+			n, err := node.NewNode(listenPort, dbName)
+			if err != nil {
+				log.Fatalf("Failed to create node: %s", err)
+				return
+			}
+
+			n.Run(webPort, rpcPort)
 		},
 	}
 
@@ -42,7 +49,7 @@ func main() {
 		Use:   "test",
 		Short: "Run test command",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("Running test...")
+			log.Println("Running test...")
 			// test方法的代码
 		},
 	}
@@ -50,7 +57,7 @@ func main() {
 	rootCmd.AddCommand(testCmd)
 
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 }

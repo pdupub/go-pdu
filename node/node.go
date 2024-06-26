@@ -19,47 +19,60 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/pdupub/go-pdu/core"
 )
 
 const protocolID = "/p2p/1.0.0"
 
-// createNode creates a new libp2p host
-func createNode(listenPort int) (host.Host, context.Context) {
+type Node struct {
+	Host     host.Host
+	Universe *core.Universe
+	Ctx      context.Context
+}
+
+func NewNode(listenPort int, dbName string) (*Node, error) {
 	ctx := context.Background()
 	h, err := libp2p.New(
 		libp2p.Transport(tcp.NewTCPTransport),
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", listenPort)),
 	)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return h, ctx
+
+	universe, err := core.NewUniverse(dbName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Node{
+		Host:     h,
+		Universe: universe,
+		Ctx:      ctx,
+	}, nil
 }
 
-// handleInterrupt handles OS interrupts to gracefully shut down the host
-func handleInterrupt(_ context.Context, h host.Host) {
+func (n *Node) handleInterrupt() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		<-c
 		fmt.Println("\nShutting down...")
-		if err := h.Close(); err != nil {
+		if err := n.Host.Close(); err != nil {
 			log.Fatal(err)
 		}
+		n.Universe.DB.CloseDB()
 		os.Exit(0)
 	}()
 }
 
-// handleStream is the function to handle incoming streams
-func handleStream(s network.Stream) {
+func (n *Node) handleStream(s network.Stream) {
 	fmt.Println("Got a new stream!")
-	// 处理流的代码
 	s.Close()
 }
 
-// connectToPeer connects to another peer using its multiaddress
-func connectToPeer(h host.Host, peerAddr string) {
+func (n *Node) connectToPeer(peerAddr string) {
 	maddr, err := multiaddr.NewMultiaddr(peerAddr)
 	if err != nil {
 		log.Fatalf("Invalid multiaddress: %s", err)
@@ -70,25 +83,23 @@ func connectToPeer(h host.Host, peerAddr string) {
 		log.Fatalf("Failed to get peer info: %s", err)
 	}
 
-	if err := h.Connect(context.Background(), *peerinfo); err != nil {
+	if err := n.Host.Connect(n.Ctx, *peerinfo); err != nil {
 		log.Fatalf("Failed to connect to peer: %s", err)
 	}
 
 	fmt.Printf("Connected to %s\n", peerinfo.ID.String())
 }
 
-func handleWebsite(w http.ResponseWriter, r *http.Request) {
+func (n *Node) handleWebsite(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, filepath.Join("node/static", "index.html"))
 }
 
-// startWebServer starts a simple web server
-func startWebServer(port int) {
-	http.HandleFunc("/", handleWebsite)
+func (n *Node) startWebServer(port int) {
+	http.HandleFunc("/", n.handleWebsite)
 	fmt.Printf("Starting Website server on port %d... \n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
 
-// withCORS adds CORS headers to a handler
 func withCORS(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -102,28 +113,39 @@ func withCORS(handler http.Handler) http.Handler {
 	})
 }
 
-// Run starts the libp2p node and listens for incoming connections
-func Run(listenPort, webPort, rpcPort int) {
-	h, ctx := createNode(listenPort)
-	handleInterrupt(ctx, h)
+func (n *Node) startRPCServer(port int) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/rpc", handleRPCRequest)
 
-	h.SetStreamHandler(protocol.ID(protocolID), handleStream)
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: withCORS(mux),
+	}
 
-	fmt.Printf("Node ID: %s\n", h.ID().String())
-	for _, addr := range h.Addrs() {
+	fmt.Printf("Starting RPC server on port %d...\n", port)
+	log.Fatal(server.ListenAndServe())
+}
+
+func (n *Node) Run(webPort, rpcPort int) {
+	n.handleInterrupt()
+
+	n.Host.SetStreamHandler(protocol.ID(protocolID), n.handleStream)
+
+	fmt.Printf("Node ID: %s\n", n.Host.ID().String())
+	for _, addr := range n.Host.Addrs() {
 		fmt.Printf("Node Address: %s\n", addr.String())
 	}
 
-	go startWebServer(webPort)
-	go startRPCServer(rpcPort)
+	go n.startWebServer(webPort)
+	go n.startRPCServer(rpcPort)
 
 	fmt.Println("Enter the multiaddr of a peer to connect to (empty to skip):")
 	peerAddr, _ := bufio.NewReader(os.Stdin).ReadString('\n')
 	peerAddr = strings.TrimSpace(peerAddr)
 
 	if peerAddr != "" {
-		connectToPeer(h, peerAddr)
+		n.connectToPeer(peerAddr)
 	}
 
-	<-ctx.Done() // 保持程序运行
+	<-n.Ctx.Done() // 保持程序运行
 }
