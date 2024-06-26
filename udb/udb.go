@@ -42,7 +42,8 @@ func InitDB(dbName string) (*UDB, error) {
 
 	CREATE TABLE IF NOT EXISTS Quantum (
 		sig TEXT PRIMARY KEY,
-		contents TEXT
+		contents TEXT,
+		address VARCHAR(42)
 	);
 
 	CREATE TABLE IF NOT EXISTS Publisher (
@@ -69,16 +70,16 @@ func (udb *UDB) CloseDB() {
 }
 
 // PutQuantum stores a key-value pair in the Quantum table
-func (udb *UDB) PutQuantum(sig, contents string) error {
-	_, err := udb.db.Exec("INSERT OR REPLACE INTO Quantum (sig, contents) VALUES (?, ?)", sig, contents)
+func (udb *UDB) PutQuantum(sig, contents, address string) error {
+	_, err := udb.db.Exec("INSERT OR REPLACE INTO Quantum (sig, contents, address) VALUES (?, ?, ?)", sig, contents, address)
 	return err
 }
 
 // GetQuantum retrieves a value by key from the Quantum table
-func (udb *UDB) GetQuantum(sig string) (string, error) {
-	var contents string
-	err := udb.db.QueryRow("SELECT contents FROM Quantum WHERE sig = ?", sig).Scan(&contents)
-	return contents, err
+func (udb *UDB) GetQuantum(sig string) (string, string, error) {
+	var contents, address string
+	err := udb.db.QueryRow("SELECT contents, address FROM Quantum WHERE sig = ?", sig).Scan(&contents, &address)
+	return contents, address, err
 }
 
 // PutPublisher stores a key-value pair in the Publisher table

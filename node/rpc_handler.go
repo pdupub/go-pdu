@@ -71,8 +71,10 @@ func (n *Node) handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 	case "eth_getTransactionCount":
 		result = "0x1" // Example transaction count, replace with actual logic to fetch transaction count
 	case "pdu_sendQuantums":
-		n.handleRecvQuamtumsRequest(req.Params)
+		n.handleSendQuamtumsRequest(req.Params)
 		result = map[string]string{"status": "success"}
+	case "pdu_getQuantums":
+		result = n.handleQueryQuamtumsRequest(req.Params)
 	// case "eth_call":
 	// 	result, rpcErr = handleEthCall(req.Params)
 	default:

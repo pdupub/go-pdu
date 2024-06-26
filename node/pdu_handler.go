@@ -7,7 +7,44 @@ import (
 	"github.com/pdupub/go-pdu/core"
 )
 
-func (n *Node) handleRecvQuamtumsRequest(params json.RawMessage) {
+func (n *Node) handleQueryQuamtumsRequest(params json.RawMessage) []*core.Quantum {
+
+	var paramsData map[string]interface{}
+	err := json.Unmarshal(params, &paramsData)
+	if err != nil {
+		return nil
+	}
+
+	addressHex := ""
+	asc := true
+	limit := 10
+	skip := 0
+
+	if addr, ok := paramsData["address"]; !ok {
+		return nil
+	} else {
+		addressHex = addr.(string)
+	}
+
+	if order, ok := paramsData["order"]; !ok || order != "asc" {
+		asc = false
+	}
+
+	if l, ok := paramsData["limit"]; ok {
+		limit = int(l.(float64))
+	}
+
+	if s, ok := paramsData["skip"]; ok {
+		skip = int(s.(float64))
+	}
+
+	quantums := n.Universe.QueryQuantums(addressHex, limit, skip, asc)
+
+	return quantums
+
+}
+
+func (n *Node) handleSendQuamtumsRequest(params json.RawMessage) {
 
 	var paramsData []interface{}
 	err := json.Unmarshal(params, &paramsData)
@@ -45,7 +82,7 @@ func (n *Node) handleRecvQuamtumsRequest(params json.RawMessage) {
 		log.Printf("Failed to recover address: %s\n", err.Error())
 	}
 
-	if err = n.Universe.Recv(quantum); err != nil {
+	if err = n.Universe.RecvQuantum(quantum); err != nil {
 		log.Printf("Failed to receive quantum: %s\n", err.Error())
 	}
 

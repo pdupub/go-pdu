@@ -85,6 +85,7 @@
                 await ethereum.request({ method: 'eth_requestAccounts' });
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const signer = provider.getSigner();
+                const address = await signer.getAddress();
                 const signature = await signer.signMessage(messageString);
                 console.log('Signature:', signature);
 
@@ -104,14 +105,14 @@
                 document.getElementById('jsonResult').innerText = JSON.stringify(jsonResult, null, 2);
 
                 // Send JSON result to the server
-                await sendJsonToServer(jsonResult);
+                await sendJsonToServer(jsonResult, address);
             } catch (error) {
                 console.error(error);
                 alert('Error signing message');
             }
         }
 
-        async function sendJsonToServer(jsonData) {
+        async function sendJsonToServer(jsonData, address) {
             try {
                 const response = await fetch('http://localhost:8545/rpc', { // Ensure this URL matches your Go server's endpoint
                     method: 'POST',
@@ -122,8 +123,49 @@
                 });
                 const responseData = await response.json();
                 console.log('Server response:', responseData);
+                
+                // Send request to get quantums
+                await getQuantums(address);
             } catch (error) {
                 console.error('Error sending JSON to server:', error);
+            }
+        }
+
+        async function getQuantums(address) {
+            const request = {
+                jsonrpc: "2.0",
+                method: "pdu_getQuantums",
+                params: {
+                    address: address,
+                    order: "desc",
+                    limit: 10,
+                    skip: 0
+                },
+                id: 1
+            };
+
+            try {
+                const response = await fetch('http://localhost:8545/rpc', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(request)
+                });
+                const responseData = await response.json();
+                console.log('Quantums response:', responseData);
+
+                const quantumsList = responseData.result.quantums;
+                const quantumsDisplay = document.getElementById('quantumsDisplay');
+                quantumsDisplay.innerHTML = ''; // Clear previous content
+
+                quantumsList.forEach(quantum => {
+                    const quantumItem = document.createElement('div');
+                    quantumItem.textContent = JSON.stringify(quantum);
+                    quantumsDisplay.appendChild(quantumItem);
+                });
+            } catch (error) {
+                console.error('Error fetching quantums:', error);
             }
         }
     </script>
@@ -135,5 +177,6 @@
     <button onclick="checkNetwork()">Sign Message</button>
     <p id="signature"></p>
     <pre id="jsonResult"></pre>
+    <div id="quantumsDisplay"></div>
 </body>
 </html>

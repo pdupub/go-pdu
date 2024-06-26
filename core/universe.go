@@ -38,14 +38,22 @@ func NewUniverse(dbName string) (*Universe, error) {
 		DB: db,
 	}, nil
 }
+func (u *Universe) QueryQuantums(addressHex string, limit int, skip int, asc bool) []*Quantum {
 
-func (u *Universe) Recv(quantum *Quantum) error {
+	// u.mu.RLock()
+	// defer u.mu.RUnlock()
+
+	// return u.DB.QueryQuantums(addressHex, asc, limit, skip)
+	return nil
+}
+
+func (u *Universe) RecvQuantum(quantum *Quantum) error {
 
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
 	// 检查数据库的Quantum表中是否有对应的sig
-	_, err := u.DB.GetQuantum(quantum.Signature.toHex())
+	_, _, err := u.DB.GetQuantum(quantum.Signature.toHex())
 	if err == nil {
 		return errors.New("quantum already exists")
 	}
@@ -55,7 +63,12 @@ func (u *Universe) Recv(quantum *Quantum) error {
 	if err != nil {
 		return err
 	}
-	err = u.DB.PutQuantum(quantum.Signature.toHex(), qcs)
+
+	addr, err := quantum.Ecrecover()
+	if err != nil {
+		return err
+	}
+	err = u.DB.PutQuantum(quantum.Signature.toHex(), qcs, addr.Hex())
 	if err != nil {
 		return err
 	}

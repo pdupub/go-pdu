@@ -125,7 +125,7 @@ func TestRecv(t *testing.T) {
 	}
 
 	// 测试重复插入相同的 Quantum
-	err = universe.Recv(quantum)
+	err = universe.RecvQuantum(quantum)
 	if err == nil {
 		t.Fatalf("Expected error for duplicate quantum, got nil")
 	}
