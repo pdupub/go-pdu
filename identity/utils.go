@@ -204,14 +204,22 @@ func Ecrecover(b []byte, sig []byte) (Address, error) {
 		return Address{}, fmt.Errorf("invalid signature length")
 	}
 
-	hash := crypto.Keccak256(b)
-	pk, err := crypto.Ecrecover(hash, sig)
+	// Adjust the recovery ID
+	if sig[64] >= 27 {
+		sig[64] -= 27
+	}
+	prefix := "\x19Ethereum Signed Message:\n" + fmt.Sprintf("%d", len(string(b)))
+	hash := crypto.Keccak256Hash([]byte(prefix + string(b)))
+
+	// Recover the public key from the signature
+	pubKey, err := crypto.SigToPub(hash.Bytes(), sig)
 	if err != nil {
 		return Address{}, err
 	}
-	signer := Address{}
-	copy(signer[:], crypto.Keccak256(pk[1:])[12:])
-	return signer, nil
+
+	// Convert the public key to an address
+	address := crypto.PubkeyToAddress(*pubKey)
+	return Address(address), nil
 }
 
 func HexToAddress(s string) Address {

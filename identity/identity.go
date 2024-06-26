@@ -107,6 +107,10 @@ func (d *DID) Sign(b []byte) ([]byte, error) {
 	if d.key == nil {
 		return nil, fmt.Errorf("wallet is not unlocked")
 	}
-	hash := crypto.Keccak256Hash(b)
+
+	// Ethereum adds a prefix to the message that is being signed
+	prefix := "\x19Ethereum Signed Message:\n" + fmt.Sprintf("%d", len(string(b)))
+	hash := crypto.Keccak256Hash([]byte(prefix + string(b)))
+
 	return crypto.Sign(hash.Bytes(), d.GetKey().PrivateKey)
 }
