@@ -19,6 +19,7 @@ package udb
 import (
 	"database/sql"
 	"log"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -36,25 +37,12 @@ func InitDB(dbName string) (*UDB, error) {
 
 	// Create tables if they don't exist
 	createTables := `
-	CREATE TABLE IF NOT EXISTS Setting (
-		id INTEGER PRIMARY KEY AUTOINCREMENT
-	);
-
 	CREATE TABLE IF NOT EXISTS Quantum (
-		sig TEXT PRIMARY KEY,
+		sig VARCHAR(132) PRIMARY KEY,
+		qtype INTEGER,
 		contents TEXT,
+		refs TEXT,
 		address VARCHAR(42)
-	);
-
-	CREATE TABLE IF NOT EXISTS Publisher (
-		address TEXT PRIMARY KEY,
-		value TEXT
-	);
-
-	CREATE TABLE IF NOT EXISTS Reference (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		sig TEXT,
-		ref TEXT
 	);
 	`
 	_, err = db.Exec(createTables)
@@ -70,59 +58,51 @@ func (udb *UDB) CloseDB() {
 }
 
 // PutQuantum stores a key-value pair in the Quantum table
-func (udb *UDB) PutQuantum(sig, contents, address string) error {
-	_, err := udb.db.Exec("INSERT OR REPLACE INTO Quantum (sig, contents, address) VALUES (?, ?, ?)", sig, contents, address)
+func (udb *UDB) PutQuantum(sig, contents, address, references string, qtype int) error {
+	_, err := udb.db.Exec("INSERT INTO Quantum (sig, qtype, contents, refs, address) VALUES (?, ?, ?, ?, ?)", sig, qtype, contents, references, address)
 	return err
 }
 
 // GetQuantum retrieves a value by key from the Quantum table
-func (udb *UDB) GetQuantum(sig string) (string, string, error) {
-	var contents, address string
-	err := udb.db.QueryRow("SELECT contents, address FROM Quantum WHERE sig = ?", sig).Scan(&contents, &address)
-	return contents, address, err
+func (udb *UDB) GetQuantum(sig string) (string, []string, string, int, error) {
+	var qtype int
+	var contents, references, address string
+	err := udb.db.QueryRow("SELECT qtype, contents, refs, address FROM Quantum WHERE sig = ?", sig).Scan(&qtype, &contents, &references, &address)
+	return contents, strings.Split(references, ","), address, qtype, err
 }
 
-// PutPublisher stores a key-value pair in the Publisher table
-func (udb *UDB) PutPublisher(address, value string) error {
-	_, err := udb.db.Exec("INSERT OR REPLACE INTO Publisher (address, value) VALUES (?, ?)", address, value)
-	return err
-}
-
-// GetPublisher retrieves a value by key from the Publisher table
-func (udb *UDB) GetPublisher(address string) (string, error) {
-	var value string
-	err := udb.db.QueryRow("SELECT value FROM Publisher WHERE address = ?", address).Scan(&value)
-	return value, err
-}
-
-// PutReference stores a reference in the Reference table
-func (udb *UDB) PutReference(sig, ref string) error {
-	_, err := udb.db.Exec("INSERT INTO Reference (sig, ref) VALUES (?, ?)", sig, ref)
-	return err
-}
-
-// GetReference retrieves a reference by ID from the Reference table
-func (udb *UDB) GetReference(id int64) (string, string, error) {
-	var sig, ref string
-	err := udb.db.QueryRow("SELECT sig, ref FROM Reference WHERE id = ?", id).Scan(&sig, &ref)
-	return sig, ref, err
-}
-
-// GetReferencesBySig retrieves all refs for a given sig from the Reference table
+// GetReferencesBySig retrieves all references for a given sig from the Quantum table
 func (udb *UDB) GetReferencesBySig(sig string) ([]string, error) {
-	rows, err := udb.db.Query("SELECT ref FROM Reference WHERE sig = ?", sig)
+	_, refs, _, _, err := udb.GetQuantum(sig)
+	if err != nil {
+		return nil, err
+	}
+	return refs, nil
+}
+
+// GetQuantumsByAddress retrieves all quantums for a given address from the Quantum table
+func (udb *UDB) GetQuantumsByAddress(address string) ([]map[string]interface{}, error) {
+	rows, err := udb.db.Query("SELECT sig, qtype, contents, refs FROM Quantum WHERE address = ?", address)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var refs []string
+	var quantums []map[string]interface{}
 	for rows.Next() {
-		var ref string
-		if err := rows.Scan(&ref); err != nil {
+		var sig, contents, references string
+		var qtype int
+		err := rows.Scan(&sig, &qtype, &contents, &references)
+		if err != nil {
 			return nil, err
 		}
-		refs = append(refs, ref)
+		quantum := map[string]interface{}{
+			"sig":        sig,
+			"qtype":      qtype,
+			"contents":   contents,
+			"references": strings.Split(references, ","),
+		}
+		quantums = append(quantums, quantum)
 	}
-	return refs, nil
+	return quantums, nil
 }

@@ -53,7 +53,7 @@ func (u *Universe) RecvQuantum(quantum *Quantum) error {
 	defer u.mu.Unlock()
 
 	// 检查数据库的Quantum表中是否有对应的sig
-	_, _, err := u.DB.GetQuantum(quantum.Signature.toHex())
+	_, _, _, _, err := u.DB.GetQuantum(quantum.Signature.toHex())
 	if err == nil {
 		return errors.New("quantum already exists")
 	}
@@ -68,17 +68,16 @@ func (u *Universe) RecvQuantum(quantum *Quantum) error {
 	if err != nil {
 		return err
 	}
-	err = u.DB.PutQuantum(quantum.Signature.toHex(), qcs, addr.Hex())
+
+	refs := ""
+	for _, v := range quantum.References {
+		refs += v.toHex() + ","
+	}
+	refs = refs[:len(refs)-1]
+
+	err = u.DB.PutQuantum(quantum.Signature.toHex(), qcs, addr.Hex(), refs, quantum.Type)
 	if err != nil {
 		return err
-	}
-
-	// 将quantum中的refs列表存到Reference表
-	for _, ref := range quantum.References {
-		err = u.DB.PutReference(quantum.Signature.toHex(), ref.toHex())
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil

@@ -6,83 +6,80 @@ import (
 )
 
 func TestUDB(t *testing.T) {
-	const testDBName = "udb_test.db"
+	// 设置数据库文件名
+	dbName := "test.db"
+	// 在测试结束时删除数据库文件
+	defer os.Remove(dbName)
 
-	// 删除测试数据库文件，以确保测试从干净的状态开始
-	os.Remove(testDBName)
-
-	// 初始化数据库并获取 UDB 实例
-	db, err := InitDB(testDBName)
+	// 初始化数据库
+	db, err := InitDB(dbName)
 	if err != nil {
-		t.Fatalf("InitDB failed: %v", err)
+		t.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer db.CloseDB()
-	defer os.Remove(testDBName)
 
-	// 测试 PutQuantum 和 GetQuantum
-	sig := "test-sig"
-	contents := "test-contents"
-	err = db.PutQuantum(sig, contents, "test-address")
+	// 定义测试数据
+	sig1 := "testsig123"
+	sig2 := "testsig456"
+	qtype := 1
+	contents := "test contents"
+	references := "0xf09ec9d2fd43cfad1f0c93859e5678450c05d26a33c9298673ed991497e4e01c6a125379618b2fb2eb70fba5cc2ae1c946fa76bb0eeadc4723ded6176743ebab1c,0xd2ad5214bf586da7aaa829e460c07b7864d93f7edfbd6fc9e1fc1fc67df448de2bd52d1f1423b0c89b43b93cbe5e761abce559da564f84680e24deb1bf5e1ce61c"
+	address := "0xC604E94a66bCE26FdffcE7dE309d0c9Af26fb33F"
+
+	// 插入测试数据
+	err = db.PutQuantum(sig1, contents, address, references, qtype)
 	if err != nil {
-		t.Fatalf("PutQuantum failed: %v", err)
+		t.Fatalf("Failed to put quantum: %v", err)
 	}
 
-	retContents, address, err := db.GetQuantum(sig)
+	err = db.PutQuantum(sig2, contents, address, references, qtype)
 	if err != nil {
-		t.Fatalf("GetQuantum failed: %v", err)
+		t.Fatalf("Failed to put quantum: %v", err)
 	}
+
+	// 检索测试数据
+	retContents, retReferences, retAddress, retQtype, err := db.GetQuantum(sig1)
+	if err != nil {
+		t.Fatalf("Failed to get quantum: %v", err)
+	}
+
+	// 验证插入的数据是否正确
 	if retContents != contents {
-		t.Fatalf("GetQuantum: expected %s, got %s", contents, retContents)
+		t.Errorf("Expected contents %v, got %v", contents, retContents)
+	}
+	if len(retReferences) != 2 {
+		t.Errorf("Expected 2 references, got %d", len(retReferences))
+	}
+	if retAddress != address {
+		t.Errorf("Expected address %v, got %v", address, retAddress)
+	}
+	if retQtype != qtype {
+		t.Errorf("Expected qtype %v, got %v", qtype, retQtype)
 	}
 
-	// 测试 PutPublisher 和 GetPublisher
-	value := "test-value"
-	err = db.PutPublisher(address, value)
+	// 根据地址检索量子数据
+	quantums, err := db.GetQuantumsByAddress(address)
 	if err != nil {
-		t.Fatalf("PutPublisher failed: %v", err)
+		t.Fatalf("Failed to get quantums by address: %v", err)
 	}
 
-	retValue, err := db.GetPublisher(address)
-	if err != nil {
-		t.Fatalf("GetPublisher failed: %v", err)
-	}
-	if retValue != value {
-		t.Fatalf("GetPublisher: expected %s, got %s", value, retValue)
+	// 验证检索到的数据是否正确
+	if len(quantums) != 2 {
+		t.Errorf("Expected 2 quantums, got %d", len(quantums))
 	}
 
-	// 测试 PutReference 和 GetReferencesBySig
-	ref := "test-ref"
-	err = db.PutReference(sig, ref)
-	if err != nil {
-		t.Fatalf("PutReference failed: %v", err)
-	}
-
-	refs, err := db.GetReferencesBySig(sig)
-	if err != nil {
-		t.Fatalf("GetReferencesBySig failed: %v", err)
-	}
-	if len(refs) != 1 || refs[0] != ref {
-		t.Fatalf("GetReferencesBySig: expected [%s], got %v", ref, refs)
-	}
-
-	// 测试 GetReference
-	err = db.PutReference(sig, ref)
-	if err != nil {
-		t.Fatalf("PutReference failed: %v", err)
-	}
-
-	// 由于是自增ID，我们需要获取最后一个插入的ID
-	var id int64
-	err = db.db.QueryRow("SELECT MAX(id) FROM Reference").Scan(&id)
-	if err != nil {
-		t.Fatalf("Query MAX(id) failed: %v", err)
-	}
-
-	retSig, retRef, err := db.GetReference(id)
-	if err != nil {
-		t.Fatalf("GetReference failed: %v", err)
-	}
-	if retSig != sig || retRef != ref {
-		t.Fatalf("GetReference: expected (%s, %s), got (%s, %s)", sig, ref, retSig, retRef)
+	for _, quantum := range quantums {
+		if quantum["contents"] != contents {
+			t.Errorf("Expected contents %v, got %v", contents, quantum["contents"])
+		}
+		if quantum["qtype"] != qtype {
+			t.Errorf("Expected qtype %v, got %v", qtype, quantum["qtype"])
+		}
+		if quantum["sig"] != sig1 && quantum["sig"] != sig2 {
+			t.Errorf("Unexpected sig %v", quantum["sig"])
+		}
+		if len(quantum["references"].([]string)) != 2 {
+			t.Errorf("Expected 2 references, got %d", len(quantum["references"].([]string)))
+		}
 	}
 }

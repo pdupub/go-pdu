@@ -101,7 +101,7 @@ func TestRecv(t *testing.T) {
 	}
 
 	// 检查 Quantum 表中是否有对应的记录
-	contents, _, err := universe.DB.GetQuantum(quantum.Signature.toHex())
+	contents, _, _, _, err := universe.DB.GetQuantum(quantum.Signature.toHex())
 	if err != nil {
 		t.Fatalf("GetQuantum failed: %v", err)
 	}
