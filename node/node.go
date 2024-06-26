@@ -113,39 +113,36 @@ func startWebServer(port int) {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
 
-func handleCustomJSONRequest(w http.ResponseWriter, body []byte) {
-	var jsonData map[string]interface{}
-	err := json.Unmarshal(body, &jsonData)
+func handleCustomJSONRequest(params json.RawMessage) {
+
+	var paramsData []interface{}
+	err := json.Unmarshal(params, &paramsData)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Log the JSON data received
-	log.Printf("#################Received custom JSON data: %+v\n", jsonData["params"])
-	if len(jsonData["params"].([]interface{})) == 0 || jsonData["params"].([]interface{})[0] == nil {
-		http.Error(w, "Missing params", http.StatusBadRequest)
+	log.Printf("Received custom JSON data: %+s\n", params)
+	if len(paramsData) == 0 || paramsData[0] == nil {
 		return
 	}
 
-	body, err = json.Marshal(jsonData["params"].([]interface{})[0])
+	body, err := json.Marshal(paramsData[0])
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	quantum, err := core.JsonToQuantum(body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Log the quantum
-	log.Printf("Quantum: %+v\n", quantum)
-	log.Printf("Quantum signature: %s\n", core.Sig2Hex(quantum.Signature))
-	log.Printf("Quantum content[0] data: %+s\n", quantum.Contents[0].Data)
-	log.Printf("Quantum content[0] format: %+s\n", quantum.Contents[0].Format)
-	log.Printf("Quantum ref[0]: %s\n", core.Sig2Hex(quantum.References[0]))
+	// // Log the quantum
+	// log.Printf("Quantum: %+v\n", quantum)
+	// log.Printf("Quantum signature: %s\n", core.Sig2Hex(quantum.Signature))
+	// log.Printf("Quantum content[0] data: %+s\n", quantum.Contents[0].Data)
+	// log.Printf("Quantum content[0] format: %+s\n", quantum.Contents[0].Format)
+	// log.Printf("Quantum ref[0]: %s\n", core.Sig2Hex(quantum.References[0]))
 
 	addr, err := quantum.Ecrecover()
 	if err != nil {
@@ -155,16 +152,6 @@ func handleCustomJSONRequest(w http.ResponseWriter, body []byte) {
 	}
 	log.Printf("Quantum address: %s\n", addr.Hex())
 
-	// Respond with a success message
-	response := map[string]string{"status": "success"}
-	responseBody, err := json.Marshal(response)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(responseBody)
 }
 
 func handleRPCRequest(w http.ResponseWriter, r *http.Request) {
@@ -181,18 +168,12 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	// Log the incoming request
-	log.Printf("Received request: %s\n", string(body))
+	// log.Printf("Received request: %s\n", string(body))
 
 	var req JSONRPCRequest
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if req.Method == "pdu_sendQuantums" {
-		// If the method field is missing, treat it as a custom JSON request
-		handleCustomJSONRequest(w, body)
 		return
 	}
 
@@ -215,6 +196,9 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 		result = "0x8AC7230489E80000" // Example balance, replace with actual logic to fetch balance
 	case "eth_getTransactionCount":
 		result = "0x1" // Example transaction count, replace with actual logic to fetch transaction count
+	case "pdu_sendQuantums":
+		handleCustomJSONRequest(req.Params)
+		result = map[string]string{"status": "success"}
 	// case "eth_call":
 	// 	result, rpcErr = handleEthCall(req.Params)
 	default:
@@ -238,7 +222,7 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Log the outgoing response
-	log.Printf("Sending response: %s\n", string(responseBody))
+	// log.Printf("Sending response: %s\n", string(responseBody))
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(responseBody)
