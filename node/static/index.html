@@ -14,7 +14,6 @@
             return btoa(binaryString);
         }
 
-
         function hexToBytes(hex) {
             let bytes = [];
             for (let c = 0; c < hex.length; c += 2) {
@@ -90,12 +89,16 @@
                 console.log('Signature:', signature);
 
                 // Create JSON result
-                const jsonResult = 
-                {"id":1346259586800110,"jsonrpc":"2.0","method":"pdu_sendQuantums","params":[{
-                    cs: [{ data: message, fmt: "txt" }],
-                    refs: ["0x"+ref],
-                    sig: signature
-                }]};
+                const jsonResult = {
+                    id: 1346259586800110,
+                    jsonrpc: "2.0",
+                    method: "pdu_sendQuantums",
+                    params: [{
+                        cs: [{ data: message, fmt: "txt" }],
+                        refs: ["0x" + ref],
+                        sig: signature
+                    }]
+                };
 
                 document.getElementById('signature').innerText = 'Signature: ' + signature;
                 document.getElementById('jsonResult').innerText = JSON.stringify(jsonResult, null, 2);
