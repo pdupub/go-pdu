@@ -122,7 +122,17 @@ func handleCustomJSONRequest(w http.ResponseWriter, body []byte) {
 	}
 
 	// Log the JSON data received
-	log.Printf("Received custom JSON data: %+v\n", jsonData)
+	log.Printf("#################Received custom JSON data: %+v\n", jsonData["params"])
+	if len(jsonData["params"].([]interface{})) == 0 || jsonData["params"].([]interface{})[0] == nil {
+		http.Error(w, "Missing params", http.StatusBadRequest)
+		return
+	}
+
+	body, err = json.Marshal(jsonData["params"].([]interface{})[0])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	quantum, err := core.JsonToQuantum(body)
 	if err != nil {
@@ -180,7 +190,7 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Method == "" {
+	if req.Method == "pdu_sendQuantums" {
 		// If the method field is missing, treat it as a custom JSON request
 		handleCustomJSONRequest(w, body)
 		return

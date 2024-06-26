@@ -90,11 +90,12 @@
                 console.log('Signature:', signature);
 
                 // Create JSON result
-                const jsonResult = {
+                const jsonResult = 
+                {"id":1346259586800110,"jsonrpc":"2.0","method":"pdu_sendQuantums","params":[{
                     cs: [{ data: message, fmt: "txt" }],
                     refs: ["0x"+ref],
                     sig: signature
-                };
+                }]};
 
                 document.getElementById('signature').innerText = 'Signature: ' + signature;
                 document.getElementById('jsonResult').innerText = JSON.stringify(jsonResult, null, 2);
