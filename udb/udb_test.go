@@ -22,12 +22,12 @@ func TestUDB(t *testing.T) {
 	// 测试 PutQuantum 和 GetQuantum
 	sig := "test-sig"
 	contents := "test-contents"
-	err = db.PutQuantum(sig, contents)
+	err = db.PutQuantum(sig, contents, "test-address")
 	if err != nil {
 		t.Fatalf("PutQuantum failed: %v", err)
 	}
 
-	retContents, err := db.GetQuantum(sig)
+	retContents, address, err := db.GetQuantum(sig)
 	if err != nil {
 		t.Fatalf("GetQuantum failed: %v", err)
 	}
@@ -36,7 +36,6 @@ func TestUDB(t *testing.T) {
 	}
 
 	// 测试 PutPublisher 和 GetPublisher
-	address := "test-address"
 	value := "test-value"
 	err = db.PutPublisher(address, value)
 	if err != nil {

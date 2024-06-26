@@ -95,13 +95,13 @@ func TestRecv(t *testing.T) {
 	}
 
 	// 调用 Recv 方法
-	err = universe.Recv(quantum)
+	err = universe.RecvQuantum(quantum)
 	if err != nil {
 		t.Fatalf("Recv failed: %v", err)
 	}
 
 	// 检查 Quantum 表中是否有对应的记录
-	contents, err := universe.DB.GetQuantum(quantum.Signature.toHex())
+	contents, _, err := universe.DB.GetQuantum(quantum.Signature.toHex())
 	if err != nil {
 		t.Fatalf("GetQuantum failed: %v", err)
 	}
