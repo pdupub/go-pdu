@@ -28,7 +28,7 @@ type RPCError struct {
 	Message string `json:"message"`
 }
 
-func handleRPCRequest(w http.ResponseWriter, r *http.Request) {
+func (n *Node) handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is supported", http.StatusMethodNotAllowed)
 		return
@@ -71,7 +71,7 @@ func handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 	case "eth_getTransactionCount":
 		result = "0x1" // Example transaction count, replace with actual logic to fetch transaction count
 	case "pdu_sendQuantums":
-		handleRecvQuamtumsRequest(req.Params)
+		n.handleRecvQuamtumsRequest(req.Params)
 		result = map[string]string{"status": "success"}
 	// case "eth_call":
 	// 	result, rpcErr = handleEthCall(req.Params)

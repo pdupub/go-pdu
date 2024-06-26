@@ -7,7 +7,7 @@ import (
 	"github.com/pdupub/go-pdu/core"
 )
 
-func handleRecvQuamtumsRequest(params json.RawMessage) {
+func (n *Node) handleRecvQuamtumsRequest(params json.RawMessage) {
 
 	var paramsData []interface{}
 	err := json.Unmarshal(params, &paramsData)
@@ -44,6 +44,11 @@ func handleRecvQuamtumsRequest(params json.RawMessage) {
 		// return
 		log.Printf("Failed to recover address: %s\n", err.Error())
 	}
+
+	if err = n.Universe.Recv(quantum); err != nil {
+		log.Printf("Failed to receive quantum: %s\n", err.Error())
+	}
+
 	log.Printf("Quantum address: %s\n", addr.Hex())
 
 }

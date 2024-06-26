@@ -115,7 +115,7 @@ func withCORS(handler http.Handler) http.Handler {
 
 func (n *Node) startRPCServer(port int) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/rpc", handleRPCRequest)
+	mux.HandleFunc("/rpc", n.handleRPCRequest)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
