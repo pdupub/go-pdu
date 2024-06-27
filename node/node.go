@@ -150,19 +150,7 @@ func (n *Node) startRPCServer(port int) {
 	log.Fatal(server.ListenAndServe())
 }
 
-func (n *Node) Run(webPort, rpcPort int) {
-	n.handleInterrupt()
-
-	n.Host.SetStreamHandler(protocol.ID(protocolID), n.handleStream)
-
-	fmt.Printf("Node ID: %s\n", n.Host.ID().String())
-	for _, addr := range n.Host.Addrs() {
-		fmt.Printf("Node Address: %s\n", addr.String())
-	}
-
-	go n.startWebServer(webPort)
-	go n.startRPCServer(rpcPort)
-
+func (n *Node) connectPeers() {
 	fmt.Println("Enter the multiaddr of a peer to connect to (empty to skip):")
 	peerAddr, _ := bufio.NewReader(os.Stdin).ReadString('\n')
 	peerAddr = strings.TrimSpace(peerAddr)
@@ -188,6 +176,22 @@ func (n *Node) Run(webPort, rpcPort int) {
 			}
 		}
 	}
+}
+
+func (n *Node) Run(webPort, rpcPort int) {
+	n.handleInterrupt()
+
+	n.Host.SetStreamHandler(protocol.ID(protocolID), n.handleStream)
+
+	fmt.Printf("Node ID: %s\n", n.Host.ID().String())
+	for _, addr := range n.Host.Addrs() {
+		fmt.Printf("Node Address: %s\n", addr.String())
+	}
+
+	go n.startWebServer(webPort)
+	go n.startRPCServer(rpcPort)
+
+	go n.connectPeers()
 
 	<-n.Ctx.Done() // 保持程序运行
 }
