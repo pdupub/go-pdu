@@ -88,7 +88,7 @@ func (udb *UDB) GetQuantumsByAddress(address string, limit, skip int, asc bool) 
 	if asc {
 		order = "ASC"
 	}
-	query := fmt.Sprintf("SELECT sig, qtype, contents, nonce, refs FROM Quantum WHERE address = ? ORDER BY sig %s LIMIT ? OFFSET ?", order)
+	query := fmt.Sprintf("SELECT sig, qtype, contents, nonce, refs FROM Quantum WHERE address = ? ORDER BY nonce %s LIMIT ? OFFSET ?", order)
 
 	rows, err := udb.db.Query(query, address, limit, skip)
 	if err != nil {
