@@ -74,7 +74,9 @@ func (n *Node) handleRPCRequest(w http.ResponseWriter, r *http.Request) {
 		n.handleSendQuamtumsRequest(req.Params)
 		result = map[string]string{"status": "success"}
 	case "pdu_getQuantums":
-		result = n.handleQueryQuamtumsRequest(req.Params)
+		quantums := n.handleQueryQuamtumsRequest(req.Params)
+		result = map[string]interface{}{"quantums": quantums, "status": "success"}
+
 	// case "eth_call":
 	// 	result, rpcErr = handleEthCall(req.Params)
 	default:

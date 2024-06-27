@@ -18,6 +18,7 @@ package udb
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"strings"
 
@@ -81,8 +82,14 @@ func (udb *UDB) GetReferencesBySig(sig string) ([]string, error) {
 }
 
 // GetQuantumsByAddress retrieves all quantums for a given address from the Quantum table
-func (udb *UDB) GetQuantumsByAddress(address string) ([]map[string]interface{}, error) {
-	rows, err := udb.db.Query("SELECT sig, qtype, contents, refs FROM Quantum WHERE address = ?", address)
+func (udb *UDB) GetQuantumsByAddress(address string, limit, skip int, asc bool) ([]map[string]interface{}, error) {
+	order := "DESC"
+	if asc {
+		order = "ASC"
+	}
+	query := fmt.Sprintf("SELECT sig, qtype, contents, refs FROM Quantum WHERE address = ? ORDER BY sig %s LIMIT ? OFFSET ?", order)
+
+	rows, err := udb.db.Query(query, address, limit, skip)
 	if err != nil {
 		return nil, err
 	}

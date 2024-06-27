@@ -58,7 +58,7 @@ func TestUDB(t *testing.T) {
 	}
 
 	// 根据地址检索量子数据
-	quantums, err := db.GetQuantumsByAddress(address)
+	quantums, err := db.GetQuantumsByAddress(address, 10, 0, true)
 	if err != nil {
 		t.Fatalf("Failed to get quantums by address: %v", err)
 	}

@@ -17,6 +17,7 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 	"sync"
@@ -40,11 +41,37 @@ func NewUniverse(dbName string) (*Universe, error) {
 }
 func (u *Universe) QueryQuantums(addressHex string, limit int, skip int, asc bool) []*Quantum {
 
-	// u.mu.RLock()
-	// defer u.mu.RUnlock()
+	qRows, err := u.DB.GetQuantumsByAddress(addressHex, limit, skip, asc)
+	if err != nil {
+		return nil
+	}
 
-	// return u.DB.QueryQuantums(addressHex, asc, limit, skip)
-	return nil
+	qs := []*Quantum{}
+	for _, v := range qRows {
+		q := &Quantum{}
+		if qType, ok := v["qtype"]; ok {
+			q.Type = int(qType.(int))
+		}
+
+		if contents, ok := v["contents"]; ok {
+			err = json.Unmarshal([]byte(contents.(string)), &q.Contents)
+			if err != nil {
+				return nil
+			}
+		}
+
+		if refs, ok := v["references"]; ok {
+			for _, r := range refs.([]string) {
+				q.References = append(q.References, Hex2Sig(r))
+			}
+		}
+
+		if sig, ok := v["sig"]; ok {
+			q.Signature = Hex2Sig(sig.(string))
+		}
+		qs = append(qs, q)
+	}
+	return qs
 }
 
 func (u *Universe) RecvQuantum(quantum *Quantum) error {
