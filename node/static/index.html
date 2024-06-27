@@ -14,6 +14,12 @@
             return btoa(binaryString);
         }
 
+        function decodeBase64UTF8(base64) {
+            const binaryString = atob(base64);
+            const utf8Bytes = new Uint8Array([...binaryString].map(char => char.charCodeAt(0)));
+            return new TextDecoder().decode(utf8Bytes);
+        }
+
         function hexToBytes(hex) {
             let bytes = [];
             for (let c = 0; c < hex.length; c += 2) {
@@ -25,6 +31,23 @@
         function bytesToBase64(bytes) {
             const binary = String.fromCharCode.apply(null, bytes);
             return btoa(binary);
+        }
+
+        function bytesToHex(bytes) {
+            return bytes.map(byte => byte.toString(16).padStart(2, '0')).join('');
+        }
+
+        function base64ToHex(base64) {
+            const binaryString = atob(base64);
+            let hex = '';
+            for (let i = 0; i < binaryString.length; i++) {
+                let byte = binaryString.charCodeAt(i).toString(16);
+                if (byte.length < 2) {
+                    byte = '0' + byte;
+                }
+                hex += byte;
+            }
+            return hex;
         }
 
         function convertHexToBase64(hexInput) {
@@ -160,6 +183,13 @@
                 quantumsDisplay.innerHTML = ''; // Clear previous content
 
                 quantumsList.forEach(quantum => {
+                    quantum.cs.forEach(content => {
+                        content.data = decodeBase64UTF8(content.data);
+                    });
+
+                    quantum.refs = quantum.refs.map(ref => '0x' + base64ToHex(ref));
+                    quantum.sig = '0x' + base64ToHex(quantum.sig);
+
                     const quantumItem = document.createElement('div');
                     quantumItem.textContent = JSON.stringify(quantum);
                     quantumsDisplay.appendChild(quantumItem);
