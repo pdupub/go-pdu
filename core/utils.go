@@ -67,6 +67,7 @@ func JsonToQuantum(body []byte) (*Quantum, error) {
 		cs = append(cs, qc)
 	}
 	quantum.Contents = cs
+	quantum.Nonce = int(jsonData["nonce"].(float64))
 	quantum.References = refs
 
 	return quantum, nil

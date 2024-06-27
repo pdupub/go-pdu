@@ -30,7 +30,7 @@ func TestNewQuantum(t *testing.T) {
 	}
 	refs := []Sig{InitialQuantumReference}
 
-	quantum, err := NewQuantum(QuantumTypeInformation, cs, refs...)
+	quantum, err := NewQuantum(QuantumTypeInformation, cs, 1, refs...)
 	if err != nil {
 		t.Errorf("error creating Quantum: %v", err)
 	}
@@ -81,7 +81,7 @@ func TestQuantumSignAndEcrecover(t *testing.T) {
 	}
 	refs := []Sig{InitialQuantumReference}
 
-	quantum, err := NewQuantum(QuantumTypeInformation, cs, refs...)
+	quantum, err := NewQuantum(QuantumTypeInformation, cs, 1, refs...)
 	if err != nil {
 		t.Errorf("error creating Quantum: %v", err)
 	}

@@ -53,6 +53,10 @@ func (u *Universe) QueryQuantums(addressHex string, limit int, skip int, asc boo
 			q.Type = int(qType.(int))
 		}
 
+		if nonce, ok := v["nonce"]; ok {
+			q.Nonce = int(nonce.(int))
+		}
+
 		if contents, ok := v["contents"]; ok {
 			err = json.Unmarshal([]byte(contents.(string)), &q.Contents)
 			if err != nil {
@@ -80,7 +84,7 @@ func (u *Universe) RecvQuantum(quantum *Quantum) error {
 	defer u.mu.Unlock()
 
 	// 检查数据库的Quantum表中是否有对应的sig
-	_, _, _, _, err := u.DB.GetQuantum(quantum.Signature.toHex())
+	_, _, _, _, _, err := u.DB.GetQuantum(quantum.Signature.toHex())
 	if err == nil {
 		return errors.New("quantum already exists")
 	}
@@ -102,7 +106,7 @@ func (u *Universe) RecvQuantum(quantum *Quantum) error {
 	}
 	refs = refs[:len(refs)-1]
 
-	err = u.DB.PutQuantum(quantum.Signature.toHex(), qcs, addr.Hex(), refs, quantum.Type)
+	err = u.DB.PutQuantum(quantum.Signature.toHex(), qcs, addr.Hex(), refs, quantum.Nonce, quantum.Type)
 	if err != nil {
 		return err
 	}

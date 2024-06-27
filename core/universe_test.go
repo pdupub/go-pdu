@@ -58,21 +58,12 @@ func TestRecv(t *testing.T) {
 	defer universe.DB.CloseDB()
 	defer os.Remove(testDBName)
 
-	// // 创建测试 Quantum 对象
-	// quantum := &Quantum{
-	// 	Signature: []byte("test-sig"),
-	// 	Contents:  QCS{&QContent{Data: []byte("test-content"), Format: "txt", Zipped: false}},
-
-	// 	// Contents:   QCS{&QContent{Data: []byte("test-content"), Format: "txt", Zipped: false}},
-	// 	References: []Sig{[]byte("ref1"), []byte("ref2")},
-	// }
-
 	cs := []*QContent{
 		{Data: []byte("content1"), Format: "txt", Zipped: false},
 	}
 	refs := []Sig{InitialQuantumReference}
 
-	quantum, err := NewQuantum(QuantumTypeInformation, cs, refs...)
+	quantum, err := NewQuantum(QuantumTypeInformation, cs, 1, refs...)
 	if err != nil {
 		t.Errorf("error creating Quantum: %v", err)
 	}
@@ -101,7 +92,7 @@ func TestRecv(t *testing.T) {
 	}
 
 	// 检查 Quantum 表中是否有对应的记录
-	contents, _, _, _, err := universe.DB.GetQuantum(quantum.Signature.toHex())
+	contents, _, _, _, _, err := universe.DB.GetQuantum(quantum.Signature.toHex())
 	if err != nil {
 		t.Fatalf("GetQuantum failed: %v", err)
 	}

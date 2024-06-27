@@ -22,23 +22,24 @@ func TestUDB(t *testing.T) {
 	sig1 := "testsig123"
 	sig2 := "testsig456"
 	qtype := 1
+	nonce := 1
 	contents := "test contents"
 	references := "0xf09ec9d2fd43cfad1f0c93859e5678450c05d26a33c9298673ed991497e4e01c6a125379618b2fb2eb70fba5cc2ae1c946fa76bb0eeadc4723ded6176743ebab1c,0xd2ad5214bf586da7aaa829e460c07b7864d93f7edfbd6fc9e1fc1fc67df448de2bd52d1f1423b0c89b43b93cbe5e761abce559da564f84680e24deb1bf5e1ce61c"
 	address := "0xC604E94a66bCE26FdffcE7dE309d0c9Af26fb33F"
 
 	// 插入测试数据
-	err = db.PutQuantum(sig1, contents, address, references, qtype)
+	err = db.PutQuantum(sig1, contents, address, references, nonce, qtype)
 	if err != nil {
 		t.Fatalf("Failed to put quantum: %v", err)
 	}
 
-	err = db.PutQuantum(sig2, contents, address, references, qtype)
+	err = db.PutQuantum(sig2, contents, address, references, nonce, qtype)
 	if err != nil {
 		t.Fatalf("Failed to put quantum: %v", err)
 	}
 
 	// 检索测试数据
-	retContents, retReferences, retAddress, retQtype, err := db.GetQuantum(sig1)
+	retContents, retNonce, retReferences, retAddress, retQtype, err := db.GetQuantum(sig1)
 	if err != nil {
 		t.Fatalf("Failed to get quantum: %v", err)
 	}
@@ -46,6 +47,10 @@ func TestUDB(t *testing.T) {
 	// 验证插入的数据是否正确
 	if retContents != contents {
 		t.Errorf("Expected contents %v, got %v", contents, retContents)
+	}
+
+	if retNonce != nonce {
+		t.Errorf("Expected nonce %v, got %v", nonce, retNonce)
 	}
 	if len(retReferences) != 2 {
 		t.Errorf("Expected 2 references, got %d", len(retReferences))

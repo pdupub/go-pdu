@@ -99,6 +99,7 @@
             const ref = "f09ec9d2fd43cfad1f0c93859e5678450c05d26a33c9298673ed991497e4e01c6a125379618b2fb2eb70fba5cc2ae1c946fa76bb0eeadc4723ded6176743ebab1c";
             const messageJson = {
                 cs: [{ data: encodeBase64UTF8(message), fmt: "txt" }],
+                nonce: 1,
                 refs: [convertHexToBase64(ref)]
             };
 
@@ -119,6 +120,7 @@
                     method: "pdu_sendQuantums",
                     params: [{
                         cs: [{ data: message, fmt: "txt" }],
+                        nonce: 1,
                         refs: ["0x" + ref],
                         sig: signature
                     }]

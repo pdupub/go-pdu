@@ -42,6 +42,7 @@ func InitDB(dbName string) (*UDB, error) {
 		sig VARCHAR(132) PRIMARY KEY,
 		qtype INTEGER,
 		contents TEXT,
+		nonce INTEGER,
 		refs TEXT,
 		address VARCHAR(42)
 	);
@@ -59,22 +60,22 @@ func (udb *UDB) CloseDB() {
 }
 
 // PutQuantum stores a key-value pair in the Quantum table
-func (udb *UDB) PutQuantum(sig, contents, address, references string, qtype int) error {
-	_, err := udb.db.Exec("INSERT INTO Quantum (sig, qtype, contents, refs, address) VALUES (?, ?, ?, ?, ?)", sig, qtype, contents, references, address)
+func (udb *UDB) PutQuantum(sig, contents, address, references string, nonce, qtype int) error {
+	_, err := udb.db.Exec("INSERT INTO Quantum (sig, qtype, contents, nonce, refs, address) VALUES (?, ?, ?, ?, ?, ?)", sig, qtype, contents, nonce, references, address)
 	return err
 }
 
 // GetQuantum retrieves a value by key from the Quantum table
-func (udb *UDB) GetQuantum(sig string) (string, []string, string, int, error) {
-	var qtype int
+func (udb *UDB) GetQuantum(sig string) (string, int, []string, string, int, error) {
+	var nonce, qtype int
 	var contents, references, address string
-	err := udb.db.QueryRow("SELECT qtype, contents, refs, address FROM Quantum WHERE sig = ?", sig).Scan(&qtype, &contents, &references, &address)
-	return contents, strings.Split(references, ","), address, qtype, err
+	err := udb.db.QueryRow("SELECT qtype, contents, nonce, refs, address FROM Quantum WHERE sig = ?", sig).Scan(&qtype, &contents, &nonce, &references, &address)
+	return contents, nonce, strings.Split(references, ","), address, qtype, err
 }
 
 // GetReferencesBySig retrieves all references for a given sig from the Quantum table
 func (udb *UDB) GetReferencesBySig(sig string) ([]string, error) {
-	_, refs, _, _, err := udb.GetQuantum(sig)
+	_, _, refs, _, _, err := udb.GetQuantum(sig)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +88,7 @@ func (udb *UDB) GetQuantumsByAddress(address string, limit, skip int, asc bool) 
 	if asc {
 		order = "ASC"
 	}
-	query := fmt.Sprintf("SELECT sig, qtype, contents, refs FROM Quantum WHERE address = ? ORDER BY sig %s LIMIT ? OFFSET ?", order)
+	query := fmt.Sprintf("SELECT sig, qtype, contents, nonce, refs FROM Quantum WHERE address = ? ORDER BY sig %s LIMIT ? OFFSET ?", order)
 
 	rows, err := udb.db.Query(query, address, limit, skip)
 	if err != nil {
@@ -98,14 +99,15 @@ func (udb *UDB) GetQuantumsByAddress(address string, limit, skip int, asc bool) 
 	var quantums []map[string]interface{}
 	for rows.Next() {
 		var sig, contents, references string
-		var qtype int
-		err := rows.Scan(&sig, &qtype, &contents, &references)
+		var nonce, qtype int
+		err := rows.Scan(&sig, &qtype, &contents, &nonce, &references)
 		if err != nil {
 			return nil, err
 		}
 		quantum := map[string]interface{}{
 			"sig":        sig,
 			"qtype":      qtype,
+			"nonce":      nonce,
 			"contents":   contents,
 			"references": strings.Split(references, ","),
 		}

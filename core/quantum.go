@@ -51,6 +51,8 @@ type QCS []*QContent
 type UnsignedQuantum struct {
 	// Contents contain all data in this quantum
 	Contents QCS `json:"cs,omitempty"`
+	// Nonce specifies the nonce of this quantum
+	Nonce int `json:"nonce"`
 	// References contains all references in this quantum
 	References []Sig `json:"refs"`
 	// Type specifies the type of this quantum
@@ -71,7 +73,7 @@ type Quantum struct {
 	Signature Sig `json:"sig,omitempty"`
 }
 
-func NewQuantum(t int, cs []*QContent, refs ...Sig) (*Quantum, error) {
+func NewQuantum(t int, cs []*QContent, nonce int, refs ...Sig) (*Quantum, error) {
 	if len(cs) > maxContentsCnt {
 		return nil, errQuantumContentsCntOutOfLimit
 	}
@@ -84,14 +86,11 @@ func NewQuantum(t int, cs []*QContent, refs ...Sig) (*Quantum, error) {
 		}
 	}
 
-	uq := UnsignedQuantum{References: refs}
-
-	if len(cs) > 0 {
-		uq.Contents = cs
-	}
-
-	if t > 0 {
-		uq.Type = t
+	uq := UnsignedQuantum{
+		Contents:   cs,
+		Nonce:      nonce,
+		References: refs,
+		Type:       t,
 	}
 
 	return &Quantum{UnsignedQuantum: uq}, nil
