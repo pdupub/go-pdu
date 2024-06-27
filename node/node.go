@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -69,7 +70,30 @@ func (n *Node) handleInterrupt() {
 
 func (n *Node) handleStream(s network.Stream) {
 	fmt.Println("Got a new stream!")
-	s.Close()
+	defer s.Close()
+
+	buf := make([]byte, 1024)
+	for {
+		n, err := s.Read(buf)
+		if err != nil {
+			if err != io.EOF {
+				fmt.Println("Error reading from stream:", err)
+			}
+			break
+		}
+		fmt.Printf("Received message: %s\n", string(buf[:n]))
+	}
+}
+
+func (n *Node) sendMessage(peerID peer.ID, message string) error {
+	s, err := n.Host.NewStream(n.Ctx, peerID, protocol.ID(protocolID))
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
+	_, err = s.Write([]byte(message))
+	return err
 }
 
 func (n *Node) connectToPeer(peerAddr string) {
@@ -145,6 +169,24 @@ func (n *Node) Run(webPort, rpcPort int) {
 
 	if peerAddr != "" {
 		n.connectToPeer(peerAddr)
+
+		fmt.Println("Enter message to send (empty to skip):")
+		message, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+		message = strings.TrimSpace(message)
+
+		if message != "" {
+			peerinfo, err := peer.AddrInfoFromP2pAddr(multiaddr.StringCast(peerAddr))
+			if err == nil {
+				err = n.sendMessage(peerinfo.ID, message)
+				if err != nil {
+					fmt.Printf("Failed to send message: %s\n", err)
+				} else {
+					fmt.Println("Message sent successfully")
+				}
+			} else {
+				fmt.Printf("Failed to get peer info: %s\n", err)
+			}
+		}
 	}
 
 	<-n.Ctx.Done() // 保持程序运行
