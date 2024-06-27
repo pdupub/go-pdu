@@ -7,7 +7,15 @@
     <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="text/javascript"></script>
     <script>
         const targetChainId = '0x2304'; // Default chainId set to 0x2304
+        var latestRef = '00';
+        var latestNonce = 0;
 
+        function removeHexPrefix(str) {
+            if (str.startsWith('0x')) {
+                return str.slice(2);
+            }
+            return str;
+        }
         function encodeBase64UTF8(str) {
             const utf8Bytes = new TextEncoder().encode(str);
             const binaryString = String.fromCharCode(...utf8Bytes);
@@ -96,11 +104,10 @@
                 alert('Message length should not exceed 1024 characters');
                 return;
             }
-            const ref = "f09ec9d2fd43cfad1f0c93859e5678450c05d26a33c9298673ed991497e4e01c6a125379618b2fb2eb70fba5cc2ae1c946fa76bb0eeadc4723ded6176743ebab1c";
             const messageJson = {
                 cs: [{ data: encodeBase64UTF8(message), fmt: "txt" }],
-                nonce: 1,
-                refs: [convertHexToBase64(ref)]
+                nonce: latestNonce + 1,
+                refs: [convertHexToBase64(latestRef)]
             };
 
             const messageString = JSON.stringify(messageJson);
@@ -120,8 +127,8 @@
                     method: "pdu_sendQuantums",
                     params: [{
                         cs: [{ data: message, fmt: "txt" }],
-                        nonce: 1,
-                        refs: ["0x" + ref],
+                        nonce: latestNonce + 1,
+                        refs: ["0x" + latestRef],
                         sig: signature
                     }]
                 };
@@ -163,7 +170,7 @@
                 params: {
                     address: address,
                     order: "desc",
-                    limit: 10,
+                    limit: 4,
                     skip: 0
                 },
                 id: 1
@@ -195,6 +202,12 @@
                     const quantumItem = document.createElement('div');
                     quantumItem.textContent = JSON.stringify(quantum);
                     quantumsDisplay.appendChild(quantumItem);
+
+                    if (quantum.nonce > latestNonce) {
+                        latestNonce = quantum.nonce;
+                        latestRef = removeHexPrefix(quantum.sig);
+                        console.log('Latest nonce:', latestNonce, 'Latest ref:', latestRef);
+                    }
                 });
             } catch (error) {
                 console.error('Error fetching quantums:', error);
