@@ -1,3 +1,19 @@
+// Copyright 2024 The PDU Authors
+// This file is part of the PDU library.
+//
+// The PDU library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PDU library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PDU library. If not, see <http://www.gnu.org/licenses/>.
+
 package node
 
 import (
@@ -9,7 +25,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -114,27 +129,10 @@ func (n *Node) connectToPeer(peerAddr string) {
 	fmt.Printf("Connected to %s\n", peerinfo.ID.String())
 }
 
-func (n *Node) handleWebsite(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, filepath.Join("node/static", "index.html"))
-}
-
 func (n *Node) startWebServer(port int) {
 	http.HandleFunc("/", n.handleWebsite)
 	fmt.Printf("Starting Website server on port %d... \n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
-}
-
-func withCORS(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		handler.ServeHTTP(w, r)
-	})
 }
 
 func (n *Node) startRPCServer(port int) {
@@ -190,7 +188,6 @@ func (n *Node) Run(webPort, rpcPort int) {
 
 	go n.startWebServer(webPort)
 	go n.startRPCServer(rpcPort)
-
 	go n.connectPeers()
 
 	<-n.Ctx.Done() // 保持程序运行

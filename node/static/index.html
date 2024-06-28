@@ -9,6 +9,7 @@
         const targetChainId = '0x2304'; // Default chainId set to 0x2304
         var latestRef = '00';
         var latestNonce = 0;
+        const rpcUrl = 'http://localhost:8545/rpc';
 
         function removeHexPrefix(str) {
             if (str.startsWith('0x')) {
@@ -146,7 +147,7 @@
 
         async function sendJsonToServer(jsonData, address) {
             try {
-                const response = await fetch('http://localhost:8545/rpc', { // Ensure this URL matches your Go server's endpoint
+                const response = await fetch(rpcUrl, { // Ensure this URL matches your Go server's endpoint
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -177,7 +178,7 @@
             };
 
             try {
-                const response = await fetch('http://localhost:8545/rpc', {
+                const response = await fetch(rpcUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
