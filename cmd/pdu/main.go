@@ -29,6 +29,7 @@ func main() {
 	var webPort int
 	var rpcPort int
 	var dbName string
+	var nodeKey string
 
 	var rootCmd = &cobra.Command{
 		Use:   "pdu",
@@ -36,7 +37,7 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("P2P node running")
 
-			n, err := node.NewNode(peerPort, dbName)
+			n, err := node.NewNode(peerPort, nodeKey, dbName)
 			if err != nil {
 				log.Fatalf("Failed to create node: %s", err)
 				return
@@ -50,6 +51,7 @@ func main() {
 	rootCmd.Flags().IntVarP(&webPort, "webPort", "w", 8546, "Port for the web server")
 	rootCmd.Flags().IntVarP(&rpcPort, "rpcPort", "r", 8545, "Port for the RPC server")
 	rootCmd.Flags().StringVarP(&dbName, "dbName", "d", "pdu.db", "Database name")
+	rootCmd.Flags().StringVarP(&nodeKey, "nodeKey", "n", "node.key", "Node key")
 
 	var testCmd = &cobra.Command{
 		Use:   "test",

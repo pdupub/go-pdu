@@ -19,6 +19,8 @@ package node
 import (
 	"bufio"
 	"context"
+	"crypto/ed25519"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -29,6 +31,7 @@ import (
 	"syscall"
 
 	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -46,11 +49,18 @@ type Node struct {
 	Ctx      context.Context
 }
 
-func NewNode(listenPort int, dbName string) (*Node, error) {
+func NewNode(listenPort int, nodeKey, dbName string) (*Node, error) {
 	ctx := context.Background()
+
+	privKey, err := loadOrCreatePrivateKey(nodeKey)
+	if err != nil {
+		return nil, err
+	}
+
 	h, err := libp2p.New(
 		libp2p.Transport(tcp.NewTCPTransport),
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", listenPort)),
+		libp2p.Identity(privKey),
 	)
 	if err != nil {
 		return nil, err
@@ -66,6 +76,35 @@ func NewNode(listenPort int, dbName string) (*Node, error) {
 		Universe: universe,
 		Ctx:      ctx,
 	}, nil
+}
+
+func loadOrCreatePrivateKey(filename string) (crypto.PrivKey, error) {
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		// File does not exist, create a new private key and save it
+		_, priv, err := ed25519.GenerateKey(nil)
+		if err != nil {
+			return nil, err
+		}
+		err = os.WriteFile(filename, []byte(hex.EncodeToString(priv)), 0600)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Println("New private key generated and saved to", filename)
+		return crypto.UnmarshalEd25519PrivateKey(priv)
+	}
+
+	// File exists, load the private key
+	keyBytes, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	priv, err := hex.DecodeString(string(keyBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	return crypto.UnmarshalEd25519PrivateKey(priv)
 }
 
 func (n *Node) handleInterrupt() {
