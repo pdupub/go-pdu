@@ -20,9 +20,11 @@ import (
 	"bufio"
 	"context"
 	"crypto/ed25519"
+	"embed"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -40,6 +42,11 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pdupub/go-pdu/core"
 )
+
+// staticFiles holds our static web server content.
+//
+//go:embed static/*
+var staticFiles embed.FS
 
 const protocolID = "/p2p/1.0.0"
 
@@ -169,7 +176,14 @@ func (n *Node) connectToPeer(peerAddr string) {
 }
 
 func (n *Node) startWebServer(port int) {
-	http.HandleFunc("/", n.handleWebsite)
+	subFS, err := fs.Sub(staticFiles, "static")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	http.Handle("/", http.StripPrefix("/", http.FileServer(http.FS(subFS))))
+
+	// http.HandleFunc("/", n.handleWebsite)
 	fmt.Printf("Starting Website server on port %d... \n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
