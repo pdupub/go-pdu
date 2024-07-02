@@ -17,6 +17,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -30,11 +31,25 @@ func main() {
 	var rpcPort int
 	var dbName string
 	var nodeKey string
+	var testMode bool
 
 	var rootCmd = &cobra.Command{
 		Use:   "pdu",
 		Short: "A decentralized P2P program",
 		Run: func(cmd *cobra.Command, args []string) {
+			if testMode {
+				peerPort = 4002
+				webPort = 8556
+				rpcPort = 8555
+				dbName = "pdu_test.db"
+				nodeKey = "node_test.key"
+
+				// Check for any specified flags in test mode and warn the user
+				if cmd.Flags().Changed("peerPort") || cmd.Flags().Changed("webPort") || cmd.Flags().Changed("rpcPort") || cmd.Flags().Changed("dbName") || cmd.Flags().Changed("nodeKey") {
+					fmt.Println("Warning: Test mode will ignore the specified parameters")
+				}
+			}
+
 			log.Println("P2P node running")
 
 			n, err := node.NewNode(peerPort, nodeKey, dbName)
@@ -52,17 +67,7 @@ func main() {
 	rootCmd.Flags().IntVarP(&rpcPort, "rpcPort", "r", 8545, "Port for the RPC server")
 	rootCmd.Flags().StringVarP(&dbName, "dbName", "d", "pdu.db", "Database name")
 	rootCmd.Flags().StringVarP(&nodeKey, "nodeKey", "n", "node.key", "Node key")
-
-	var testCmd = &cobra.Command{
-		Use:   "test",
-		Short: "Run test command",
-		Run: func(cmd *cobra.Command, args []string) {
-			log.Println("Running test...")
-			// test方法的代码
-		},
-	}
-
-	rootCmd.AddCommand(testCmd)
+	rootCmd.Flags().BoolVarP(&testMode, "test", "t", false, "Run in test mode")
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Println(err)
