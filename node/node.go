@@ -144,12 +144,28 @@ func (n *Node) handleStream(s network.Stream) {
 	defer s.Close()
 
 	remotePeerID := s.Conn().RemotePeer()
-	fmt.Printf("Connected to peer: %s\n", remotePeerID)
+	remotePeerAddr := s.Conn().RemoteMultiaddr()
+
+	remoteFullAddr := fmt.Sprintf("%s/p2p/%s", remotePeerAddr, remotePeerID)
+	fmt.Printf("Connected to peer: %s\n", remoteFullAddr)
 
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(s)
 	message := buf.String()
 	fmt.Printf("Received message: %s\n", message)
+
+	// save peer info into ndb
+
+	info := strings.Split(remoteFullAddr, "/")
+	peer := db.Peer{
+		ID:            info[len(info)-1],
+		Address:       remoteFullAddr,
+		Status:        "connected",
+		LastConnected: time.Now(),
+	}
+	if err := n.ndb.AddPeer(peer); err != nil {
+		log.Printf("Failed to add peer to database: %s", err)
+	}
 
 }
 
