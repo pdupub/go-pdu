@@ -1,6 +1,6 @@
 # PDU
 node.key
-pdu.db
+*.db
 build/
 
 # idea

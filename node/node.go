@@ -31,6 +31,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/crypto"
@@ -41,6 +42,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pdupub/go-pdu/core"
+	"github.com/pdupub/go-pdu/node/db"
 )
 
 // staticFiles holds our static web server content.
@@ -54,6 +56,7 @@ type Node struct {
 	Host     host.Host
 	Universe *core.Universe
 	Ctx      context.Context
+	ndb      *db.NodeDB
 }
 
 func NewNode(listenPort int, nodeKey, dbName string) (*Node, error) {
@@ -78,10 +81,16 @@ func NewNode(listenPort int, nodeKey, dbName string) (*Node, error) {
 		return nil, err
 	}
 
+	nodeDB, err := db.NewNodeDB("node_" + dbName)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Node{
 		Host:     h,
 		Universe: universe,
 		Ctx:      ctx,
+		ndb:      nodeDB,
 	}, nil
 }
 
@@ -125,6 +134,7 @@ func (n *Node) handleInterrupt() {
 			log.Fatal(err)
 		}
 		n.Universe.DB.CloseDB()
+		n.ndb.CloseDB()
 		os.Exit(0)
 	}()
 }
@@ -170,6 +180,16 @@ func (n *Node) connectToPeer(peerAddr string) {
 
 	if err := n.Host.Connect(n.Ctx, *peerinfo); err != nil {
 		log.Fatalf("Failed to connect to peer: %s", err)
+	}
+
+	peer := db.Peer{
+		ID:            peerinfo.ID.String(),
+		Address:       peerAddr,
+		Status:        "connected",
+		LastConnected: time.Now(),
+	}
+	if err := n.ndb.AddPeer(peer); err != nil {
+		log.Printf("Failed to add peer to database: %s", err)
 	}
 
 	fmt.Printf("Connected to %s\n", peerinfo.ID.String())
