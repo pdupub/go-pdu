@@ -143,6 +143,9 @@ func (n *Node) handleStream(s network.Stream) {
 	fmt.Println("Got a new stream!")
 	defer s.Close()
 
+	remotePeerID := s.Conn().RemotePeer()
+	fmt.Printf("Connected to peer: %s\n", remotePeerID)
+
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(s)
 	message := buf.String()
@@ -251,6 +254,8 @@ func (n *Node) Run(webPort, rpcPort int) {
 	fmt.Printf("Node ID: %s\n", n.Host.ID().String())
 	for _, addr := range n.Host.Addrs() {
 		fmt.Printf("Node Address: %s\n", addr.String())
+		fmt.Printf("Node Fully Address: %s/p2p/%s\n", addr.String(), n.Host.ID().String())
+
 	}
 
 	go n.startWebServer(webPort)
