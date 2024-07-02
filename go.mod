@@ -9,6 +9,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/multiformats/go-multiaddr v0.13.0
 	github.com/spf13/cobra v1.8.1
+	github.com/stretchr/testify v1.9.0
 )
 
 require (
@@ -106,7 +107,6 @@ require (
 	github.com/raulk/go-watchdog v1.3.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/supranational/blst v0.3.11 // indirect
 	go.uber.org/dig v1.17.1 // indirect
 	go.uber.org/fx v1.22.1 // indirect
