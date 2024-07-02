@@ -18,12 +18,12 @@ package node
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"embed"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -143,17 +143,11 @@ func (n *Node) handleStream(s network.Stream) {
 	fmt.Println("Got a new stream!")
 	defer s.Close()
 
-	buf := make([]byte, 1024)
-	for {
-		n, err := s.Read(buf)
-		if err != nil {
-			if err != io.EOF {
-				fmt.Println("Error reading from stream:", err)
-			}
-			break
-		}
-		fmt.Printf("Received message: %s\n", string(buf[:n]))
-	}
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(s)
+	message := buf.String()
+	fmt.Printf("Received message: %s\n", message)
+
 }
 
 func (n *Node) sendMessage(peerID peer.ID, message string) error {
