@@ -18,7 +18,7 @@ iOS : [https://testflight.apple.com/join/FqQGxhbn](https://testflight.apple.com/
 
 ## What is PDU?
 
-PDU is a fully peer-to-peer (P2P) social networking system designed to enable participants to freely publish and efficiently access information without relying on any third-party services. Traditional systems that do not use centralized verification methods, such as phone numbers, are vulnerable to Sybil attacks, where the cost-free creation of new accounts can overwhelm the network with spam, undermining reward and punishment mechanisms. PDU addresses this issue by establishing trusted publisher identities through a sequence of messages signed by the same private key. Interactions such as reposts, comments, and likes create associations between publishers, allowing participants to form a custom set of visible publisher identities. This relatively stable scope enables an identity-based reward and punishment mechanism to effectively filter information.
+PDU is short for ParaDigi Universe, is a fully peer-to-peer (P2P) social network system designed to enable participants to freely publish and efficiently access information without relying on any third-party services. Traditional systems that do not use centralized verification methods, such as phone numbers, are vulnerable to Sybil attacks, where the cost-free creation of new accounts can overwhelm the network with spam, undermining reward and punishment mechanisms. PDU addresses this issue by establishing trusted publisher identities through a sequence of messages signed by the same private key. Interactions such as reposts, comments, and likes create associations between publishers, allowing participants to form a custom set of visible publisher identities. This relatively stable scope enables an identity-based reward and punishment mechanism to effectively filter information.
 
 Please read the WhitePaper on [https://pdu.pub](https://pdu.pub/white_paper.html) for more details.
 
@@ -27,28 +27,20 @@ Please read the WhitePaper on [https://pdu.pub](https://pdu.pub/white_paper.html
 
 ```
 ParaDigi Universe
-	A decentralized social networking service
-	Website: [https://pdu.pub](https://pdu.pub)
+	A Peer-to-Peer Social Network Service
+	Website: https://pdu.pub
 
 Usage:
-  pdu [command]
-
-Available Commands:
-  completion  Generate the autocompletion script for the specified shell
-  help        Help about any command
-  key         Create keystores (For test)
-  msg         Create and Broadcast Message (For test your own node)
-  node        Operations on node
-  run         Run node daemon
+  pdu [flags]
 
 Flags:
-      --fbKeyPath string     path of firebase json key (default "udb/fb/test-firebase-adminsdk.json")
-      --fbProjectID string   project ID (default "pdu-dev-1")
-  -h, --help                 help for pdu
-      --projectPath string   project root path (default "./")
-  -v, --version              version for pdu
-
-Use "pdu [command] --help" for more information about a command.
+  -d, --dbName string    Database name (default "pdu.db")
+  -h, --help             help for pdu
+  -n, --nodeKey string   Node key (default "node.key")
+  -p, --peerPort int     Port to listen for P2P connections (default 4001)
+  -r, --rpcPort int      Port for the RPC server (default 8545)
+  -t, --test             Run in test mode
+  -w, --webPort int      Port for the web server (default 8546)
 ```
 
 
