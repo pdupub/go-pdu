@@ -22,6 +22,7 @@ import (
 	"os"
 
 	"github.com/pdupub/go-pdu/node"
+	"github.com/pdupub/go-pdu/params"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +36,11 @@ func main() {
 
 	var rootCmd = &cobra.Command{
 		Use:   "pdu",
-		Short: "A decentralized P2P program",
+		Short: "PDU command line interface (" + params.Version + ")",
+		Long: `ParaDigi Universe
+	A Peer-to-Peer Social Network Service
+	Website: https://pdu.pub`,
+
 		Run: func(cmd *cobra.Command, args []string) {
 			if testMode {
 				peerPort = 4002
