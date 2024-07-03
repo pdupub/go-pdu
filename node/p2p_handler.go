@@ -57,19 +57,19 @@ func (n *Node) sendMessage(peerID peer.ID, message string) error {
 	return err
 }
 
-func (n *Node) connectToPeer(peerAddr string) {
+func (n *Node) connectToPeer(peerAddr string) (string, error) {
 	maddr, err := multiaddr.NewMultiaddr(peerAddr)
 	if err != nil {
-		log.Fatalf("Invalid multiaddress: %s", err)
+		return "", fmt.Errorf("invalid multiaddress: %s", err)
 	}
 
 	peerinfo, err := peer.AddrInfoFromP2pAddr(maddr)
 	if err != nil {
-		log.Fatalf("Failed to get peer info: %s", err)
+		return "", fmt.Errorf("failed to get peer info: %s", err)
 	}
 
 	if err := n.Host.Connect(n.Ctx, *peerinfo); err != nil {
-		log.Fatalf("Failed to connect to peer: %s", err)
+		return "", fmt.Errorf("failed to connect to peer: %s", err)
 	}
 
 	peer := db.Peer{
@@ -79,36 +79,69 @@ func (n *Node) connectToPeer(peerAddr string) {
 		LastConnected: time.Now(),
 	}
 	if err := n.ndb.AddPeer(peer); err != nil {
-		log.Printf("Failed to add peer to database: %s", err)
+		return "", fmt.Errorf("failed to add peer to database: %s", err)
 	}
 
-	fmt.Printf("Connected to %s\n", peerinfo.ID.String())
+	return peerinfo.ID.String(), nil
+}
+
+func (n *Node) chatWithPeer(peerAddr string) {
+
+	fmt.Println("Enter message to send (empty to skip):")
+	message, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+	message = strings.TrimSpace(message)
+
+	if message != "" {
+		peerinfo, err := peer.AddrInfoFromP2pAddr(multiaddr.StringCast(peerAddr))
+		if err == nil {
+			err = n.sendMessage(peerinfo.ID, message)
+			if err != nil {
+				fmt.Printf("Failed to send message: %s\n", err)
+			} else {
+				fmt.Println("Message sent successfully")
+			}
+		} else {
+			fmt.Printf("Failed to get peer info: %s\n", err)
+		}
+	}
 }
 
 func (n *Node) connectPeers() {
-	fmt.Println("Enter the multiaddr of a peer to connect to (empty to skip):")
-	peerAddr, _ := bufio.NewReader(os.Stdin).ReadString('\n')
-	peerAddr = strings.TrimSpace(peerAddr)
 
-	if peerAddr != "" {
-		n.connectToPeer(peerAddr)
+	peers, err := n.ndb.GetPeers(0, 10)
+	peerAddrs := []string{}
+	if err == nil && len(peers) > 0 {
 
-		fmt.Println("Enter message to send (empty to skip):")
-		message, _ := bufio.NewReader(os.Stdin).ReadString('\n')
-		message = strings.TrimSpace(message)
-
-		if message != "" {
-			peerinfo, err := peer.AddrInfoFromP2pAddr(multiaddr.StringCast(peerAddr))
-			if err == nil {
-				err = n.sendMessage(peerinfo.ID, message)
-				if err != nil {
-					fmt.Printf("Failed to send message: %s\n", err)
-				} else {
-					fmt.Println("Message sent successfully")
-				}
+		for _, peer := range peers {
+			// if peer.Status == "connected" {
+			// 	continue
+			// }
+			if targetID, err := n.connectToPeer(peer.Address); err != nil {
+				fmt.Printf("Failed to connect to peer: %s\n", err)
 			} else {
-				fmt.Printf("Failed to get peer info: %s\n", err)
+				fmt.Printf("Connected to peer: %s\n", targetID)
+				peerAddrs = append(peerAddrs, peer.Address)
+				n.chatWithPeer(peer.Address)
 			}
 		}
 	}
+
+	if len(peerAddrs) == 0 {
+		fmt.Printf("Failed to get peers from database: %s\n", err)
+		fmt.Println("Enter the multiaddr of a peer to connect to (empty to skip):")
+		peerAddr, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+		peerAddr = strings.TrimSpace(peerAddr)
+
+		if peerAddr != "" {
+			if targetID, err := n.connectToPeer(peerAddr); err != nil {
+				fmt.Printf("Failed to connect to peer: %s\n", err)
+			} else {
+				fmt.Printf("Connected to peer: %s\n", targetID)
+				peerAddrs = append(peerAddrs, peerAddr)
+				n.chatWithPeer(peerAddr)
+
+			}
+		}
+	}
+
 }
