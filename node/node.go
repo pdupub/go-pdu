@@ -46,10 +46,11 @@ var staticFiles embed.FS
 const protocolID = "/p2p/1.0.0"
 
 type Node struct {
-	Host     host.Host
-	Universe *core.Universe
-	Ctx      context.Context
-	ndb      *db.NodeDB
+	Host      host.Host
+	Universe  *core.Universe
+	Ctx       context.Context
+	ndb       *db.NodeDB
+	peerAddrs []string
 }
 
 func NewNode(listenPort int, nodeKey, dbName string) (*Node, error) {

@@ -109,7 +109,6 @@ func (n *Node) chatWithPeer(peerAddr string) {
 func (n *Node) connectPeers() {
 
 	peers, err := n.ndb.GetPeers(0, 10)
-	peerAddrs := []string{}
 	if err == nil && len(peers) > 0 {
 
 		for _, peer := range peers {
@@ -120,13 +119,13 @@ func (n *Node) connectPeers() {
 				fmt.Printf("Failed to connect to peer: %s\n", err)
 			} else {
 				fmt.Printf("Connected to peer: %s\n", targetID)
-				peerAddrs = append(peerAddrs, peer.Address)
+				n.peerAddrs = append(n.peerAddrs, peer.Address)
 				n.chatWithPeer(peer.Address)
 			}
 		}
 	}
 
-	if len(peerAddrs) == 0 {
+	if len(n.peerAddrs) == 0 {
 		fmt.Printf("Failed to get peers from database: %s\n", err)
 		fmt.Println("Enter the multiaddr of a peer to connect to (empty to skip):")
 		peerAddr, _ := bufio.NewReader(os.Stdin).ReadString('\n')
@@ -137,7 +136,7 @@ func (n *Node) connectPeers() {
 				fmt.Printf("Failed to connect to peer: %s\n", err)
 			} else {
 				fmt.Printf("Connected to peer: %s\n", targetID)
-				peerAddrs = append(peerAddrs, peerAddr)
+				n.peerAddrs = append(n.peerAddrs, peerAddr)
 				n.chatWithPeer(peerAddr)
 
 			}
