@@ -64,6 +64,7 @@ func (n *Node) handleStream(stream network.Stream) {
 	len, err := stream.Read(buf)
 	if err != nil {
 		fmt.Printf("Error reading from stream: %s\n", err)
+		stream.Reset()
 		return
 	}
 
@@ -81,7 +82,7 @@ func (n *Node) handleStream(stream network.Stream) {
 	}
 
 	// 关闭流
-	stream.Close()
+	// stream.Close()
 }
 
 // 发送消息到指定节点并等待回复
