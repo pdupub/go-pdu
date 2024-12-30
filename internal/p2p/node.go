@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p"
@@ -18,14 +19,20 @@ type Node struct {
 	Host       host.Host
 	DHT        *dht.IpfsDHT
 	ctx        context.Context
+	cancel     context.CancelFunc
 	protocolID protocol.ID
+	streams    []network.Stream
+	streamsMux sync.Mutex
 }
 
 // 创建新节点
 func NewNode(ctx context.Context, protocolName string, protocolVersion string) (*Node, error) {
+	ctx, cancel := context.WithCancel(ctx)
+
 	// 创建libp2p主机
 	h, err := libp2p.New()
 	if err != nil {
+		cancel()
 		return nil, fmt.Errorf("failed to create host: %w", err)
 	}
 
@@ -33,6 +40,7 @@ func NewNode(ctx context.Context, protocolName string, protocolVersion string) (
 	kadDHT, err := dht.New(ctx, h)
 	if err != nil {
 		h.Close()
+		cancel()
 		return nil, fmt.Errorf("failed to create DHT: %w", err)
 	}
 
@@ -43,7 +51,9 @@ func NewNode(ctx context.Context, protocolName string, protocolVersion string) (
 		Host:       h,
 		DHT:        kadDHT,
 		ctx:        ctx,
+		cancel:     cancel,
 		protocolID: protocolID,
+		streams:    make([]network.Stream, 0),
 	}
 
 	// 设置流处理器
@@ -59,6 +69,10 @@ func NewNode(ctx context.Context, protocolName string, protocolVersion string) (
 
 // 处理接收到的流
 func (n *Node) handleStream(stream network.Stream) {
+	// 添加流到集合
+	n.addStream(stream)
+	defer n.removeStream(stream)
+
 	// 读取消息
 	buf := make([]byte, 1024)
 	len, err := stream.Read(buf)
@@ -92,7 +106,10 @@ func (n *Node) SendMessage(peerID peer.ID, message string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open stream: %w", err)
 	}
-	defer stream.Close()
+
+	// 添加流到集合
+	n.addStream(stream)
+	defer n.removeStream(stream)
 
 	// 发送消息
 	_, err = stream.Write([]byte(message))
@@ -151,8 +168,45 @@ func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 }
 
 func (n *Node) Close() error {
-	if err := n.DHT.Close(); err != nil {
-		return err
+	// 取消上下文
+	n.cancel()
+
+	// 关闭所有流
+	n.streamsMux.Lock()
+	for _, stream := range n.streams {
+		stream.Close()
 	}
-	return n.Host.Close()
+	n.streams = nil
+	n.streamsMux.Unlock()
+
+	// 关闭 DHT
+	if err := n.DHT.Close(); err != nil {
+		return fmt.Errorf("failed to close DHT: %w", err)
+	}
+
+	// 关闭 Host
+	if err := n.Host.Close(); err != nil {
+		return fmt.Errorf("failed to close host: %w", err)
+	}
+
+	return nil
+}
+
+// 添加流到集合中
+func (n *Node) addStream(stream network.Stream) {
+	n.streamsMux.Lock()
+	defer n.streamsMux.Unlock()
+	n.streams = append(n.streams, stream)
+}
+
+// 从集合中移除流
+func (n *Node) removeStream(stream network.Stream) {
+	n.streamsMux.Lock()
+	defer n.streamsMux.Unlock()
+	for i, s := range n.streams {
+		if s == stream {
+			n.streams = append(n.streams[:i], n.streams[i+1:]...)
+			break
+		}
+	}
 }

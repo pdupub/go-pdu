@@ -27,15 +27,20 @@ var startCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 
-		// 创建一个新节点，使用固定的协议名称和版本
 		node, err := p2p.NewNode(ctx, "pdu", "1.0.0")
 		if err != nil {
 			fmt.Printf("Failed to create node: %v\n", err)
 			os.Exit(1)
 		}
-		defer node.Close()
 
-		// 打印节点信息
+		defer func() {
+			fmt.Println("Shutting down node...")
+			if err := node.Close(); err != nil {
+				fmt.Printf("Error closing node: %v\n", err)
+			}
+			fmt.Println("Node shutdown complete")
+		}()
+
 		fmt.Printf("P2P node started with ID: %s\n", node.Host.ID())
 		// fmt.Printf("Listening on addresses:\n")
 		// for _, addr := range node.Host.Addrs() {
