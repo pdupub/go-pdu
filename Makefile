@@ -20,6 +20,12 @@ run:
 	@echo "Running project..."
 	@go run ./cmd/pdu
 
+# Run the samples
+.PHONY: run-json
+run-json:
+	@echo "Running project..."
+	@go run ./cmd/tools/json
+
 # Test the project
 .PHONY: test
 test:

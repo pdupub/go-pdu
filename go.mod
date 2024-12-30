@@ -3,6 +3,8 @@ module github.com/pdupub/go-pdu
 go 1.22.3
 
 require (
+	github.com/ethereum/go-ethereum v1.14.12
+	github.com/golang-jwt/jwt/v4 v4.5.1
 	github.com/libp2p/go-libp2p v0.38.1
 	github.com/libp2p/go-libp2p-kad-dht v0.28.1
 )
@@ -32,6 +34,7 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
+	github.com/holiman/uint256 v1.3.1 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/ipfs/boxo v0.24.3 // indirect
 	github.com/ipfs/go-cid v0.4.1 // indirect
