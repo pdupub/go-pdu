@@ -16,9 +16,10 @@ build:
 
 # Run the project
 .PHONY: run
-run:
+run: build
 	@echo "Running project..."
-	@go run ./cmd/pdu
+	# @go run ./cmd/pdu 
+	./$(BUILD_DIR)/$(BINARY_NAME) $(ARGS)
 
 # Run the samples
 .PHONY: run-json
