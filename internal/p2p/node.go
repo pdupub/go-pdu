@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
+
+	"github.com/multiformats/go-multiaddr"
 )
 
 type Node struct {
@@ -97,6 +100,45 @@ func (n *Node) handleStream(stream network.Stream) {
 
 	// 关闭流
 	// stream.Close()
+}
+
+// 添加获取本地地址的方法
+func (n *Node) GetLocalAddress() string {
+	// 获取第一个本地地址
+	for _, addr := range n.Host.Addrs() {
+		// 优先返回本地地址
+		if strings.Contains(addr.String(), "127.0.0.1") || strings.Contains(addr.String(), "localhost") {
+			return fmt.Sprintf("%s/p2p/%s", addr, n.Host.ID())
+		}
+	}
+	// 如果没有找到本地地址，返回第一个可用地址
+	if len(n.Host.Addrs()) > 0 {
+		return fmt.Sprintf("%s/p2p/%s", n.Host.Addrs()[0], n.Host.ID())
+	}
+	return ""
+}
+
+// 添加连接到指定地址的方法
+func (n *Node) ConnectToPeer(address string) error {
+	// 解析地址
+	addr, err := multiaddr.NewMultiaddr(address)
+	if err != nil {
+		return fmt.Errorf("invalid address: %w", err)
+	}
+
+	// 解析peer信息
+	info, err := peer.AddrInfoFromP2pAddr(addr)
+	if err != nil {
+		return fmt.Errorf("invalid peer info: %w", err)
+	}
+
+	// 连接到peer
+	if err := n.Host.Connect(n.ctx, *info); err != nil {
+		return fmt.Errorf("failed to connect: %w", err)
+	}
+
+	fmt.Printf("Successfully connected to peer: %s\n", info.ID)
+	return nil
 }
 
 // 发送消息到指定节点并等待回复

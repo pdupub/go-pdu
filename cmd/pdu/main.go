@@ -19,6 +19,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(startCmd)
+	rootCmd.AddCommand(connectCmd)
 }
 
 var startCmd = &cobra.Command{
@@ -47,7 +48,42 @@ var startCmd = &cobra.Command{
 		// 	fmt.Printf("  - %s/p2p/%s\n", addr, node.Host.ID())
 		// }
 
+		// 显示本地连接地址
+		localAddr := node.GetLocalAddress()
+		fmt.Printf("Local address for connections: %s\n", localAddr)
+		// fmt.Println("\nUse this address in another terminal with:")
+		// fmt.Printf("  pdu connect %s\n", localAddr)
+
 		// 等待中断信号
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigChan
+	},
+}
+var connectCmd = &cobra.Command{
+	Use:   "connect [address]",
+	Short: "Connect to a peer using its address",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		ctx := context.Background()
+
+		// 创建节点
+		node, err := p2p.NewNode(ctx, "pdu", "1.0.0")
+		if err != nil {
+			fmt.Printf("Failed to create node: %v\n", err)
+			os.Exit(1)
+		}
+		defer node.Close()
+
+		// 连接到指定地址
+		address := args[0]
+		if err := node.ConnectToPeer(address); err != nil {
+			fmt.Printf("Failed to connect: %v\n", err)
+			os.Exit(1)
+		}
+
+		// 保持连接
+		fmt.Println("Connection established. Press Ctrl+C to disconnect.")
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		<-sigChan
