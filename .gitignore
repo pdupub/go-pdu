@@ -1,7 +1,11 @@
 # PDU
 *.key
 *.db
+
+# Binaries
+bin/
 build/
+
 
 # idea
 # .vscode/
