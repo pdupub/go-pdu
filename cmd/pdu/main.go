@@ -37,10 +37,10 @@ var startCmd = &cobra.Command{
 
 		// 打印节点信息
 		fmt.Printf("P2P node started with ID: %s\n", node.Host.ID())
-		fmt.Printf("Listening on addresses:\n")
-		for _, addr := range node.Host.Addrs() {
-			fmt.Printf("  - %s/p2p/%s\n", addr, node.Host.ID())
-		}
+		// fmt.Printf("Listening on addresses:\n")
+		// for _, addr := range node.Host.Addrs() {
+		// 	fmt.Printf("  - %s/p2p/%s\n", addr, node.Host.ID())
+		// }
 
 		// 等待中断信号
 		sigChan := make(chan os.Signal, 1)
