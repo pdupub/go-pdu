@@ -26,6 +26,11 @@ run-json:
 	@echo "Running project..."
 	@go run ./cmd/tools/json
 
+.PHONY: run-p2p
+run-p2p:
+	@echo "Running project..."
+	@go run ./cmd/tools/p2p
+
 # Test the project
 .PHONY: test
 test:
