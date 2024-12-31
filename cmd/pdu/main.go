@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/pdupub/go-pdu/internal/p2p"
@@ -82,11 +84,48 @@ var connectCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// 保持连接
-		fmt.Println("Connection established. Press Ctrl+C to disconnect.")
+		// 创建一个channel用于处理中断信号
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-		<-sigChan
+
+		// 创建一个channel用于通知主循环退出
+		done := make(chan bool)
+
+		// 在goroutine中处理信号
+		go func() {
+			<-sigChan
+			fmt.Println("Disconnecting...")
+			done <- true
+		}()
+
+		// 交互式命令行
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Println("Connection established. Type 'q' or 'quit' to exit.")
+
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				fmt.Print("> ")
+				input, err := reader.ReadString('\n')
+				if err != nil {
+					fmt.Printf("Error reading input: %v\n", err)
+					continue
+				}
+
+				// 去除输入末尾的换行符
+				input = strings.TrimSpace(input)
+
+				// 检查是否退出
+				if input == "q" || input == "quit" {
+					return
+				}
+
+				// 回显输入的内容
+				// fmt.Printf("You typed: %s\n", input)
+			}
+		}
 	},
 }
 
