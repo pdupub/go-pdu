@@ -42,6 +42,7 @@ type UnsignedQuantum struct {
 type SignedQuantum struct {
 	UnsignedQuantum
 	Signature string `json:"sig,omitempty"`
+	Signer    string `json:"signer,omitempty"`
 }
 
 func NewUnsignedQuantum(contents []*QContent, last string, nonce int, references []string) *UnsignedQuantum {
