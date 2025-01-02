@@ -14,8 +14,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
-
-	"github.com/multiformats/go-multiaddr"
 )
 
 type Node struct {
@@ -24,7 +22,7 @@ type Node struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 	protocolID protocol.ID
-	streams    []network.Stream
+	streams    map[peer.ID]network.Stream
 	streamsMux sync.Mutex
 }
 
@@ -56,7 +54,7 @@ func NewNode(ctx context.Context, protocolName string, protocolVersion string) (
 		ctx:        ctx,
 		cancel:     cancel,
 		protocolID: protocolID,
-		streams:    make([]network.Stream, 0),
+		streams:    make(map[peer.ID]network.Stream),
 	}
 
 	// 设置流处理器
@@ -72,34 +70,36 @@ func NewNode(ctx context.Context, protocolName string, protocolVersion string) (
 
 // 处理接收到的流
 func (n *Node) handleStream(stream network.Stream) {
-	// 添加流到集合
-	n.addStream(stream)
-	defer n.removeStream(stream)
+	peerID := stream.Conn().RemotePeer()
 
-	// 读取消息
+	// 保存接收到的 stream
+	n.streamsMux.Lock()
+	n.streams[peerID] = stream
+	n.streamsMux.Unlock()
+
+	// 处理消息
 	buf := make([]byte, 1024)
-	len, err := stream.Read(buf)
-	if err != nil {
-		fmt.Printf("Error reading from stream: %s\n", err)
-		stream.Reset()
-		return
-	}
-
-	// 打印接收到的消息
-	msg := string(buf[:len])
-	fmt.Printf("Received message from %s: %s\n", stream.Conn().RemotePeer(), msg)
-
-	// 如果收到 "Hello!"，回复 "How are you"
-	if msg == "Hello!" {
-		response := "How are you"
-		_, err := stream.Write([]byte(response))
+	for {
+		len, err := stream.Read(buf)
 		if err != nil {
-			fmt.Printf("Error sending response: %s\n", err)
+			// 如果读取失败，移除 stream
+			n.streamsMux.Lock()
+			delete(n.streams, peerID)
+			n.streamsMux.Unlock()
+			return
+		}
+
+		msg := string(buf[:len])
+		fmt.Printf("Received message from %s: %s\n", peerID, msg)
+
+		// 如果收到 Hello，发送回复
+		if msg == "Hello!" {
+			_, err = stream.Write([]byte("How are you"))
+			if err != nil {
+				fmt.Printf("Error sending response: %s\n", err)
+			}
 		}
 	}
-
-	// 关闭流
-	// stream.Close()
 }
 
 // 添加获取本地地址的方法
@@ -118,57 +118,48 @@ func (n *Node) GetLocalAddress() string {
 	return ""
 }
 
-// 添加连接到指定地址的方法
-func (n *Node) ConnectToPeer(address string) error {
-	// 解析地址
-	addr, err := multiaddr.NewMultiaddr(address)
-	if err != nil {
-		return fmt.Errorf("invalid address: %w", err)
+// 获取或创建 Stream
+func (n *Node) getOrCreateStream(peerID peer.ID) (network.Stream, error) {
+	n.streamsMux.Lock()
+	defer n.streamsMux.Unlock()
+
+	// 检查是否已存在活跃的 stream
+	if stream, exists := n.streams[peerID]; exists {
+		// 验证 stream 是否仍然有效
+		if stream.Reset() == nil {
+			return stream, nil
+		}
+		// stream 已失效，删除它
+		delete(n.streams, peerID)
 	}
 
-	// 解析peer信息
-	info, err := peer.AddrInfoFromP2pAddr(addr)
-	if err != nil {
-		return fmt.Errorf("invalid peer info: %w", err)
-	}
-
-	// 连接到peer
-	if err := n.Host.Connect(n.ctx, *info); err != nil {
-		return fmt.Errorf("failed to connect: %w", err)
-	}
-
-	fmt.Printf("Successfully connected to peer: %s\n", info.ID)
-	return nil
-}
-
-// 发送消息到指定节点并等待回复
-func (n *Node) SendMessage(peerID peer.ID, message string) error {
-	// 打开到目标节点的流
+	// 创建新的 stream
 	stream, err := n.Host.NewStream(n.ctx, peerID, n.protocolID)
 	if err != nil {
-		return fmt.Errorf("failed to open stream: %w", err)
+		return nil, fmt.Errorf("failed to create stream: %w", err)
 	}
 
-	// 添加流到集合
-	n.addStream(stream)
-	defer n.removeStream(stream)
+	// 保存新创建的 stream
+	n.streams[peerID] = stream
+	return stream, nil
+}
+
+// 发送消息
+func (n *Node) SendMessage(peerID peer.ID, message string) error {
+	stream, err := n.getOrCreateStream(peerID)
+	if err != nil {
+		return err
+	}
 
 	// 发送消息
 	_, err = stream.Write([]byte(message))
 	if err != nil {
+		// 如果发送失败，移除失效的 stream
+		n.streamsMux.Lock()
+		delete(n.streams, peerID)
+		n.streamsMux.Unlock()
 		return fmt.Errorf("failed to send message: %w", err)
 	}
-
-	// 等待回复
-	buf := make([]byte, 1024)
-	len, err := stream.Read(buf)
-	if err != nil {
-		return fmt.Errorf("failed to read response: %w", err)
-	}
-
-	// 打印收到的回复
-	response := string(buf[:len])
-	fmt.Printf("Received response from %s: %s\n", peerID, response)
 
 	return nil
 }
@@ -209,11 +200,8 @@ func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 	}
 }
 
+// 关闭时清理所有 streams
 func (n *Node) Close() error {
-	// 取消上下文
-	n.cancel()
-
-	// 关闭所有流
 	n.streamsMux.Lock()
 	for _, stream := range n.streams {
 		stream.Close()
@@ -221,34 +209,8 @@ func (n *Node) Close() error {
 	n.streams = nil
 	n.streamsMux.Unlock()
 
-	// 关闭 DHT
 	if err := n.DHT.Close(); err != nil {
-		return fmt.Errorf("failed to close DHT: %w", err)
+		return err
 	}
-
-	// 关闭 Host
-	if err := n.Host.Close(); err != nil {
-		return fmt.Errorf("failed to close host: %w", err)
-	}
-
-	return nil
-}
-
-// 添加流到集合中
-func (n *Node) addStream(stream network.Stream) {
-	n.streamsMux.Lock()
-	defer n.streamsMux.Unlock()
-	n.streams = append(n.streams, stream)
-}
-
-// 从集合中移除流
-func (n *Node) removeStream(stream network.Stream) {
-	n.streamsMux.Lock()
-	defer n.streamsMux.Unlock()
-	for i, s := range n.streams {
-		if s == stream {
-			n.streams = append(n.streams[:i], n.streams[i+1:]...)
-			break
-		}
-	}
+	return n.Host.Close()
 }
