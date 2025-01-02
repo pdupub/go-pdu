@@ -8,7 +8,6 @@ import (
 	"github.com/pdupub/go-pdu/internal/core"
 
 	_ "github.com/mattn/go-sqlite3"
-
 )
 
 func TestInitDB(t *testing.T) {
@@ -60,4 +59,9 @@ func TestInsertQueryQuantum(t *testing.T) {
 		t.Errorf("insertQuantum error: %v", err)
 	}
 
+	if results, err := queryQuantumsByReference(db, "ref1"); err != nil {
+		t.Errorf("queryQuantumsByReference error: %v", err)
+	} else {
+		t.Logf("queryQuantumsByReference results: %v", results)
+	}
 }

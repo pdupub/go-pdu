@@ -80,7 +80,8 @@ func queryQuantumsByReference(db *sql.DB, refText string) ([]core.SignedQuantum,
 	var results []core.SignedQuantum
 	for rows.Next() {
 		var sq core.SignedQuantum
-		err := rows.Scan(&sq.Signature, &sq.Last, &sq.Nonce, &sq.Type, &sq.Signer)
+		var t int64
+		err := rows.Scan(&sq.Signature, &sq.Last, &sq.Nonce, &sq.Type, &sq.Signer, &t)
 		if err != nil {
 			return nil, fmt.Errorf("scan error: %w", err)
 		}
