@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/pdupub/go-pdu/internal/p2p"
 	"github.com/spf13/cobra"
 )
@@ -19,6 +20,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(startCmd)
+	rootCmd.AddCommand(rpcCmd)
 }
 
 var startCmd = &cobra.Command{
@@ -57,6 +59,31 @@ var startCmd = &cobra.Command{
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		<-sigChan
+	},
+}
+
+var rpcCmd = &cobra.Command{
+	Use:   "rpc [msg]",
+	Short: "Connect to RPC server",
+	Long:  `Connect to a remote RPC server using the provided address.`,
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		client, err := rpc.DialHTTP("http://127.0.0.1:8545")
+		if err != nil {
+			fmt.Printf("Failed to connect to RPC server: %v", err)
+		}
+		defer client.Close()
+
+		// 2) 调用远程方法 "math_add"
+		//    go-ethereum/rpc 调用形式为: client.Call(&result, "serviceName_methodName", param1, param2, ...)
+		var result string
+		err = client.Call(&result, "pdu_chat", args[0])
+		if err != nil {
+			fmt.Printf("RPC call error: %v", err)
+		}
+
+		fmt.Printf("RPC result: %s\n", result)
+
 	},
 }
 

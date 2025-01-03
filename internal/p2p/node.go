@@ -3,6 +3,8 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -15,7 +17,17 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/pdupub/go-pdu/internal/config"
+
+	"github.com/ethereum/go-ethereum/rpc"
 )
+
+// 定义一个对外提供的 API
+type PDUAPI struct{}
+
+func (p *PDUAPI) Chat(msg string) string {
+	fmt.Println("Received message: ", msg)
+	return fmt.Sprintf("You said: %s", msg)
+}
 
 type Node struct {
 	Host       host.Host
@@ -25,6 +37,7 @@ type Node struct {
 	protocolID protocol.ID
 	streams    map[peer.ID]network.Stream
 	streamsMux sync.Mutex
+	listener   net.Listener
 }
 
 // 创建新节点
@@ -48,6 +61,22 @@ func NewNode(ctx context.Context) (*Node, error) {
 
 	// 构造协议ID
 	protocolID := protocol.ID(fmt.Sprintf("/%s/%s", config.ProtocolName, config.ProtocolVersion))
+
+	// 创建RPC客户端
+	rpcServer := rpc.NewServer()
+	if err := rpcServer.RegisterName("pdu", &PDUAPI{}); err != nil {
+		return nil, fmt.Errorf("failed to register PDU: %w", err)
+	}
+	// ln, err := net.Listen("tcp", "127.0.0.1:8545")
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to listen on port 8545: %w", err)
+	// }
+	http.Handle("/", rpcServer)
+
+	addr := "127.0.0.1:8545"
+
+	fmt.Println("HTTP RPC server listening on", addr)
+	go http.ListenAndServe(addr, nil)
 
 	node := &Node{
 		Host:       h,
