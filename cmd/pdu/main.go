@@ -27,7 +27,7 @@ var startCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 
-		node, err := p2p.NewNode(ctx, "pdu", "1.0.0")
+		node, err := p2p.NewNode(ctx)
 		if err != nil {
 			fmt.Printf("Failed to create node: %v\n", err)
 			os.Exit(1)

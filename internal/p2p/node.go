@@ -14,6 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
+	"github.com/pdupub/go-pdu/internal/config"
 )
 
 type Node struct {
@@ -27,7 +28,7 @@ type Node struct {
 }
 
 // 创建新节点
-func NewNode(ctx context.Context, protocolName string, protocolVersion string) (*Node, error) {
+func NewNode(ctx context.Context) (*Node, error) {
 	ctx, cancel := context.WithCancel(ctx)
 
 	// 创建libp2p主机
@@ -46,7 +47,7 @@ func NewNode(ctx context.Context, protocolName string, protocolVersion string) (
 	}
 
 	// 构造协议ID
-	protocolID := protocol.ID(fmt.Sprintf("/%s/%s", protocolName, protocolVersion))
+	protocolID := protocol.ID(fmt.Sprintf("/%s/%s", config.ProtocolName, config.ProtocolVersion))
 
 	node := &Node{
 		Host:       h,
