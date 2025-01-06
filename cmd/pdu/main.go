@@ -63,10 +63,10 @@ var startCmd = &cobra.Command{
 }
 
 var rpcCmd = &cobra.Command{
-	Use:   "rpc [msg]",
+	Use:   "rpc [peerID] [msg]",
 	Short: "Connect to RPC server",
 	Long:  `Connect to a remote RPC server using the provided address.`,
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		client, err := rpc.DialHTTP("http://127.0.0.1:8545")
 		if err != nil {
@@ -77,12 +77,19 @@ var rpcCmd = &cobra.Command{
 		// 2) 调用远程方法 "math_add"
 		//    go-ethereum/rpc 调用形式为: client.Call(&result, "serviceName_methodName", param1, param2, ...)
 		var result string
-		err = client.Call(&result, "pdu_chat", args[0])
+		err = client.Call(&result, "pdu_chat", args[1])
 		if err != nil {
-			fmt.Printf("RPC call error: %v", err)
+			fmt.Printf("RPC Chat call error: %v", err)
 		}
 
-		fmt.Printf("RPC result: %s\n", result)
+		fmt.Printf("RPC chat result: %s\n", result)
+
+		err = client.Call(&result, "pdu_message", args[0], args[1])
+		if err != nil {
+			fmt.Printf("RPC Message call error: %v", err)
+		}
+
+		fmt.Printf("RPC Message result: %s\n", result)
 
 	},
 }
