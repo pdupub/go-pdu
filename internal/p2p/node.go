@@ -21,14 +21,6 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-// 定义一个对外提供的 API
-type PDUAPI struct{}
-
-func (p *PDUAPI) Chat(msg string) string {
-	fmt.Println("Received message: ", msg)
-	return fmt.Sprintf("You said: %s", msg)
-}
-
 type Node struct {
 	Host       host.Host
 	DHT        *dht.IpfsDHT
@@ -62,22 +54,6 @@ func NewNode(ctx context.Context) (*Node, error) {
 	// 构造协议ID
 	protocolID := protocol.ID(fmt.Sprintf("/%s/%s", config.ProtocolName, config.ProtocolVersion))
 
-	// 创建RPC客户端
-	rpcServer := rpc.NewServer()
-	if err := rpcServer.RegisterName("pdu", &PDUAPI{}); err != nil {
-		return nil, fmt.Errorf("failed to register PDU: %w", err)
-	}
-	// ln, err := net.Listen("tcp", "127.0.0.1:8545")
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to listen on port 8545: %w", err)
-	// }
-	http.Handle("/", rpcServer)
-
-	addr := "127.0.0.1:8545"
-
-	fmt.Println("HTTP RPC server listening on", addr)
-	go http.ListenAndServe(addr, nil)
-
 	node := &Node{
 		Host:       h,
 		DHT:        kadDHT,
@@ -94,6 +70,19 @@ func NewNode(ctx context.Context) (*Node, error) {
 	if err := node.setupDiscovery(); err != nil {
 		return nil, err
 	}
+
+	// 创建RPC客户端
+	rpcServer := rpc.NewServer()
+	if err := rpcServer.RegisterName("pdu", NewPDUAPI(node)); err != nil {
+		return nil, fmt.Errorf("failed to register PDU: %w", err)
+	}
+
+	http.Handle("/", rpcServer)
+
+	addr := "127.0.0.1:8545"
+
+	fmt.Println("HTTP RPC server listening on", addr)
+	go http.ListenAndServe(addr, nil)
 
 	return node, nil
 }
