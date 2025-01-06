@@ -112,12 +112,12 @@ func (n *Node) handleStream(stream network.Stream) {
 		fmt.Printf("Received message from %s: %s\n", peerID, msg)
 
 		// 如果收到 Hello，发送回复
-		if msg == "Hello!" {
-			_, err = stream.Write([]byte("How are you"))
-			if err != nil {
-				fmt.Printf("Error sending response: %s\n", err)
-			}
-		}
+		// if msg == "Hello!" {
+		// 	_, err = stream.Write([]byte("Hey Back"))
+		// 	if err != nil {
+		// 		fmt.Printf("Error sending response: %s\n", err)
+		// 	}
+		// }
 	}
 }
 
@@ -144,8 +144,8 @@ func (n *Node) getOrCreateStream(peerID peer.ID) (network.Stream, error) {
 
 	// 检查是否已存在活跃的 stream
 	if stream, exists := n.streams[peerID]; exists {
-		// 验证 stream 是否仍然有效
-		if stream.Reset() == nil {
+		// 修改验证方式：尝试写入一个空消息来测试流是否有效
+		if _, err := stream.Write([]byte{}); err == nil {
 			return stream, nil
 		}
 		// stream 已失效，删除它
