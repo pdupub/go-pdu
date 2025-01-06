@@ -87,38 +87,47 @@ func NewNode(ctx context.Context) (*Node, error) {
 	return node, nil
 }
 
-// 处理接收到的流
 func (n *Node) handleStream(stream network.Stream) {
 	peerID := stream.Conn().RemotePeer()
 
-	// 保存接收到的 stream
+	// 将这个新来的 stream 缓存到 map 中
 	n.streamsMux.Lock()
 	n.streams[peerID] = stream
 	n.streamsMux.Unlock()
 
-	// 处理消息
-	buf := make([]byte, 1024)
-	for {
-		len, err := stream.Read(buf)
-		if err != nil {
-			// 如果读取失败，移除 stream
+	// 在单独的 goroutine 中处理“读消息”逻辑
+	go func() {
+		defer func() {
+			// 一旦退出读循环（出现错误或对端关闭等），需要清理
 			n.streamsMux.Lock()
 			delete(n.streams, peerID)
 			n.streamsMux.Unlock()
-			return
+
+			// 最后关闭这个 stream
+			stream.Close()
+		}()
+
+		buf := make([]byte, 1024)
+		for {
+			// 不断从 stream 中读取数据
+			length, err := stream.Read(buf)
+			if err != nil {
+				// 读出错，说明对端可能断开了或出现其他错误，结束循环
+				fmt.Printf("Error reading from %s: %v\n", peerID, err)
+				break
+			}
+
+			msg := string(buf[:length])
+			fmt.Printf("Received message from %s: %s\n", peerID, msg)
+
+			// 简单演示：如果收到 "Hello!"，则回复一句 "How are you"
+			// if msg == "Hello!" {
+			// 	if _, werr := stream.Write([]byte("How are you")); werr != nil {
+			// 		fmt.Printf("Error sending response to %s: %v\n", peerID, werr)
+			// 	}
+			// }
 		}
-
-		msg := string(buf[:len])
-		fmt.Printf("Received message from %s: %s\n", peerID, msg)
-
-		// 如果收到 Hello，发送回复
-		// if msg == "Hello!" {
-		// 	_, err = stream.Write([]byte("Hey Back"))
-		// 	if err != nil {
-		// 		fmt.Printf("Error sending response: %s\n", err)
-		// 	}
-		// }
-	}
+	}()
 }
 
 // 添加获取本地地址的方法
@@ -142,15 +151,15 @@ func (n *Node) getOrCreateStream(peerID peer.ID) (network.Stream, error) {
 	n.streamsMux.Lock()
 	defer n.streamsMux.Unlock()
 
-	// 检查是否已存在活跃的 stream
-	if stream, exists := n.streams[peerID]; exists {
-		// 修改验证方式：尝试写入一个空消息来测试流是否有效
-		if _, err := stream.Write([]byte{}); err == nil {
-			return stream, nil
-		}
-		// stream 已失效，删除它
-		delete(n.streams, peerID)
-	}
+	// // 检查是否已存在活跃的 stream
+	// if stream, exists := n.streams[peerID]; exists {
+	// 	// 修改验证方式：尝试写入一个空消息来测试流是否有效
+	// 	if _, err := stream.Write([]byte{}); err == nil {
+	// 		return stream, nil
+	// 	}
+	// 	// stream 已失效，删除它
+	// 	delete(n.streams, peerID)
+	// }
 
 	// 创建新的 stream
 	stream, err := n.Host.NewStream(n.ctx, peerID, n.protocolID)
@@ -212,7 +221,7 @@ func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 	fmt.Printf("Connected to peer: %s\n", pi.ID)
 
 	// 主动发起连接的一方发送 Hello 消息
-	err := n.node.SendMessage(pi.ID, "Hello!")
+	err := n.node.SendMessage(pi.ID, "Hi")
 	if err != nil {
 		fmt.Printf("Failed to send hello message to %s: %s\n", pi.ID, err)
 		return
