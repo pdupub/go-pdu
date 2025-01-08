@@ -30,6 +30,28 @@ func readSDP(prompt string) string {
 	return strings.Join(sdpLines, "\n")
 }
 
+func getConfig() webrtc.Configuration {
+	return webrtc.Configuration{
+		ICEServers: []webrtc.ICEServer{
+			{
+				URLs: []string{"stun:turn.cloudflare.com:3478"},
+			},
+			{
+				URLs: []string{"stun:stunserver2024.stunprotocol.org:3478"},
+			},
+			{
+				URLs: []string{"stun:stun.isp.net.au:3478"},
+			},
+			{
+				URLs: []string{"stun:stun.freeswitch.org:3478"},
+			},
+			{
+				URLs: []string{"stun:stun.voip.blackberry.com:3478"},
+			},
+		},
+	}
+}
+
 func main() {
 	fmt.Println("Choose role (offer/answer):")
 	reader := bufio.NewReader(os.Stdin)
