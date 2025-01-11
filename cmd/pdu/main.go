@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/ethereum/go-ethereum/rpc"
+
 	"github.com/pdupub/go-pdu/internal/p2p"
 	"github.com/spf13/cobra"
 )
@@ -27,6 +28,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(rpcCmd)
+	rootCmd.AddCommand(createKeyCmd)
 
 	startCmd.Flags().BoolVar(&rpcEnable, "rpc", false, "Enable RPC ")
 	startCmd.Flags().IntVarP(&rpcPort, "rpcport", "p", 8545, "RPC server port")
