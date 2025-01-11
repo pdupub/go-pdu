@@ -12,6 +12,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	rpcEnable bool // 是否开启 RPC 服务
+	rpcPort   int  // 添加 RPC 端口变量
+
+)
+
 var rootCmd = &cobra.Command{
 	Use:   "pdu",
 	Short: "PDU is a command line tool",
@@ -21,6 +27,12 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(rpcCmd)
+
+	startCmd.Flags().BoolVar(&rpcEnable, "rpc", false, "Enable RPC ")
+	startCmd.Flags().IntVarP(&rpcPort, "rpcport", "p", 8545, "RPC server port")
+
+	rpcCmd.Flags().IntVarP(&rpcPort, "rpcport", "p", 8545, "RPC server port")
+
 }
 
 var startCmd = &cobra.Command{
@@ -55,6 +67,12 @@ var startCmd = &cobra.Command{
 		// fmt.Println("\nUse this address in another terminal with:")
 		// fmt.Printf("  pdu connect %s\n", localAddr)
 
+		if rpcEnable {
+			if err = node.StartRPC(rpcPort); err != nil {
+				fmt.Println("RPC open fail")
+			}
+		}
+
 		// 等待中断信号
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -68,7 +86,10 @@ var rpcCmd = &cobra.Command{
 	Long:  `Connect to a remote RPC server using the provided address.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		client, err := rpc.DialHTTP("http://127.0.0.1:8545")
+
+		addr := fmt.Sprintf("http://127.0.0.1:%d", rpcPort)
+
+		client, err := rpc.DialHTTP(addr)
 		if err != nil {
 			fmt.Printf("Failed to connect to RPC server: %v", err)
 		}

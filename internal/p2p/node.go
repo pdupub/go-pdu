@@ -17,6 +17,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/pdupub/go-pdu/internal/config"
+	"github.com/pkg/errors"
 
 	"github.com/ethereum/go-ethereum/rpc"
 )
@@ -71,20 +72,28 @@ func NewNode(ctx context.Context) (*Node, error) {
 		return nil, err
 	}
 
+	return node, nil
+}
+
+func (n *Node) StartRPC(port int) error {
 	// 创建RPC客户端
 	rpcServer := rpc.NewServer()
-	if err := rpcServer.RegisterName("pdu", NewPDUAPI(node)); err != nil {
-		return nil, fmt.Errorf("failed to register PDU: %w", err)
+	if err := rpcServer.RegisterName("pdu", NewPDUAPI(n)); err != nil {
+		return errors.Errorf("failed to register PDU: %s", err)
 	}
-
 	http.Handle("/", rpcServer)
 
-	addr := "127.0.0.1:8545"
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
 
-	fmt.Println("HTTP RPC server listening on", addr)
-	go http.ListenAndServe(addr, nil)
+	go func() {
+		fmt.Println("RPC server listening on", addr)
 
-	return node, nil
+		if err := http.ListenAndServe(addr, nil); err != nil {
+			fmt.Printf("RPC server starting fail : %s \n", err)
+		}
+	}()
+
+	return nil
 }
 
 func (n *Node) handleStream(stream network.Stream) {

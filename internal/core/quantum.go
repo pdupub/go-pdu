@@ -30,7 +30,7 @@ type UnsignedQuantum struct {
 	// Contents contain all data in this quantum
 	Contents []*QContent `json:"cs,omitempty"`
 	// Last contains the signature in last quantum
-	Last string `json:"last,omitempty"`
+	Last string `json:"last"`
 	// Nonce specifies the nonce of this quantum
 	Nonce int `json:"nonce"`
 	// References contains all references in this quantum
