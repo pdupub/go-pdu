@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -73,6 +75,53 @@ func NewNode(ctx context.Context) (*Node, error) {
 	}
 
 	return node, nil
+}
+
+// 列出所有 keystore 文件
+func (n *Node) ListKeystoreFiles() ([]string, []string, error) {
+	keystorePath, err := n.getKeystorePath()
+	if err != nil {
+		return nil, nil, err
+	}
+	// 确保目录存在
+	if _, err := os.Stat(keystorePath); os.IsNotExist(err) {
+		return nil, nil, fmt.Errorf("keystore directory does not exist: %s", keystorePath)
+	}
+
+	// 读取目录中的所有文件
+	files, err := os.ReadDir(keystorePath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read keystore directory: %w", err)
+	}
+
+	// 过滤并收集 keystore 文件
+	var keystoreFullFiles []string
+	var keystoreShortFiles []string
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		// 通常 keystore 文件是 JSON 格式
+		if strings.HasSuffix(file.Name(), ".json") {
+			fullPath := filepath.Join(keystorePath, file.Name())
+			keystoreFullFiles = append(keystoreFullFiles, fullPath)
+			keystoreShortFiles = append(keystoreShortFiles, file.Name())
+		}
+	}
+
+	return keystoreFullFiles, keystoreShortFiles, nil
+}
+
+func (n *Node) getKeystorePath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	// keystorePath := filepath.Join(home, ".pdu", "keystore")
+
+	keystorePath := filepath.Join(home, "Develop", "go-pdu", "keystore")
+
+	return keystorePath, nil
 }
 
 func (n *Node) StartRPC(port int) error {

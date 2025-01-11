@@ -7,9 +7,28 @@ import (
 	"os"
 	"strings"
 
+	"github.com/pdupub/go-pdu/internal/p2p"
+
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/spf13/cobra"
 )
+
+var listKeysCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List ETH keystore files",
+	Run: func(cmd *cobra.Command, args []string) {
+		node := &p2p.Node{}
+		_, filenames, err := node.ListKeystoreFiles()
+		if err != nil {
+			fmt.Printf("load keystore files fail: %s \n", err)
+			return
+		}
+		for _, f := range filenames {
+			fmt.Println(f)
+		}
+
+	},
+}
 
 var createKeyCmd = &cobra.Command{
 	Use:   "create",
@@ -48,7 +67,7 @@ var createKeyCmd = &cobra.Command{
 
 		// 5. 重命名 keystore 文件为地址名
 		newFileName := account.Address.Hex()
-		newFilePath := fmt.Sprintf("%s/%s", keystoreDir, newFileName)
+		newFilePath := fmt.Sprintf("%s/%s.json", keystoreDir, newFileName)
 		if err := os.Rename(account.URL.Path, newFilePath); err != nil {
 			log.Fatalf("Failed to rename keystore file: %v", err)
 		}

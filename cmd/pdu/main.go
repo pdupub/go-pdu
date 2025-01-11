@@ -29,6 +29,7 @@ func init() {
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(rpcCmd)
 	rootCmd.AddCommand(createKeyCmd)
+	rootCmd.AddCommand(listKeysCmd)
 
 	startCmd.Flags().BoolVar(&rpcEnable, "rpc", false, "Enable RPC ")
 	startCmd.Flags().IntVarP(&rpcPort, "rpcport", "p", 8545, "RPC server port")
