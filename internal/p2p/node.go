@@ -36,7 +36,7 @@ type Node struct {
 }
 
 // 创建新节点
-func NewNode(ctx context.Context) (*Node, error) {
+func NewNode(ctx context.Context, dbPath string) (*Node, error) {
 	ctx, cancel := context.WithCancel(ctx)
 
 	// 创建libp2p主机

@@ -17,6 +17,8 @@ var (
 	rpcEnable bool // 是否开启 RPC 服务
 	rpcPort   int  // 添加 RPC 端口变量
 
+	dbPath string // 数据库文件地址
+
 )
 
 var rootCmd = &cobra.Command{
@@ -33,7 +35,7 @@ func init() {
 
 	startCmd.Flags().BoolVar(&rpcEnable, "rpc", false, "Enable RPC ")
 	startCmd.Flags().IntVarP(&rpcPort, "rpcport", "p", 8545, "RPC server port")
-
+	startCmd.Flags().StringVar(&dbPath, "dbpath", "pdu.db", "Path of local database")
 	rpcCmd.Flags().IntVarP(&rpcPort, "rpcport", "p", 8545, "RPC server port")
 
 }
@@ -44,7 +46,7 @@ var startCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 
-		node, err := p2p.NewNode(ctx)
+		node, err := p2p.NewNode(ctx, dbPath)
 		if err != nil {
 			fmt.Printf("Failed to create node: %v\n", err)
 			os.Exit(1)
