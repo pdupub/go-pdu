@@ -63,7 +63,7 @@ func (p *PDUAPI) Unlock(addr, password string) string {
 	return fmt.Sprintf("Success unlock %s", addr)
 }
 
-func (p *PDUAPI) lock(addr string) string {
-	p.node.ClearPrivKey(addr)
-	return fmt.Sprintf("Success lock %s", addr)
+func (p *PDUAPI) Clear() string {
+	p.node.ClearPrivKey()
+	return "Success clear unlock key"
 }

@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/ethereum/go-ethereum/rpc"
@@ -86,37 +89,83 @@ var startCmd = &cobra.Command{
 }
 
 var rpcCmd = &cobra.Command{
-	Use:   "rpc [peerID] [msg]",
-	Short: "Connect to RPC server",
-	Long:  `Connect to a remote RPC server using the provided address.`,
-	Args:  cobra.ExactArgs(2),
+	Use:   "rpc",
+	Short: "Start interactive RPC command session",
+	Long:  `Enter an interactive RPC command session with a remote RPC server.`,
 	Run: func(cmd *cobra.Command, args []string) {
-
 		addr := fmt.Sprintf("http://127.0.0.1:%d", rpcPort)
 
 		client, err := rpc.DialHTTP(addr)
 		if err != nil {
-			fmt.Printf("Failed to connect to RPC server: %v", err)
+			log.Fatalf("Failed to connect to RPC server at %s: %v", addr, err)
 		}
 		defer client.Close()
 
-		// 2) 调用远程方法 "math_add"
-		//    go-ethereum/rpc 调用形式为: client.Call(&result, "serviceName_methodName", param1, param2, ...)
-		var result string
-		err = client.Call(&result, "pdu_chat", args[1])
-		if err != nil {
-			fmt.Printf("RPC Chat call error: %v", err)
+		fmt.Println("Connected to RPC server.")
+		fmt.Println("Type 'quit' or 'q' to exit.")
+		fmt.Println("Type your RPC method and arguments in the format: method arg1 arg2 ...")
+
+		// 使用 bufio.NewReader 读取用户输入
+		reader := bufio.NewReader(os.Stdin)
+
+		for {
+			// 显示提示符
+			fmt.Print("> ")
+
+			// 读取整行输入
+			input, err := reader.ReadString('\n')
+			if err != nil {
+				fmt.Printf("Error reading input: %v\n", err)
+				continue
+			}
+
+			// 去除行末的换行符
+			input = strings.TrimSpace(input)
+
+			// 检查退出条件
+			if input == "quit" || input == "q" {
+				fmt.Println("Exiting RPC session.")
+				break
+			}
+
+			// 拆分用户输入为方法名和参数
+			parts := strings.Fields(input)
+			if len(parts) < 1 {
+				fmt.Println("Invalid input. Please provide a method name and arguments.")
+				continue
+			}
+
+			method := "pdu_" + parts[0]
+			args := parts[1:]
+
+			// 将 []string 转换为 []interface{}
+			rpcArgs := make([]interface{}, len(args))
+			for i, arg := range args {
+				rpcArgs[i] = arg
+			}
+
+			// 调用 RPC 方法
+			if parts[0] == "list" {
+
+				var result []string
+				err = client.Call(&result, method, rpcArgs...)
+
+				if err != nil {
+					fmt.Printf("RPC call error: %v\n", err)
+				} else {
+					fmt.Printf("RPC result: %s\n", result)
+				}
+			} else {
+				var result string
+				err = client.Call(&result, method, rpcArgs...)
+
+				if err != nil {
+					fmt.Printf("RPC call error: %v\n", err)
+				} else {
+					fmt.Printf("RPC result: %s\n", result)
+				}
+			}
 		}
-
-		fmt.Printf("RPC chat result: %s\n", result)
-
-		err = client.Call(&result, "pdu_message", args[0], args[1])
-		if err != nil {
-			fmt.Printf("RPC Message call error: %v", err)
-		}
-
-		fmt.Printf("RPC Message result: %s\n", result)
-
 	},
 }
 

@@ -83,7 +83,7 @@ func NewNode(ctx context.Context, dbPath string) (*Node, error) {
 	return node, nil
 }
 
-func (n *Node) ClearPrivKey(addr string) {
+func (n *Node) ClearPrivKey() {
 	n.key = nil
 }
 
