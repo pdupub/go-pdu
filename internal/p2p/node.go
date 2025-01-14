@@ -18,6 +18,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/pdupub/go-pdu/internal/config"
+	"github.com/pdupub/go-pdu/internal/core"
 	"github.com/pdupub/go-pdu/internal/db"
 	"github.com/pkg/errors"
 
@@ -261,6 +262,32 @@ func (n *Node) getOrCreateStream(peerID peer.ID) (network.Stream, error) {
 	return stream, nil
 }
 
+func (n *Node) CreateSignedMessage(message string) ([]byte, error) {
+	if n.key == nil {
+		return nil, errors.Errorf("private key is locked, can not sign the message")
+	}
+
+	quantum := core.UnsignedQuantum{
+		Contents: []*core.QContent{
+			{
+				Data:   message,
+				Format: "string",
+			},
+		},
+		Last:       core.DefaultLastSig,
+		Nonce:      1,
+		References: []string{},
+	}
+
+	// 生成带签名的 JSON
+	signedJSON, err := core.GenerateSignedJSON(n.key.PrivateKey, quantum)
+	if err != nil {
+		return nil, err
+	}
+
+	return signedJSON, nil
+}
+
 // 发送消息
 func (n *Node) SendMessage(peerID peer.ID, message string) error {
 	stream, err := n.getOrCreateStream(peerID)
@@ -268,8 +295,12 @@ func (n *Node) SendMessage(peerID peer.ID, message string) error {
 		return err
 	}
 
+	signedMsg, err := n.CreateSignedMessage(message)
+	if err != nil {
+		return err
+	}
 	// 发送消息
-	_, err = stream.Write([]byte(message))
+	_, err = stream.Write(signedMsg)
 	if err != nil {
 		// 如果发送失败，移除失效的 stream
 		n.streamsMux.Lock()
