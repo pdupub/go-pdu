@@ -3,7 +3,6 @@ package p2p
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,6 +18,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/pdupub/go-pdu/internal/config"
+	"github.com/pdupub/go-pdu/internal/db"
 	"github.com/pkg/errors"
 
 	"github.com/ethereum/go-ethereum/rpc"
@@ -26,18 +26,21 @@ import (
 
 type Node struct {
 	Host       host.Host
+	db         *db.DB
 	DHT        *dht.IpfsDHT
 	ctx        context.Context
 	cancel     context.CancelFunc
 	protocolID protocol.ID
 	streams    map[peer.ID]network.Stream
 	streamsMux sync.Mutex
-	listener   net.Listener
 }
 
 // 创建新节点
 func NewNode(ctx context.Context, dbPath string) (*Node, error) {
 	ctx, cancel := context.WithCancel(ctx)
+
+	// 读取数据库
+	db := db.NewDB(dbPath)
 
 	// 创建libp2p主机
 	h, err := libp2p.New()
@@ -59,6 +62,7 @@ func NewNode(ctx context.Context, dbPath string) (*Node, error) {
 
 	node := &Node{
 		Host:       h,
+		db:         db,
 		DHT:        kadDHT,
 		ctx:        ctx,
 		cancel:     cancel,

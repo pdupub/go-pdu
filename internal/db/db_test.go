@@ -11,13 +11,13 @@ import (
 )
 
 func TestInitDB(t *testing.T) {
-	db := initDB()
+	db := NewDB("test.db")
 	defer db.Close()
 
 }
 
 func TestInsertQueryQuantum(t *testing.T) {
-	db := initDB()
+	db := NewDB("test.db")
 	defer db.Close()
 
 	quantum := core.NewUnsignedQuantum([]*core.QContent{
@@ -55,11 +55,11 @@ func TestInsertQueryQuantum(t *testing.T) {
 		t.Errorf("json.Unmarshal error: %v", err)
 	}
 
-	if err := insertQuantum(db, &signed); err != nil {
+	if err := db.InsertQuantum(&signed); err != nil {
 		t.Errorf("insertQuantum error: %v", err)
 	}
 
-	if results, err := queryQuantumsByReference(db, "ref1"); err != nil {
+	if results, err := db.QueryQuantumsByReference("ref1"); err != nil {
 		t.Errorf("queryQuantumsByReference error: %v", err)
 	} else {
 		t.Logf("queryQuantumsByReference results: %v", results)

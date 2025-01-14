@@ -5,11 +5,33 @@ import (
 	"log"
 
 	_ "github.com/mattn/go-sqlite3"
-
+	"github.com/pdupub/go-pdu/internal/core"
 )
 
-func initDB() *sql.DB {
-	db, err := sql.Open("sqlite3", "test.db")
+type DB struct {
+	db   *sql.DB
+	path string
+}
+
+func NewDB(filename string) *DB {
+	return &DB{db: initDB(filename),
+		path: filename}
+}
+
+func (db *DB) Close() error {
+	return db.db.Close()
+}
+
+func (db *DB) InsertQuantum(sq *core.SignedQuantum) error {
+	return insertQuantum(db.db, sq)
+}
+
+func (db *DB) QueryQuantumsByReference(refText string) ([]core.SignedQuantum, error) {
+	return queryQuantumsByReference(db.db, refText)
+}
+
+func initDB(filename string) *sql.DB {
+	db, err := sql.Open("sqlite3", filename)
 	if err != nil {
 		log.Fatalf("Failed to open db: %v", err)
 	}
