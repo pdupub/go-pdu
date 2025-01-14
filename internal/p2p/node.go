@@ -21,6 +21,7 @@ import (
 	"github.com/pdupub/go-pdu/internal/db"
 	"github.com/pkg/errors"
 
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
@@ -33,6 +34,7 @@ type Node struct {
 	protocolID protocol.ID
 	streams    map[peer.ID]network.Stream
 	streamsMux sync.Mutex
+	key        *keystore.Key
 }
 
 // 创建新节点
@@ -79,6 +81,31 @@ func NewNode(ctx context.Context, dbPath string) (*Node, error) {
 	}
 
 	return node, nil
+}
+
+func (n *Node) ClearPrivKey(addr string) {
+	n.key = nil
+}
+
+func (n *Node) UnlockPrivKey(addr, password string) error {
+	// 1. 指定 keystore 文件保存路径
+	keystoreDir := "./keystore"
+	filePath := filepath.Join(keystoreDir, fmt.Sprintf("%s.json", addr))
+
+	// 尝试加载 keystore 文件
+	keyJSON, err := os.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	// 使用密码解锁私钥
+	key, err := keystore.DecryptKey(keyJSON, password)
+	if err != nil {
+		return err
+	}
+
+	n.key = key
+	return nil
 }
 
 // 列出所有 keystore 文件
