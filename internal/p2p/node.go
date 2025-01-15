@@ -17,6 +17,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/pdupub/go-pdu/internal/config"
 	"github.com/pdupub/go-pdu/internal/core"
 	"github.com/pdupub/go-pdu/internal/db"
@@ -59,6 +60,44 @@ func NewNode(ctx context.Context, dbPath string) (*Node, error) {
 		cancel()
 		return nil, fmt.Errorf("failed to create DHT: %w", err)
 	}
+
+	// 启动 DHT
+	if err := kadDHT.Bootstrap(ctx); err != nil {
+		fmt.Printf("Failed to bootstrap DHT: %s", err.Error())
+	}
+
+	// 添加公共引导节点 (这里以 IPFS 默认引导节点为例)
+	bootstrapPeers := []string{
+		"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
+		"/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
+		"/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
+		"/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+		"/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+	}
+
+	for _, peerAddr := range bootstrapPeers {
+		addr, err := multiaddr.NewMultiaddr(peerAddr)
+		if err != nil {
+			fmt.Printf("Invalid bootstrap peer address: %s\n", err)
+			continue
+		}
+
+		peerInfo, err := peer.AddrInfoFromP2pAddr(addr)
+		if err != nil {
+			fmt.Printf("Invalid bootstrap peer info: %s\n", err)
+			continue
+		}
+
+		// 连接到引导节点
+		if err := h.Connect(ctx, *peerInfo); err != nil {
+			fmt.Printf("Failed to connect to bootstrap peer: %s\n", err)
+		} else {
+			fmt.Printf("Connected to bootstrap peer: %s\n", peerInfo.ID.String())
+		}
+	}
+
+	// 等待路由表更新
+	time.Sleep(10 * time.Second)
 
 	// 构造协议ID
 	protocolID := protocol.ID(fmt.Sprintf("/%s/%s", config.ProtocolName, config.ProtocolVersion))
@@ -343,11 +382,11 @@ func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 	fmt.Printf("Connected to peer: %s\n", pi.ID)
 
 	// 主动发起连接的一方发送 Hello 消息
-	err := n.node.SendMessage(pi.ID, "Hi")
-	if err != nil {
-		fmt.Printf("Failed to send hello message to %s: %s\n", pi.ID, err)
-		return
-	}
+	// err := n.node.SendMessage(pi.ID, "Hi")
+	// if err != nil {
+	// 	fmt.Printf("Failed to send hello message to %s: %s\n", pi.ID, err)
+	// 	return
+	// }
 }
 
 // 关闭时清理所有 streams
