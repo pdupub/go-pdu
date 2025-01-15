@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ipfs/go-cid"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -18,6 +20,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/multiformats/go-multihash"
 	"github.com/pdupub/go-pdu/internal/config"
 	"github.com/pdupub/go-pdu/internal/core"
 	"github.com/pdupub/go-pdu/internal/db"
@@ -39,6 +42,8 @@ type Node struct {
 	key        *keystore.Key
 }
 
+var pID = fmt.Sprintf("/%s/%s", config.ProtocolName, config.ProtocolVersion)
+
 // 创建新节点
 func NewNode(ctx context.Context, dbPath string) (*Node, error) {
 	ctx, cancel := context.WithCancel(ctx)
@@ -59,11 +64,6 @@ func NewNode(ctx context.Context, dbPath string) (*Node, error) {
 		h.Close()
 		cancel()
 		return nil, fmt.Errorf("failed to create DHT: %w", err)
-	}
-
-	// 启动 DHT
-	if err := kadDHT.Bootstrap(ctx); err != nil {
-		fmt.Printf("Failed to bootstrap DHT: %s", err.Error())
 	}
 
 	// 添加公共引导节点 (这里以 IPFS 默认引导节点为例)
@@ -97,10 +97,28 @@ func NewNode(ctx context.Context, dbPath string) (*Node, error) {
 	}
 
 	// 等待路由表更新
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
+
+	// 启动 DHT
+	if err := kadDHT.Bootstrap(ctx); err != nil {
+		fmt.Printf("Failed to bootstrap DHT: %s", err.Error())
+	}
+
+	// 将协议 ID 转换为 CID
+	mh, err := multihash.Encode([]byte(pID), multihash.SHA2_256)
+	if err != nil {
+		log.Fatalf("Failed to create multihash: %v", err)
+	}
+	protocolCID := cid.NewCidV1(cid.Raw, mh)
+
+	// 注册协议到 DHT
+	err = kadDHT.Provide(ctx, protocolCID, true)
+	if err != nil {
+		log.Fatalf("Failed to provide protocol CID: %v", err)
+	}
 
 	// 构造协议ID
-	protocolID := protocol.ID(fmt.Sprintf("/%s/%s", config.ProtocolName, config.ProtocolVersion))
+	protocolID := protocol.ID(pID)
 
 	node := &Node{
 		Host:       h,
@@ -118,6 +136,16 @@ func NewNode(ctx context.Context, dbPath string) (*Node, error) {
 	// 启动本地节点发现
 	if err := node.setupDiscovery(); err != nil {
 		return nil, err
+	}
+
+	// 启动远程节点发现, 查找支持指定协议的节点
+	peers := kadDHT.FindProvidersAsync(ctx, protocolCID, 10)
+
+	for peerInfo := range peers {
+		fmt.Printf("Found peer: %s\n", peerInfo.ID)
+		for _, addr := range peerInfo.Addrs {
+			fmt.Printf("  Address: %s\n", addr)
+		}
 	}
 
 	return node, nil
