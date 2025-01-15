@@ -145,13 +145,15 @@ func (n *Node) ListKeystoreFiles() ([]string, []string, error) {
 }
 
 func (n *Node) getKeystorePath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
+	// home, err := os.UserHomeDir()
+	// if err != nil {
+	// 	return "", err
+	// }
 	// keystorePath := filepath.Join(home, ".pdu", "keystore")
 
-	keystorePath := filepath.Join(home, "Develop", "go-pdu", "keystore")
+	// keystorePath := filepath.Join(home, "Develop", "go-pdu", "keystore")
+
+	keystorePath := "./keystore"
 
 	return keystorePath, nil
 }
