@@ -143,12 +143,43 @@ func NewNode(ctx context.Context, dbPath string) (*Node, error) {
 
 	for peerInfo := range peers {
 		fmt.Printf("Found peer: %s\n", peerInfo.ID)
-		for _, addr := range peerInfo.Addrs {
-			fmt.Printf("  Address: %s\n", addr)
+		// for _, addr := range peerInfo.Addrs {
+		// 	fmt.Printf("  Address: %s\n", addr)
+		// }
+
+		// 与提供者节点建立连接
+		if err := h.Connect(ctx, peerInfo); err != nil {
+			fmt.Printf("Failed to connect to peer: %s, error: %v\n", peerInfo.ID, err)
+			continue
 		}
+		fmt.Printf("Connected to peer: %s\n", peerInfo.ID)
+
+		// 获取流信息
+		node.getStreamsForPeer(peerInfo.ID)
 	}
 
 	return node, nil
+}
+
+func (n *Node) getStreamsForPeer(peerID peer.ID) {
+	// 获取所有与目标节点的连接
+	conns := n.Host.Network().ConnsToPeer(peerID)
+	if len(conns) == 0 {
+		fmt.Printf("No connections to peer: %s\n", peerID)
+		return
+	}
+
+	for _, conn := range conns {
+		fmt.Printf("Connection to peer %s via: %s\n", peerID, conn.RemoteMultiaddr().String())
+
+		// 获取连接中的流
+		streams := conn.GetStreams()
+		for _, stream := range streams {
+			fmt.Printf("  Stream ID: %s\n", stream.ID())
+			fmt.Printf("  Protocol: %s\n", stream.Protocol())
+			n.streams[peerID] = stream
+		}
+	}
 }
 
 func (n *Node) ClearPrivKey() {
